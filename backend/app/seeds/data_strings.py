@@ -38,14 +38,10 @@ true
             py="""import sys
 
 
-def is_anagram(s, t):
-    # your logic here
-    pass
-
-
 def main():
     lines = sys.stdin.read().splitlines()
-    print(str(is_anagram(lines[0], lines[1])).lower())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -54,27 +50,24 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-bool isAnagram(string s, string t) {
-    return false;
-}
-
 int main() {
     string s, t;
     cin >> s >> t;
-    cout << (isAnagram(s, t) ? "true" : "false") << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static boolean isAnagram(String s, String t) {
-        return false;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(isAnagram(sc.next(), sc.next()) ? "true" : "false");
+        String s = sc.next();
+        String t = sc.next();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -125,14 +118,10 @@ Explanation: after filtering -> `"amanaplanacanalpanama"`.
             py="""import sys
 
 
-def is_palindrome(s):
-    # your logic here
-    pass
-
-
 def main():
-    line = input()
-    print(str(is_palindrome(line)).lower())
+    s = input()
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -141,27 +130,23 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-bool isPalindrome(string s) {
-    return false;
-}
-
 int main() {
     string line;
     getline(cin, line);
-    cout << (isPalindrome(line) ? "true" : "false") << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static boolean isPalindrome(String s) {
-        return false;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(isPalindrome(sc.nextLine()) ? "true" : "false");
+        String s = sc.nextLine();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -211,13 +196,10 @@ Explanation: `"wke"` has length 3; note `"pwke"` is a subsequence, not a substri
             py="""import sys
 
 
-def length_of_longest_substring(s):
-    # your logic here
-    pass
-
-
 def main():
-    print(length_of_longest_substring(input()))
+    s = input()
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -226,27 +208,23 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int lengthOfLongestSubstring(string s) {
-    return 0;
-}
-
 int main() {
     string s;
     getline(cin, s);
-    cout << lengthOfLongestSubstring(s) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int lengthOfLongestSubstring(String s) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(lengthOfLongestSubstring(sc.nextLine()));
+        String s = sc.nextLine();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -305,17 +283,12 @@ nat tan
             py="""import sys
 
 
-def group_anagrams(words):
-    # your logic here; sort inside groups and across groups before printing
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     words = data[1:n + 1]
-    for group in group_anagrams(words):
-        print(*group)
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -324,36 +297,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-vector<vector<string>> groupAnagrams(vector<string>& words) {
-    return {};
-}
-
 int main() {
     int n;
     cin >> n;
     vector<string> words(n);
     for (auto& w : words) cin >> w;
-    for (auto& g : groupAnagrams(words)) {
-        for (int i = 0; i < (int)g.size(); i++)
-            cout << g[i] << " \\n"[i + 1 == (int)g.size()];
-    }
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static List<List<String>> groupAnagrams(String[] words) {
-        return new ArrayList<>();
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         String[] words = new String[n];
         for (int i = 0; i < n; i++) words[i] = sc.next();
-        for (List<String> g : groupAnagrams(words))
-            System.out.println(String.join(" ", g));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -406,15 +370,10 @@ BANC
             py="""import sys
 
 
-def min_window(s, t):
-    # your logic here
-    pass
-
-
 def main():
     lines = sys.stdin.read().splitlines()
-    result = min_window(lines[0], lines[1])
-    print(result)
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -423,27 +382,24 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-string minWindow(string s, string t) {
-    return "";
-}
-
 int main() {
     string s, t;
     cin >> s >> t;
-    cout << minWindow(s, t) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static String minWindow(String s, String t) {
-        return "";
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(minWindow(sc.next(), sc.next()));
+        String s = sc.next();
+        String t = sc.next();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,

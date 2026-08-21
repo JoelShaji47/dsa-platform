@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -36,6 +36,8 @@ class Submission(Base):
     )
     runtime_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
     memory_kb: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ai_review: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    judge_summary: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

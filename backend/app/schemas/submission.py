@@ -35,6 +35,8 @@ class SubmissionResultOut(BaseModel):
     runtime_ms: float
     memory_kb: float
     xp_awarded: int
+    xp_forfeited: bool = False
     user_xp: int
     current_streak: int
+    new_badges: list[str] = []
     test_results: list[TestResultOut]

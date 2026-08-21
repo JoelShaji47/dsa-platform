@@ -24,6 +24,34 @@ def _client() -> genai.Client:
     return genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
+def model_name() -> str:
+    return settings.GEMINI_MODEL
+
+
+def generate_sync(
+    prompt: str,
+    system_instruction: str = SYSTEM_INSTRUCTION,
+    json_mode: bool = False,
+) -> str:
+    client = _client()
+    config_kwargs = {"system_instruction": system_instruction}
+    if json_mode:
+        config_kwargs["response_mime_type"] = "application/json"
+    try:
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(**config_kwargs),
+        )
+        if not response.text:
+            raise GeminiError("Gemini returned an empty response")
+        return response.text
+    except GeminiError:
+        raise
+    except Exception as exc:
+        raise GeminiError(f"Gemini request failed: {exc}") from exc
+
+
 async def generate(prompt: str, system_instruction: str = SYSTEM_INSTRUCTION) -> str:
     client = _client()
 

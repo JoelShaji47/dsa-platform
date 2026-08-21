@@ -15,9 +15,10 @@ from app.schemas.submission import (
     TestResultOut,
     VisibleTestResult,
 )
-from app.services.gamification import award_xp, update_streak
+from app.services.gamification import award_new_badges, award_xp, update_streak
 from app.services.grader import grade_code
 from app.services.judge0 import Judge0Error
+from app.services.tutor import has_used_hints
 
 router = APIRouter(prefix="/problems", tags=["problems"])
 
@@ -61,7 +62,7 @@ def list_problems(
             topic=problem.topic,
             solved=problem.id in solved_ids,
         )
-        for problem in query.order_by(Problem.title).all()
+        for problem in query.order_by(Problem.difficulty, Problem.title).all()
     ]
 
 
@@ -174,10 +175,14 @@ async def submit_solution(
     )
 
     xp_awarded = 0
+    xp_forfeited = False
     if result.status == SubmissionStatus.ACCEPTED:
         if not already_solved:
-            xp_awarded = award_xp(current_user, problem.difficulty)
-            current_user.xp += xp_awarded
+            if has_used_hints(db, current_user.id, problem.id):
+                xp_forfeited = True
+            else:
+                xp_awarded = award_xp(current_user, problem.difficulty)
+                current_user.xp += xp_awarded
         update_streak(current_user)
 
     submission = Submission(
@@ -188,8 +193,18 @@ async def submit_solution(
         status=result.status,
         runtime_ms=result.runtime_ms,
         memory_kb=result.memory_kb,
+        judge_summary=[
+            {"index": outcome.index, "passed": outcome.passed}
+            for outcome in result.test_results
+        ],
     )
     db.add(submission)
+    db.flush()
+    new_badges = (
+        award_new_badges(db, current_user)
+        if result.status == SubmissionStatus.ACCEPTED
+        else []
+    )
     db.commit()
     db.refresh(submission)
 
@@ -199,8 +214,10 @@ async def submit_solution(
         runtime_ms=submission.runtime_ms or 0.0,
         memory_kb=submission.memory_kb or 0.0,
         xp_awarded=xp_awarded,
+        xp_forfeited=xp_forfeited,
         user_xp=current_user.xp,
         current_streak=current_user.current_streak,
+        new_badges=new_badges,
         test_results=[
             TestResultOut(index=outcome.index, passed=outcome.passed)
             for outcome in result.test_results

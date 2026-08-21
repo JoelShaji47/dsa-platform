@@ -52,17 +52,13 @@ Explanation: `nums[0] + nums[1] == 9`.
             py="""import sys
 
 
-def two_sum(nums, target):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
     target = int(data[n + 1])
-    print(*two_sum(nums, target))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -71,36 +67,30 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-vector<int> twoSum(vector<int>& nums, int target) {
-}
-
 int main() {
     int n;
     cin >> n;
     vector<int> nums(n);
     for (auto& x : nums) cin >> x;
-    int target;
+    long long target;
     cin >> target;
-    vector<int> res = twoSum(nums, target);
-    cout << res[0] << " " << res[1] << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int[] twoSum(int[] nums, int target) {
-        return new int[]{-1, -1};
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
-        int target = sc.nextInt();
-        int[] res = twoSum(nums, target);
-        System.out.println(res[0] + " " + res[1]);
+        long target = sc.nextLong();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -150,17 +140,12 @@ The transformed array as `n` space-separated integers.
             py="""import sys
 
 
-def move_zeroes(nums):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
-    result = move_zeroes(nums)
-    print(*result)
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -169,34 +154,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-void moveZeroes(vector<int>& nums) {
-}
-
 int main() {
     int n;
     cin >> n;
     vector<int> nums(n);
     for (auto& x : nums) cin >> x;
-    moveZeroes(nums);
-    for (int i = 0; i < n; i++) cout << nums[i] << " \\n"[i == n - 1];
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static void moveZeroes(int[] nums) {
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
-        moveZeroes(nums);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < n; i++) sb.append(nums[i]).append(i < n - 1 ? " " : "");
-        System.out.println(sb);
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -248,16 +226,12 @@ Explanation: subarray `[4, -1, 2, 1]` has the largest sum `6`.
             py="""import sys
 
 
-def max_subarray(nums):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
-    print(max_subarray(nums))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -266,32 +240,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int maxSubarray(vector<int>& nums) {
-    return 0;
-}
-
 int main() {
     int n;
     cin >> n;
     vector<int> nums(n);
     for (auto& x : nums) cin >> x;
-    cout << maxSubarray(nums) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int maxSubarray(int[] nums) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
-        System.out.println(maxSubarray(nums));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -345,17 +314,13 @@ Explanation: subarrays `[1,1]` (indices 0-1) and `[1,1]` (indices 1-2).
             py="""import sys
 
 
-def subarray_sum(nums, k):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
     k = int(data[n + 1])
-    print(subarray_sum(nums, k))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -364,10 +329,6 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int subarraySum(vector<int>& nums, int k) {
-    return 0;
-}
-
 int main() {
     int n;
     cin >> n;
@@ -375,24 +336,23 @@ int main() {
     for (auto& x : nums) cin >> x;
     int k;
     cin >> k;
-    cout << subarraySum(nums, k) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int subarraySum(int[] nums, int k) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
         int k = sc.nextInt();
-        System.out.println(subarraySum(nums, k));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -445,16 +405,12 @@ You must write an algorithm that runs in O(n) time and **without using division*
             py="""import sys
 
 
-def product_except_self(nums):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
-    print(*product_except_self(nums))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -463,36 +419,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-vector<int> productExceptSelf(vector<int>& nums) {
-    return {};
-}
-
 int main() {
     int n;
     cin >> n;
     vector<int> nums(n);
     for (auto& x : nums) cin >> x;
-    vector<int> res = productExceptSelf(nums);
-    for (int i = 0; i < n; i++) cout << res[i] << " \\n"[i == n - 1];
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static long[] productExceptSelf(int[] nums) {
-        return new long[nums.length];
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
-        long[] res = productExceptSelf(nums);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < n; i++) sb.append(res[i]).append(i < n - 1 ? " " : "");
-        System.out.println(sb);
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -544,16 +491,12 @@ A single integer — the smallest missing positive.
             py="""import sys
 
 
-def first_missing_positive(nums):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
-    print(first_missing_positive(nums))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -562,32 +505,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int firstMissingPositive(vector<int>& nums) {
-    return 1;
-}
-
 int main() {
     int n;
     cin >> n;
     vector<int> nums(n);
     for (auto& x : nums) cin >> x;
-    cout << firstMissingPositive(nums) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int firstMissingPositive(int[] nums) {
-        return 1;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
-        System.out.println(firstMissingPositive(nums));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,

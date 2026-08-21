@@ -140,13 +140,10 @@ A single integer — the maximum depth.
             py=PY_TREE_LIB
             + """
 
-def max_depth(root):
-    # your logic here
-    pass
-
-
 def main():
-    print(max_depth(build_tree(read_tokens())))
+    root = build_tree(read_tokens())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -154,29 +151,26 @@ if __name__ == "__main__":
 """,
             cpp=CPP_TREE_LIB
             + """
-int maxDepth(TreeNode* root) {
-    return 0;
-}
-
 int main() {
     vector<string> tokens;
     string t;
     while (cin >> t) tokens.push_back(t);
-    cout << maxDepth(buildTree(tokens)) << endl;
+    TreeNode* root = buildTree(tokens);
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java=JAVA_TREE_LIB
             + """
-    static int maxDepth(TreeNode root) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         List<String> list = new ArrayList<>();
         while (sc.hasNext()) list.add(sc.next());
-        System.out.println(maxDepth(buildTree(list.toArray(new String[0]))));
+        TreeNode root = buildTree(list.toArray(new String[0]));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -223,11 +217,6 @@ Space-separated level-order tokens of the inverted tree.
             py=PY_TREE_LIB
             + """
 
-def invert_tree(root):
-    # your logic here
-    pass
-
-
 def serialize(root):
     out = []
     q = deque([root])
@@ -245,7 +234,9 @@ def serialize(root):
 
 
 def main():
-    print(serialize(invert_tree(build_tree(read_tokens()))))
+    root = build_tree(read_tokens())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -253,17 +244,9 @@ if __name__ == "__main__":
 """,
             cpp=CPP_TREE_LIB
             + """
-TreeNode* invertTree(TreeNode* root) {
-    return root;
-}
-
-int main() {
-    vector<string> tokens;
-    string t;
-    while (cin >> t) tokens.push_back(t);
-    TreeNode* inv = invertTree(buildTree(tokens));
+vector<string> serialize(TreeNode* root) {
     vector<string> out;
-    queue<TreeNode*> q; q.push(inv);
+    queue<TreeNode*> q; q.push(root);
     while (!q.empty()) {
         TreeNode* node = q.front(); q.pop();
         if (!node) { out.push_back("null"); continue; }
@@ -271,25 +254,26 @@ int main() {
         q.push(node->left); q.push(node->right);
     }
     while (!out.empty() && out.back() == "null") out.pop_back();
-    for (int i = 0; i < (int)out.size(); i++)
-        cout << out[i] << " \\n"[i + 1 == (int)out.size()];
+    return out;
+}
+
+int main() {
+    vector<string> tokens;
+    string t;
+    while (cin >> t) tokens.push_back(t);
+    TreeNode* root = buildTree(tokens);
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java=JAVA_TREE_LIB
             + """
-    static TreeNode invertTree(TreeNode root) {
-        return root;
-    }
-
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        List<String> list = new ArrayList<>();
-        while (sc.hasNext()) list.add(sc.next());
-        TreeNode inv = invertTree(buildTree(list.toArray(new String[0])));
+    static List<String> serialize(TreeNode root) {
         List<String> out = new ArrayList<>();
         Queue<TreeNode> q = new LinkedList<>();
-        q.add(inv);
+        q.add(root);
         while (!q.isEmpty()) {
             TreeNode node = q.poll();
             if (node == null) { out.add("null"); continue; }
@@ -297,7 +281,16 @@ int main() {
             q.add(node.left); q.add(node.right);
         }
         while (out.get(out.size() - 1).equals("null")) out.remove(out.size() - 1);
-        System.out.println(String.join(" ", out));
+        return out;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        List<String> list = new ArrayList<>();
+        while (sc.hasNext()) list.add(sc.next());
+        TreeNode root = buildTree(list.toArray(new String[0]));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -352,16 +345,12 @@ A single integer — the value of the LCA node.
             py=PY_TREE_LIB
             + """
 
-def lowest_common_ancestor(root, p, q):
-    # your logic here
-    pass
-
-
 def main():
     data = read_tokens()
     p, q = int(data[-2]), int(data[-1])
     root = build_tree(data[:-2])
-    print(lowest_common_ancestor(root, p, q).val)
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -369,10 +358,6 @@ if __name__ == "__main__":
 """,
             cpp=CPP_TREE_LIB
             + """
-TreeNode* lowestCommonAncestor(TreeNode* root, int p, int q) {
-    return root;
-}
-
 int main() {
     vector<string> tokens;
     string t;
@@ -380,16 +365,15 @@ int main() {
     int p = stoi(tokens[tokens.size() - 2]);
     int q = stoi(tokens[tokens.size() - 1]);
     tokens.resize(tokens.size() - 2);
-    cout << lowestCommonAncestor(buildTree(tokens), p, q)->val << endl;
+    TreeNode* root = buildTree(tokens);
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java=JAVA_TREE_LIB
     + """
-    static TreeNode lowestCommonAncestor(TreeNode root, int p, int q) {
-        return root;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         List<String> list = new ArrayList<>();
@@ -397,7 +381,8 @@ int main() {
         int p = Integer.parseInt(list.get(list.size() - 2));
         int q = Integer.parseInt(list.get(list.size() - 1));
         TreeNode root = buildTree(list.subList(0, list.size() - 2).toArray(new String[0]));
-        System.out.println(lowestCommonAncestor(root, p, q).val);
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -447,13 +432,10 @@ Explanation: node 4's right child 6 violates the bound imposed by the root (5).
             py=PY_TREE_LIB
             + """
 
-def is_valid_bst(root):
-    # your logic here
-    pass
-
-
 def main():
-    print(str(is_valid_bst(build_tree(read_tokens()))).lower())
+    root = build_tree(read_tokens())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -461,29 +443,26 @@ if __name__ == "__main__":
 """,
             cpp=CPP_TREE_LIB
             + """
-bool isValidBST(TreeNode* root) {
-    return false;
-}
-
 int main() {
     vector<string> tokens;
     string t;
     while (cin >> t) tokens.push_back(t);
-    cout << (isValidBST(buildTree(tokens)) ? "true" : "false") << endl;
+    TreeNode* root = buildTree(tokens);
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java=JAVA_TREE_LIB
             + """
-    static boolean isValidBST(TreeNode root) {
-        return false;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         List<String> list = new ArrayList<>();
         while (sc.hasNext()) list.add(sc.next());
-        System.out.println(isValidBST(buildTree(list.toArray(new String[0]))) ? "true" : "false");
+        TreeNode root = buildTree(list.toArray(new String[0]));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -533,14 +512,10 @@ One line per level.
             py=PY_TREE_LIB
             + """
 
-def level_order(root):
-    # return a list of lists, one per level
-    pass
-
-
 def main():
-    for level in level_order(build_tree(read_tokens())):
-        print(*level)
+    root = build_tree(read_tokens())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -548,38 +523,26 @@ if __name__ == "__main__":
 """,
             cpp=CPP_TREE_LIB
             + """
-vector<vector<int>> levelOrder(TreeNode* root) {
-    return {};
-}
-
 int main() {
     vector<string> tokens;
     string t;
     while (cin >> t) tokens.push_back(t);
-    auto levels = levelOrder(buildTree(tokens));
-    for (int i = 0; i < (int)levels.size(); i++) {
-        for (int j = 0; j < (int)levels[i].size(); j++)
-            cout << levels[i][j] << " \\n"[j + 1 == (int)levels[i].size()];
-    }
+    TreeNode* root = buildTree(tokens);
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java=JAVA_TREE_LIB
             + """
-    static List<List<Integer>> levelOrder(TreeNode root) {
-        return new ArrayList<>();
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         List<String> list = new ArrayList<>();
         while (sc.hasNext()) list.add(sc.next());
-        for (List<Integer> level : levelOrder(buildTree(list.toArray(new String[0])))) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < level.size(); i++)
-                sb.append(level.get(i)).append(i < level.size() - 1 ? " " : "");
-            System.out.println(sb);
-        }
+        TreeNode root = buildTree(list.toArray(new String[0]));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -628,13 +591,10 @@ Explanation: path `4 -> 2 -> 1 -> 3` contains 3 edges.
             py=PY_TREE_LIB
             + """
 
-def diameter_of_binary_tree(root):
-    # your logic here
-    pass
-
-
 def main():
-    print(diameter_of_binary_tree(build_tree(read_tokens())))
+    root = build_tree(read_tokens())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -642,29 +602,26 @@ if __name__ == "__main__":
 """,
             cpp=CPP_TREE_LIB
             + """
-int diameterOfBinaryTree(TreeNode* root) {
-    return 0;
-}
-
 int main() {
     vector<string> tokens;
     string t;
     while (cin >> t) tokens.push_back(t);
-    cout << diameterOfBinaryTree(buildTree(tokens)) << endl;
+    TreeNode* root = buildTree(tokens);
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java=JAVA_TREE_LIB
             + """
-    static int diameterOfBinaryTree(TreeNode root) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         List<String> list = new ArrayList<>();
         while (sc.hasNext()) list.add(sc.next());
-        System.out.println(diameterOfBinaryTree(buildTree(list.toArray(new String[0]))));
+        TreeNode root = buildTree(list.toArray(new String[0]));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,

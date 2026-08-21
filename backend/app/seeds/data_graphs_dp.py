@@ -46,11 +46,6 @@ The filled grid — one row per line, values separated by spaces.
 sys.setrecursionlimit(10000)
 
 
-def flood_fill(image, sr, sc, color):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     idx = 0
@@ -60,10 +55,9 @@ def main():
     for _ in range(r):
         image.append([int(x) for x in data[idx:idx + c]])
         idx += c
-    sr, sc, color = int(data[idx]), int(data[idx + 1]), int(data[idx + 2])
-    result = flood_fill(image, sr, sc, color)
-    for row in result:
-        print(*row)
+    sr, scc, color = int(data[idx]), int(data[idx + 1]), int(data[idx + 2])
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -72,32 +66,23 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-vector<vector<int>> floodFill(vector<vector<int>>& image, int sr, int sc, int color) {
-    return {};
-}
-
 int main() {
     int r, c;
     cin >> r >> c;
     vector<vector<int>> image(r, vector<int>(c));
     for (auto& row : image)
         for (auto& x : row) cin >> x;
-    int sr, sc, color;
-    cin >> sr >> sc >> color;
-    auto res = floodFill(image, sr, sc, color);
-    for (int i = 0; i < r; i++)
-        for (int j = 0; j < c; j++)
-            cout << res[i][j] << " \\n"[j == c - 1];
+    int sr, scc, color;
+    cin >> sr >> scc >> color;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int[][] floodFill(int[][] image, int sr, int sc, int color) {
-        return image;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int r = sc.nextInt(), c = sc.nextInt();
@@ -105,13 +90,8 @@ public class Main {
         for (int[] row : image)
             for (int j = 0; j < c; j++) row[j] = sc.nextInt();
         int sr = sc.nextInt(), scc = sc.nextInt(), color = sc.nextInt();
-        int[][] res = floodFill(image, sr, scc, color);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < r; i++) {
-            for (int j = 0; j < c; j++) sb.append(res[i][j]).append(j < c - 1 ? " " : "");
-            if (i < r - 1) sb.append("\\n");
-        }
-        System.out.println(sb);
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -163,16 +143,12 @@ A single integer — the number of islands.
             py="""import sys
 
 
-def num_islands(grid):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     r, c = int(data[0]), int(data[1])
     grid = [list(data[2 + i]) for i in range(r)]
-    print(num_islands(grid))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -181,33 +157,28 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int numIslands(vector<vector<char>>& grid) {
-    return 0;
-}
-
 int main() {
     int r, c;
     cin >> r >> c;
     vector<vector<char>> grid(r, vector<char>(c));
     for (auto& row : grid)
         for (auto& ch : row) cin >> ch;
-    cout << numIslands(grid) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int numIslands(char[][] grid) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int r = sc.nextInt(), c = sc.nextInt();
         char[][] grid = new char[r][];
         for (int i = 0; i < r; i++) grid[i] = sc.next().toCharArray();
-        System.out.println(numIslands(grid));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -263,11 +234,6 @@ Explanation: courses 0 and 1 require each other.
             py="""import sys
 
 
-def can_finish(v, edges):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     v, e = int(data[0]), int(data[1])
@@ -276,7 +242,8 @@ def main():
     for _ in range(e):
         edges.append((int(data[idx]), int(data[idx + 1])))
         idx += 2
-    print(str(can_finish(v, edges)).lower())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -285,32 +252,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-bool canFinish(int v, vector<pair<int,int>>& edges) {
-    return false;
-}
-
 int main() {
     int v, e;
     cin >> v >> e;
     vector<pair<int,int>> edges(e);
     for (auto& [a, b] : edges) cin >> a >> b;
-    cout << (canFinish(v, edges) ? "true" : "false") << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static boolean canFinish(int v, int[][] edges) {
-        return false;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int v = sc.nextInt(), e = sc.nextInt();
         int[][] edges = new int[e][2];
         for (int[] p : edges) { p[0] = sc.nextInt(); p[1] = sc.nextInt(); }
-        System.out.println(canFinish(v, edges) ? "true" : "false");
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -359,13 +321,10 @@ Explanation: `1+1+1`, `1+2`, `2+1`.
             py="""import sys
 
 
-def climb_stairs(n):
-    # your logic here
-    pass
-
-
 def main():
-    print(climb_stairs(int(input())))
+    n = int(input())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -374,27 +333,23 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int climbStairs(int n) {
-    return 0;
-}
-
 int main() {
     int n;
     cin >> n;
-    cout << climbStairs(n) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int climbStairs(int n) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(climbStairs(sc.nextInt()));
+        int n = sc.nextInt();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -442,14 +397,10 @@ A single integer — the number of unique paths.
             py="""import sys
 
 
-def unique_paths(m, n):
-    # your logic here
-    pass
-
-
 def main():
     m, n = map(int, input().split())
-    print(unique_paths(m, n))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -458,27 +409,23 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int uniquePaths(int m, int n) {
-    return 0;
-}
-
 int main() {
     int m, n;
     cin >> m >> n;
-    cout << uniquePaths(m, n) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int uniquePaths(int m, int n) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(uniquePaths(sc.nextInt(), sc.nextInt()));
+        int m = sc.nextInt(), n = sc.nextInt();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -531,16 +478,12 @@ Explanation: `5 + 5 + 1`.
             py="""import sys
 
 
-def coin_change(coins, amount):
-    # your logic here
-    pass
-
-
 def main():
     lines = sys.stdin.read().splitlines()
     coins = [int(x) for x in lines[0].split()]
     amount = int(lines[1])
-    print(coin_change(coins, amount))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -548,10 +491,6 @@ if __name__ == "__main__":
 """,
             cpp="""#include <bits/stdc++.h>
 using namespace std;
-
-int coinChange(vector<int>& coins, int amount) {
-    return -1;
-}
 
 int main() {
     string line;
@@ -562,23 +501,23 @@ int main() {
     while (iss >> x) coins.push_back(x);
     int amount;
     cin >> amount;
-    cout << coinChange(coins, amount) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int coinChange(int[] coins, int amount) {
-        return -1;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         String[] parts = sc.nextLine().trim().split("\\\\s+");
         int[] coins = new int[parts.length];
         for (int i = 0; i < parts.length; i++) coins[i] = Integer.parseInt(parts[i]);
-        System.out.println(coinChange(coins, sc.nextInt()));
+        int amount = sc.nextInt();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -630,16 +569,12 @@ Explanation: `[2, 3, 7, 101]` (other lengths of 4 exist).
             py="""import sys
 
 
-def length_of_lis(nums):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     n = int(data[0])
     nums = [int(x) for x in data[1:n + 1]]
-    print(length_of_lis(nums))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -648,32 +583,27 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int lengthOfLIS(vector<int>& nums) {
-    return 0;
-}
-
 int main() {
     int n;
     cin >> n;
     vector<int> nums(n);
     for (auto& x : nums) cin >> x;
-    cout << lengthOfLIS(nums) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int lengthOfLIS(int[] nums) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
         int[] nums = new int[n];
         for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
-        System.out.println(lengthOfLIS(nums));
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -728,17 +658,13 @@ Explanation: `"apple pen apple"`.
             py="""import sys
 
 
-def word_break(s, word_dict):
-    # your logic here
-    pass
-
-
 def main():
     data = sys.stdin.read().split()
     s = data[0]
     k = int(data[1])
     words = data[2:2 + k]
-    print(str(word_break(s, set(words))).lower())
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -747,34 +673,29 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-bool wordBreak(string s, vector<string>& dict) {
-    return false;
-}
-
 int main() {
     string s;
     int k;
     cin >> s >> k;
-    vector<string> dict(k);
-    for (auto& w : dict) cin >> w;
-    cout << (wordBreak(s, dict) ? "true" : "false") << endl;
+    vector<string> words(k);
+    for (auto& w : words) cin >> w;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static boolean wordBreak(String s, Set<String> dict) {
-        return false;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         String s = sc.next();
         int k = sc.nextInt();
-        Set<String> dict = new HashSet<>();
-        for (int i = 0; i < k; i++) dict.add(sc.next());
-        System.out.println(wordBreak(s, dict) ? "true" : "false");
+        String[] words = new String[k];
+        for (int i = 0; i < k; i++) words[i] = sc.next();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,
@@ -825,14 +746,10 @@ Explanation: horse -> rorse (replace h) -> rose (delete r) -> ros (delete e).
             py="""import sys
 
 
-def min_distance(word1, word2):
-    # your logic here
-    pass
-
-
 def main():
     lines = sys.stdin.read().splitlines()
-    print(min_distance(lines[0], lines[1]))
+
+    # ===== YOUR CODE HERE =====
 
 
 if __name__ == "__main__":
@@ -841,27 +758,24 @@ if __name__ == "__main__":
             cpp="""#include <bits/stdc++.h>
 using namespace std;
 
-int minDistance(string a, string b) {
-    return 0;
-}
-
 int main() {
     string a, b;
     cin >> a >> b;
-    cout << minDistance(a, b) << endl;
+
+    // ===== YOUR CODE HERE =====
+
     return 0;
 }
 """,
             java="""import java.util.*;
 
 public class Main {
-    static int minDistance(String a, String b) {
-        return 0;
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.println(minDistance(sc.next(), sc.next()));
+        String a = sc.next();
+        String b = sc.next();
+
+        // ===== YOUR CODE HERE =====
     }
 }
 """,

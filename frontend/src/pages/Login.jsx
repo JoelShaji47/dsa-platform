@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Brand } from '../components/Shell'
 
 export default function Login() {
   const { login } = useAuth()
@@ -20,8 +21,8 @@ export default function Login() {
     } catch (err) {
       setError(
         err.response?.data?.detail === 'Incorrect email/username or password'
-          ? 'Invalid credentials. Try again.'
-          : err.response?.data?.detail || 'Login failed. Is the backend running?',
+          ? 'That email/username and password combination does not match.'
+          : err.response?.data?.detail || 'Cannot reach the server. Try again.',
       )
     } finally {
       setSubmitting(false)
@@ -29,56 +30,66 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
-        <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Log in to continue your streak
+    <div className="atlas-bg flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <div className="mb-8">
+        <Brand />
+      </div>
+      <div className="panel w-full max-w-md p-8">
+        <p className="eyebrow">Return to the trail</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">
+          Welcome back
+        </h1>
+        <p className="mt-1.5 text-[1.05rem] text-ink-soft">
+          Log in to keep your streak alive.
         </p>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-7 space-y-5">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-300">
+            <label htmlFor="identifier" className="mb-1.5 block text-base font-medium text-ink">
               Email or username
             </label>
             <input
+              id="identifier"
               type="text"
               required
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+              className="field"
               placeholder="you@example.com"
+              autoComplete="username"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-300">
+            <label htmlFor="password" className="mb-1.5 block text-base font-medium text-ink">
               Password
             </label>
             <input
+              id="password"
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
-              placeholder="••••••••"
+              className="field"
+              placeholder="Your password"
+              autoComplete="current-password"
             />
           </div>
           {error && (
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
+            <p className="rounded-xl border border-rust/30 bg-rust/8 px-4 py-3 text-[0.95rem] text-rust">
               {error}
             </p>
           )}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-emerald-600 py-2.5 font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn btn-ink w-full py-3 text-base"
           >
-            {submitting ? 'Logging in...' : 'Log in'}
+            {submitting ? 'Logging in…' : 'Log in'}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-slate-400">
-          No account?{' '}
-          <Link to="/register" className="text-emerald-400 hover:underline">
-            Register
+        <p className="mt-6 text-center text-[0.95rem] text-ink-soft">
+          New to CodeQuest?{' '}
+          <Link to="/register" className="font-semibold text-gold-deep hover:underline">
+            Start your quest
           </Link>
         </p>
       </div>

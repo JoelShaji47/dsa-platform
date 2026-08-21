@@ -6,12 +6,14 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from pydantic import ValidationError
+from sqlalchemy import text
 
 from app.db.session import SessionLocal
 from app.models.enums import Difficulty, Topic
 from app.models.problem import Problem
 from app.seeds import PROBLEMS
 from app.seeds.schema import ProblemSeed
+from app.services.gamification import ensure_badge_catalog
 
 
 def main() -> None:
@@ -44,6 +46,10 @@ def main() -> None:
                 updated += 1
         db.commit()
 
+    with SessionLocal() as db:
+        ensure_badge_catalog(db)
+        badge_count = db.execute(text("SELECT count(*) FROM badges")).scalar()
+    print(f"Badge catalog synced -> {badge_count} badges")
     print(f"Seeded {len(validated)} problems -> created={created} updated={updated}")
 
 
