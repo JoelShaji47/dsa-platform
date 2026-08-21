@@ -1,0 +1,884 @@
+from app.seeds.data_arrays import starters
+
+GRAPHS_DP = [
+    {
+        "title": "Flood Fill",
+        "slug": "flood-fill",
+        "difficulty": "EASY",
+        "topic": "GRAPH",
+        "description": """# Flood Fill
+
+## Statement
+You are given an image as a 2D grid of integers, a starting pixel `(sr, sc)` and a replacement color. Perform a flood fill: change the color of the starting pixel **and every 4-directionally connected pixel sharing its original color**, then print the resulting image.
+
+## Input Format
+- Line 1: integers `R C` (grid dimensions)
+- Next `R` lines: `C` space-separated integers per row
+- Last line: integers `sr sc newColor`
+
+## Output Format
+The filled grid — one row per line, values separated by spaces.
+
+## Constraints
+- `1 <= R, C <= 50`
+- `0 <= image[i][j], newColor <= 10^5`
+- `0 <= sr < R`, `0 <= sc < C`
+
+## Example
+
+**Input**
+```
+3 3
+1 1 1
+1 1 0
+1 0 1
+1 1 2
+```
+**Output**
+```
+2 2 2
+2 2 0
+2 0 1
+```
+""",
+        "starter_code": starters(
+            py="""import sys
+sys.setrecursionlimit(10000)
+
+
+def flood_fill(image, sr, sc, color):
+    # your logic here
+    pass
+
+
+def main():
+    data = sys.stdin.read().split()
+    idx = 0
+    r, c = int(data[idx]), int(data[idx + 1])
+    idx += 2
+    image = []
+    for _ in range(r):
+        image.append([int(x) for x in data[idx:idx + c]])
+        idx += c
+    sr, sc, color = int(data[idx]), int(data[idx + 1]), int(data[idx + 2])
+    result = flood_fill(image, sr, sc, color)
+    for row in result:
+        print(*row)
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+vector<vector<int>> floodFill(vector<vector<int>>& image, int sr, int sc, int color) {
+    return {};
+}
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<vector<int>> image(r, vector<int>(c));
+    for (auto& row : image)
+        for (auto& x : row) cin >> x;
+    int sr, sc, color;
+    cin >> sr >> sc >> color;
+    auto res = floodFill(image, sr, sc, color);
+    for (int i = 0; i < r; i++)
+        for (int j = 0; j < c; j++)
+            cout << res[i][j] << " \\n"[j == c - 1];
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int[][] floodFill(int[][] image, int sr, int sc, int color) {
+        return image;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int r = sc.nextInt(), c = sc.nextInt();
+        int[][] image = new int[r][c];
+        for (int[] row : image)
+            for (int j = 0; j < c; j++) row[j] = sc.nextInt();
+        int sr = sc.nextInt(), scc = sc.nextInt(), color = sc.nextInt();
+        int[][] res = floodFill(image, sr, scc, color);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) sb.append(res[i][j]).append(j < c - 1 ? " " : "");
+            if (i < r - 1) sb.append("\\n");
+        }
+        System.out.println(sb);
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "3 3\n1 1 1\n1 1 0\n1 0 1\n1 1 2\n", "expected_output": "2 2 2\n2 2 0\n2 0 1", "is_hidden": False},
+            {"input": "1 1\n0\n0 0 0\n", "expected_output": "0", "is_hidden": False},
+            {"input": "2 2\n1 2\n2 1\n0 0 3\n", "expected_output": "3 2\n2 1", "is_hidden": True},
+            {"input": "3 2\n5 5\n5 7\n7 7\n2 0 9\n", "expected_output": "5 5\n5 9\n9 9", "is_hidden": True},
+            {"input": "1 4\n8 8 8 8\n0 3 1\n", "expected_output": "1 1 1 1", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Number of Islands",
+        "slug": "number-of-islands",
+        "difficulty": "MEDIUM",
+        "topic": "GRAPH",
+        "description": """# Number of Islands
+
+## Statement
+You are given a binary grid where `'1'` is land and `'0'` is water. An **island** is a maximal group of land cells connected 4-directionally (all surrounding cells are water; the grid's edges are coastline). Count the islands.
+
+## Input Format
+- Line 1: integers `R C`
+- Next `R` lines: a string of `C` characters, each `0` or `1`
+
+## Output Format
+A single integer — the number of islands.
+
+## Constraints
+- `1 <= R, C <= 300`
+
+## Example
+
+**Input**
+```
+4 5
+11110
+11010
+11000
+00000
+```
+**Output**
+```
+1
+```
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def num_islands(grid):
+    # your logic here
+    pass
+
+
+def main():
+    data = sys.stdin.read().split()
+    r, c = int(data[0]), int(data[1])
+    grid = [list(data[2 + i]) for i in range(r)]
+    print(num_islands(grid))
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+int numIslands(vector<vector<char>>& grid) {
+    return 0;
+}
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<vector<char>> grid(r, vector<char>(c));
+    for (auto& row : grid)
+        for (auto& ch : row) cin >> ch;
+    cout << numIslands(grid) << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int numIslands(char[][] grid) {
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int r = sc.nextInt(), c = sc.nextInt();
+        char[][] grid = new char[r][];
+        for (int i = 0; i < r; i++) grid[i] = sc.next().toCharArray();
+        System.out.println(numIslands(grid));
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "4 5\n11110\n11010\n11000\n00000\n", "expected_output": "1", "is_hidden": False},
+            {"input": "4 5\n11000\n11000\n00100\n00011\n", "expected_output": "3", "is_hidden": False},
+            {"input": "1 1\n0\n", "expected_output": "0", "is_hidden": True},
+            {"input": "1 5\n10101\n", "expected_output": "3", "is_hidden": True},
+            {"input": "3 3\n111\n101\n111\n", "expected_output": "1", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Course Schedule",
+        "slug": "course-schedule",
+        "difficulty": "MEDIUM",
+        "topic": "GRAPH",
+        "description": """# Course Schedule
+
+## Statement
+There are `V` courses numbered `0..V-1` and `E` prerequisite pairs. A pair `a b` means you must take course `b` before course `a`. Determine whether it is possible to finish all courses — i.e., whether the prerequisite graph has no cycle.
+
+This is cycle detection on a directed graph (Kahn's BFS by in-degree or DFS coloring both work).
+
+## Input Format
+- Line 1: integers `V E`
+- Next `E` lines: two integers `a b` meaning `b` must be taken before `a`
+
+## Output Format
+`true` if all courses can be finished, otherwise `false`.
+
+## Constraints
+- `1 <= V <= 2000`
+- `0 <= E <= 5000`
+- No duplicate pairs.
+
+## Example
+
+**Input**
+```
+2 2
+1 0
+0 1
+```
+**Output**
+```
+false
+```
+
+Explanation: courses 0 and 1 require each other.
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def can_finish(v, edges):
+    # your logic here
+    pass
+
+
+def main():
+    data = sys.stdin.read().split()
+    v, e = int(data[0]), int(data[1])
+    edges = []
+    idx = 2
+    for _ in range(e):
+        edges.append((int(data[idx]), int(data[idx + 1])))
+        idx += 2
+    print(str(can_finish(v, edges)).lower())
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+bool canFinish(int v, vector<pair<int,int>>& edges) {
+    return false;
+}
+
+int main() {
+    int v, e;
+    cin >> v >> e;
+    vector<pair<int,int>> edges(e);
+    for (auto& [a, b] : edges) cin >> a >> b;
+    cout << (canFinish(v, edges) ? "true" : "false") << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static boolean canFinish(int v, int[][] edges) {
+        return false;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int v = sc.nextInt(), e = sc.nextInt();
+        int[][] edges = new int[e][2];
+        for (int[] p : edges) { p[0] = sc.nextInt(); p[1] = sc.nextInt(); }
+        System.out.println(canFinish(v, edges) ? "true" : "false");
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "2 2\n1 0\n0 1\n", "expected_output": "false", "is_hidden": False},
+            {"input": "2 1\n1 0\n", "expected_output": "true", "is_hidden": False},
+            {"input": "4 4\n1 0\n2 1\n3 2\n0 3\n", "expected_output": "false", "is_hidden": True},
+            {"input": "3 0\n", "expected_output": "true", "is_hidden": True},
+            {"input": "5 4\n1 0\n2 0\n3 1\n4 3\n", "expected_output": "true", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Climbing Stairs",
+        "slug": "climbing-stairs",
+        "difficulty": "EASY",
+        "topic": "DP",
+        "description": """# Climbing Stairs
+
+## Statement
+You are climbing a staircase with `n` steps. Each move you may climb **1 or 2 steps**. In how many distinct ways can you reach the top?
+
+## Input Format
+- Line 1: integer `n`
+
+## Output Format
+A single integer — the number of distinct ways.
+
+## Constraints
+- `1 <= n <= 45`
+
+## Example
+
+**Input**
+```
+3
+```
+**Output**
+```
+3
+```
+
+Explanation: `1+1+1`, `1+2`, `2+1`.
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def climb_stairs(n):
+    # your logic here
+    pass
+
+
+def main():
+    print(climb_stairs(int(input())))
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+int climbStairs(int n) {
+    return 0;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << climbStairs(n) << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int climbStairs(int n) {
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println(climbStairs(sc.nextInt()));
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "3\n", "expected_output": "3", "is_hidden": False},
+            {"input": "5\n", "expected_output": "8", "is_hidden": False},
+            {"input": "1\n", "expected_output": "1", "is_hidden": True},
+            {"input": "2\n", "expected_output": "2", "is_hidden": True},
+            {"input": "45\n", "expected_output": "1836311903", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Unique Paths",
+        "slug": "unique-paths",
+        "difficulty": "MEDIUM",
+        "topic": "DP",
+        "description": """# Unique Paths
+
+## Statement
+A robot starts at the top-left corner of an `m x n` grid and wants to reach the bottom-right corner. It may only move **right** or **down**. Count the number of unique paths.
+
+## Input Format
+- Line 1: integers `m n`
+
+## Output Format
+A single integer — the number of unique paths.
+
+## Constraints
+- `1 <= m, n <= 100`
+- The answer fits in a 32-bit integer... barely for the extremes; a 64-bit intermediate is safer.
+
+## Example
+
+**Input**
+```
+3 7
+```
+**Output**
+```
+28
+```
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def unique_paths(m, n):
+    # your logic here
+    pass
+
+
+def main():
+    m, n = map(int, input().split())
+    print(unique_paths(m, n))
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePaths(int m, int n) {
+    return 0;
+}
+
+int main() {
+    int m, n;
+    cin >> m >> n;
+    cout << uniquePaths(m, n) << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int uniquePaths(int m, int n) {
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println(uniquePaths(sc.nextInt(), sc.nextInt()));
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "3 7\n", "expected_output": "28", "is_hidden": False},
+            {"input": "3 2\n", "expected_output": "3", "is_hidden": False},
+            {"input": "1 1\n", "expected_output": "1", "is_hidden": True},
+            {"input": "1 10\n", "expected_output": "1", "is_hidden": True},
+            {"input": "23 12\n", "expected_output": "193536720", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Coin Change",
+        "slug": "coin-change",
+        "difficulty": "MEDIUM",
+        "topic": "DP",
+        "description": """# Coin Change
+
+## Statement
+You are given coin denominations (unlimited supply of each) and a target amount. Return the **fewest number of coins** needed to make up the amount, or `-1` if it is impossible.
+
+## Input Format
+- Line 1: space-separated coin denominations
+- Line 2: integer `amount`
+
+## Output Format
+A single integer — minimum coins, or `-1`.
+
+## Constraints
+- `1 <= number of denominations <= 12`
+- `1 <= coin <= 2^31 - 1`
+- `0 <= amount <= 10^4`
+
+## Example
+
+**Input**
+```
+1 2 5
+11
+```
+**Output**
+```
+3
+```
+
+Explanation: `5 + 5 + 1`.
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def coin_change(coins, amount):
+    # your logic here
+    pass
+
+
+def main():
+    lines = sys.stdin.read().splitlines()
+    coins = [int(x) for x in lines[0].split()]
+    amount = int(lines[1])
+    print(coin_change(coins, amount))
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+int coinChange(vector<int>& coins, int amount) {
+    return -1;
+}
+
+int main() {
+    string line;
+    getline(cin, line);
+    vector<int> coins;
+    istringstream iss(line);
+    int x;
+    while (iss >> x) coins.push_back(x);
+    int amount;
+    cin >> amount;
+    cout << coinChange(coins, amount) << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int coinChange(int[] coins, int amount) {
+        return -1;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String[] parts = sc.nextLine().trim().split("\\\\s+");
+        int[] coins = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) coins[i] = Integer.parseInt(parts[i]);
+        System.out.println(coinChange(coins, sc.nextInt()));
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "1 2 5\n11\n", "expected_output": "3", "is_hidden": False},
+            {"input": "2\n3\n", "expected_output": "-1", "is_hidden": False},
+            {"input": "1\n0\n", "expected_output": "0", "is_hidden": True},
+            {"input": "1 2147483647\n2\n", "expected_output": "2", "is_hidden": True},
+            {"input": "186 419 83 408\n6249\n", "expected_output": "20", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Longest Increasing Subsequence",
+        "slug": "longest-increasing-subsequence",
+        "difficulty": "MEDIUM",
+        "topic": "DP",
+        "description": """# Longest Increasing Subsequence
+
+## Statement
+Given an integer array `nums`, return the length of the longest **strictly increasing** subsequence. The O(n²) DP is a fine first pass; the O(n log n) patience-sorting approach is the stretch goal.
+
+## Input Format
+- Line 1: integer `n`
+- Line 2: `n` space-separated integers
+
+## Output Format
+A single integer — LIS length.
+
+## Constraints
+- `1 <= n <= 2500`
+- `-10^4 <= nums[i] <= 10^4`
+
+## Example
+
+**Input**
+```
+8
+10 9 2 5 3 7 101 18
+```
+**Output**
+```
+4
+```
+
+Explanation: `[2, 3, 7, 101]` (other lengths of 4 exist).
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def length_of_lis(nums):
+    # your logic here
+    pass
+
+
+def main():
+    data = sys.stdin.read().split()
+    n = int(data[0])
+    nums = [int(x) for x in data[1:n + 1]]
+    print(length_of_lis(nums))
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+int lengthOfLIS(vector<int>& nums) {
+    return 0;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> nums(n);
+    for (auto& x : nums) cin >> x;
+    cout << lengthOfLIS(nums) << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int lengthOfLIS(int[] nums) {
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[] nums = new int[n];
+        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();
+        System.out.println(lengthOfLIS(nums));
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "8\n10 9 2 5 3 7 101 18\n", "expected_output": "4", "is_hidden": False},
+            {"input": "6\n0 1 0 3 2 3\n", "expected_output": "4", "is_hidden": False},
+            {"input": "1\n7\n", "expected_output": "1", "is_hidden": True},
+            {"input": "4\n7 7 7 7\n", "expected_output": "1", "is_hidden": True},
+            {"input": "6\n1 3 6 7 9 4\n", "expected_output": "5", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Word Break",
+        "slug": "word-break",
+        "difficulty": "MEDIUM",
+        "topic": "DP",
+        "description": """# Word Break
+
+## Statement
+Given a string `s` and a dictionary of words, determine whether `s` can be segmented into a space-separated sequence of one or more dictionary words. Words from the dictionary may be reused any number of times.
+
+## Input Format
+- Line 1: string `s` (lowercase letters)
+- Line 2: integer `k`
+- Line 3: `k` space-separated dictionary words
+
+## Output Format
+`true` or `false` (lowercase).
+
+## Constraints
+- `1 <= s.length <= 300`
+- `1 <= k <= 20`
+- Dictionary words are 1..20 lowercase letters and unique.
+
+## Example
+
+**Input**
+```
+applepenapple
+2
+apple pen
+```
+**Output**
+```
+true
+```
+
+Explanation: `"apple pen apple"`.
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def word_break(s, word_dict):
+    # your logic here
+    pass
+
+
+def main():
+    data = sys.stdin.read().split()
+    s = data[0]
+    k = int(data[1])
+    words = data[2:2 + k]
+    print(str(word_break(s, set(words))).lower())
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+bool wordBreak(string s, vector<string>& dict) {
+    return false;
+}
+
+int main() {
+    string s;
+    int k;
+    cin >> s >> k;
+    vector<string> dict(k);
+    for (auto& w : dict) cin >> w;
+    cout << (wordBreak(s, dict) ? "true" : "false") << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static boolean wordBreak(String s, Set<String> dict) {
+        return false;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String s = sc.next();
+        int k = sc.nextInt();
+        Set<String> dict = new HashSet<>();
+        for (int i = 0; i < k; i++) dict.add(sc.next());
+        System.out.println(wordBreak(s, dict) ? "true" : "false");
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "applepenapple\n2\napple pen\n", "expected_output": "true", "is_hidden": False},
+            {"input": "catsandog\n5\ncats dog sand and cat\n", "expected_output": "false", "is_hidden": False},
+            {"input": "aaaaaaa\n2\naaaa aaa\n", "expected_output": "true", "is_hidden": True},
+            {"input": "abcd\n3\na abc b\n", "expected_output": "false", "is_hidden": True},
+            {"input": "goalspecial\n2\ngoal special\n", "expected_output": "true", "is_hidden": True},
+        ],
+    },
+    {
+        "title": "Edit Distance",
+        "slug": "edit-distance",
+        "difficulty": "HARD",
+        "topic": "DP",
+        "description": """# Edit Distance
+
+## Statement
+Given two strings `word1` and `word2`, return the minimum number of operations to convert `word1` into `word2`, where an operation is one of: **insert** a character, **delete** a character, or **replace** a character. The classic 2-D DP table problem.
+
+## Input Format
+- Line 1: string `word1`
+- Line 2: string `word2`
+
+## Output Format
+A single integer — the minimum edit distance.
+
+## Constraints
+- `0 <= word1.length, word2.length <= 500`
+
+## Example
+
+**Input**
+```
+horse
+ros
+```
+**Output**
+```
+3
+```
+
+Explanation: horse -> rorse (replace h) -> rose (delete r) -> ros (delete e).
+""",
+        "starter_code": starters(
+            py="""import sys
+
+
+def min_distance(word1, word2):
+    # your logic here
+    pass
+
+
+def main():
+    lines = sys.stdin.read().splitlines()
+    print(min_distance(lines[0], lines[1]))
+
+
+if __name__ == "__main__":
+    main()
+""",
+            cpp="""#include <bits/stdc++.h>
+using namespace std;
+
+int minDistance(string a, string b) {
+    return 0;
+}
+
+int main() {
+    string a, b;
+    cin >> a >> b;
+    cout << minDistance(a, b) << endl;
+    return 0;
+}
+""",
+            java="""import java.util.*;
+
+public class Main {
+    static int minDistance(String a, String b) {
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println(minDistance(sc.next(), sc.next()));
+    }
+}
+""",
+        ),
+        "test_cases": [
+            {"input": "horse\nros\n", "expected_output": "3", "is_hidden": False},
+            {"input": "intention\nexecution\n", "expected_output": "5", "is_hidden": False},
+            {"input": "\n\n", "expected_output": "0", "is_hidden": True},
+            {"input": "abc\nabc\n", "expected_output": "0", "is_hidden": True},
+            {"input": "a\n\n", "expected_output": "1", "is_hidden": True},
+            {"input": "algorithm\naltruistic\n", "expected_output": "6", "is_hidden": True},
+        ],
+    },
+]
+
+
+
+
+
+

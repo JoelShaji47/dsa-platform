@@ -51,6 +51,23 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
+
+        <div className="mt-8 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Ready to practice?</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Pick a problem and keep the streak alive.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/problems')}
+              className="rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
+            >
+              Browse problems
+            </button>
+          </div>
+        </div>
       </main>
     </div>
   )
