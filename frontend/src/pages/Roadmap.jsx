@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   BookOpen,
   Check,
-  ChevronDown,
   ChevronRight,
   Flame,
   HelpCircle,
@@ -106,14 +105,13 @@ function edgePath(source, target, pos) {
   }
 }
 
-function PatternNode({ pattern, locked, selected, highlighted, onClick, onDragStart }) {
+function PatternNode({ pattern, locked, selected, highlighted, onClick }) {
   const [x, y] = pattern.pos
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={locked}
-      onPointerDown={(e) => onDragStart && onDragStart(e, pattern.key)}
       style={{ left: x, top: y, width: W, height: H, touchAction: 'none' }}
       className={`roadmap-node absolute flex flex-col items-center justify-center px-3 text-center transition-all duration-150 ${
         locked
@@ -152,71 +150,43 @@ function arcPath(cx, cy, r, a0, a1) {
   return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`
 }
 
-// Multi-segment circular solved indicator. Each difficulty draws its own arc in
-// proportion to `solved / total`; the unsolved remainder is a faint track.
-// Center shows the big solved number, total, and "Solved".
-function CircularProgress({ solved, total, diff }) {
-  const size = 128
+// Compact LeetCode-style solved circle: a single green arc proportional to
+// solved/total, small, with the solved count in the center.
+function CircularProgress({ solved, total }) {
+  const size = 96
   const cx = size / 2
   const cy = size / 2
-  const r = size / 2 - 10
+  const r = size / 2 - 8
   const TAU = Math.PI * 2
   const start = -Math.PI / 2
-  const segs = [
-    { label: 'easy', value: diff.EASY ?? 0, color: COLORS.easy },
-    { label: 'medium', value: diff.MEDIUM ?? 0, color: COLORS.medium },
-    { label: 'hard', value: diff.HARD ?? 0, color: COLORS.hard },
-  ]
-  const span = total > 0 ? TAU * (Math.min(solved, total) / total) : 0
-  const solvedSum = (segs[0].value + segs[1].value + segs[2].value) || 1
-  let a0 = start
-
-  const arcs = []
-  // Include a faint full track only for the unsolved portion (open arc feel).
-  if (total > 0 && solved < total) {
-    const trackA0 = start + span
-    const trackA1 = start + TAU
-    arcs.push(
-      <path
-        key="track"
-        d={arcPath(cx, cy, r, trackA0, trackA1)}
-        fill="none"
-        stroke="rgb(255 255 255 / 0.09)"
-        strokeWidth={11}
-        strokeLinecap="round"
-      />,
-    )
-  }
-  segs.forEach((s) => {
-    if (s.value <= 0) return
-    const frac = (s.value / solvedSum) * (total > 0 ? span : 0)
-    const a1 = a0 + frac
-    arcs.push(
-      <path
-        key={s.label}
-        d={arcPath(cx, cy, r, a0, a1)}
-        fill="none"
-        stroke={s.color}
-        strokeWidth={11}
-        strokeLinecap="round"
-      />,
-    )
-    a0 = a1
-  })
+  const frac = total > 0 ? Math.min(solved / total, 1) : 0
+  const end = start + frac * TAU
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-0">
-        {arcs}
+      <svg width={size} height={size}>
+        <path
+          d={arcPath(cx, cy, r, start, start + TAU)}
+          fill="none"
+          stroke="rgb(255 255 255 / 0.09)"
+          strokeWidth={9}
+          strokeLinecap="round"
+        />
+        {frac > 0 && (
+          <path
+            d={arcPath(cx, cy, r, start, end)}
+            fill="none"
+            stroke="#00BFA5"
+            strokeWidth={9}
+            strokeLinecap="round"
+          />
+        )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-[34px] font-bold leading-none text-[#f5f5f5]">
+        <span className="font-display text-[26px] font-bold leading-none text-[#f5f5f5]">
           {solved}
         </span>
-        <span className="mt-1 font-mono text-[13px] text-[#9aa1ad]">/{total}</span>
-        <span className="font-mono text-[12px] uppercase tracking-wider text-[#9aa1ad]">
-          Solved
-        </span>
+        <span className="mt-0.5 font-mono text-[11px] text-[#9aa1ad]">/{total}</span>
       </div>
     </div>
   )
@@ -284,21 +254,7 @@ function StatsDashboard({ totals, diff, actionHandlers }) {
               </div>
             ))}
           </div>
-          <CircularProgress solved={solved} total={total} diff={diff} />
-        </div>
-
-        {/* NeetCode 150 selector */}
-        <div className="mt-8 flex justify-center">
-          <button
-            type="button"
-            className="flex h-16 w-full max-w-[250px] items-center justify-between rounded-[18px] border-2 border-[#666] px-5 text-[#f5f5f5] transition-colors hover:border-[#888]"
-          >
-            <span className="flex items-center gap-3">
-              <span className="text-[24px]">🚀</span>
-              <span className="font-display text-[22px] font-medium">NeetCode 150</span>
-            </span>
-            <ChevronDown size={22} className="text-[#9aa1ad]" />
-          </button>
+          <CircularProgress solved={solved} total={total} />
         </div>
 
         {/* Action button row */}
@@ -380,11 +336,7 @@ export default function Roadmap() {
   const [selectedKey, setSelectedKey] = useState(null)
   const [zoom, setZoom] = useState(0.8)
   const [loading, setLoading] = useState(true)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settings, setSettings] = useState({ drag: true, pan: true, zoom: true })
   const [pan, setPan] = useState({ x: 0, y: 0 })
-  const [nodeOffsets, setNodeOffsets] = useState({})
-  const [drag, setDrag] = useState(null)
   const sessionRef = useRef(null)
   const viewportRef = useRef(null)
 
@@ -496,46 +448,21 @@ export default function Roadmap() {
     setZoom(Math.min(1.5, Math.max(0.3, Number(z.toFixed(3)))))
   }, [])
 
-  const toggleSetting = (key) => {
-    setSettings((s) => {
-      const next = { ...s, [key]: !s[key] }
-      if (!next.drag && drag) endPointerSession()
-      if (!next.pan && sessionRef.current?.mode === 'pan') endPointerSession()
-      return next
-    })
-  }
-
-  const endPointerSession = () => {
-    sessionRef.current = null
-    setDrag(null)
-  }
-
   const fitView = () => {
     setZoom(0.8)
     setPan({ x: 0, y: 0 })
-    setNodeOffsets({})
   }
 
   const onContainerPointerDown = (e) => {
     if (e.button !== 0 || sessionRef.current) return
-    if (settings.pan) {
-      sessionRef.current = {
-        mode: 'pan',
-        startX: e.clientX,
-        startY: e.clientY,
-        panX: pan.x,
-        panY: pan.y,
-      }
-      e.preventDefault()
+    sessionRef.current = {
+      mode: 'pan',
+      startX: e.clientX,
+      startY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
     }
-  }
-
-  const onNodeDragStart = (e, key) => {
-    if (!settings.drag || e.button !== 0) return
-    e.stopPropagation()
     e.preventDefault()
-    sessionRef.current = { mode: 'drag', key, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0 }
-    setDrag({ key, dx: 0, dy: 0 })
   }
 
   const onPointerMove = (e) => {
@@ -543,26 +470,14 @@ export default function Roadmap() {
     if (!s) return
     if (s.mode === 'pan') {
       setPan({ x: s.panX + (e.clientX - s.startX), y: s.panY + (e.clientY - s.startY) })
-    } else if (s.mode === 'drag') {
-      s.dx = e.clientX - s.startX
-      s.dy = e.clientY - s.startY
-      setDrag({ key: s.key, dx: s.dx, dy: s.dy })
     }
   }
 
   const onPointerEnd = () => {
-    const s = sessionRef.current
-    if (s?.mode === 'drag') {
-      setNodeOffsets((prev) => ({
-        ...prev,
-        [s.key]: { dx: (prev[s.key]?.dx || 0) + s.dx, dy: (prev[s.key]?.dy || 0) + s.dy },
-      }))
-    }
-    endPointerSession()
+    sessionRef.current = null
   }
 
   const onWheel = (e) => {
-    if (!settings.zoom) return
     clampZoom(zoom * (e.deltaY < 0 ? 1.1 : 0.9))
   }
 
@@ -570,23 +485,20 @@ export default function Roadmap() {
     if (!layout) return {}
     const out = {}
     for (const key of Object.keys(layout.pos)) {
-      const [x, y] = layout.pos[key]
-      const off = nodeOffsets[key] || { dx: 0, dy: 0 }
-      const live = drag?.key === key ? drag : { dx: 0, dy: 0 }
-      out[key] = [x + off.dx + live.dx, y + off.dy + live.dy]
+      out[key] = layout.pos[key]
     }
     return out
-  }, [layout, nodeOffsets, drag])
+  }, [layout])
 
   const edges = layout ? layout.edges.map(([s, t]) => edgePath(s, t, positions)) : []
 
   // No-category default action buttons.
   const cardActions = [
-    () => setSelectedKey(null),
-    () => fitView(),
-    () => setSettingsOpen((o) => !o),
     () => {},
-    () => setSettingsOpen((o) => !o),
+    () => fitView(),
+    () => {},
+    () => {},
+    () => {},
   ]
 
   return (
@@ -594,9 +506,7 @@ export default function Roadmap() {
       {/* ── THE PAGE: full-bleed roadmap graph ────────────────── */}
       <div
         ref={viewportRef}
-        className={`roadmap-canvas absolute inset-0 overflow-auto ${
-          settings.pan && !sessionRef.current ? 'cursor-grab' : ''
-        } ${drag ? 'cursor-grabbing' : ''}`}
+        className="roadmap-canvas absolute inset-0 overflow-auto cursor-grab"
         onPointerDown={onContainerPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -650,7 +560,6 @@ export default function Roadmap() {
                       selected={selectedKey === pattern.key}
                       highlighted={prereqPatterns.some((p) => p.key === pattern.key)}
                       onClick={() => handleSelect(pattern.key)}
-                      onDragStart={onNodeDragStart}
                     />
                   )
                 })}
@@ -712,36 +621,12 @@ export default function Roadmap() {
           <button type="button" onClick={fitView} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Fit view">
             <RefreshCcw size={13} />
           </button>
-          <span className="w-11 text-center font-mono text-xs font-bold text-[#f5f5f5]">
-            {Math.round(zoom * 100)}%
-          </span>
           <button type="button" onClick={() => clampZoom(zoom - 0.1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Zoom out">
             <Minus size={13} />
           </button>
           <button type="button" onClick={() => clampZoom(zoom + 0.1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Zoom in">
             <Plus size={13} />
           </button>
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setSettingsOpen((o) => !o)}
-            className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors ${
-              settingsOpen ? 'border-[#d4a72c] text-[#d4a72c]' : 'border-white/10 bg-[#2a2a2a] text-[#b8b8b8] hover:border-white/25 hover:text-[#f5f5f5]'
-            }`}
-            title="Graph settings"
-          >
-            <Settings2 size={14} />
-            Settings
-          </button>
-          {settingsOpen && (
-            <div className="absolute right-0 top-full z-40 mt-2 w-52 rounded-xl border border-white/10 bg-[#242424] p-1.5 shadow-2xl">
-              <SettingToggle label="Enable Dragging" checked={settings.drag} onChange={() => toggleSetting('drag')} />
-              <SettingToggle label="Enable Panning" checked={settings.pan} onChange={() => toggleSetting('pan')} />
-              <SettingToggle label="Enable Zooming" checked={settings.zoom} onChange={() => toggleSetting('zoom')} />
-            </div>
-          )}
         </div>
       </div>
 
@@ -950,25 +835,4 @@ function DifficultyStat({ label, color, solved, total }) {
   )
 }
 
-function SettingToggle({ label, checked, onChange }) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#f5f5f5] transition-colors hover:bg-white/5"
-    >
-      <span>{label}</span>
-      <span
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-          checked ? 'bg-[#00BFA5]' : 'bg-white/20'
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-            checked ? 'translate-x-4' : 'translate-x-0.5'
-          }`}
-        />
-      </span>
-    </button>
-  )
-}
+
