@@ -47,6 +47,8 @@ services:
     image: judge0/judge0:latest
     container_name: judge0_server
     restart: unless-stopped
+    privileged: true
+    user: "0:0"
     depends_on:
       judge0-db:
         condition: service_healthy
@@ -65,7 +67,11 @@ services:
       REDIS_PORT: 6379
       ENABLE_WAIT_RESULT: "true"
       NUM_WORKERS: 2
+      UNSAFE: "true"
+    volumes:
+      - judge0_box:/box
 
 volumes:
   postgres_data:
   judge0_db_data:
+  judge0_box:
