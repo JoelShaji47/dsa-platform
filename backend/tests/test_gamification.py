@@ -13,16 +13,16 @@ from app.services.grader import GradeResult, TestOutcome as Outcome
 
 client = TestClient(app)
 
-EXPECTED_DIFFICULTY_TOTALS = {"EASY": 12, "MEDIUM": 18, "HARD": 4}
+EXPECTED_DIFFICULTY_TOTALS = {"EASY": 31, "MEDIUM": 103, "HARD": 21}
 EXPECTED_TOPIC_TOTALS = {
-    "ARRAY": 6,
-    "STRING": 5,
-    "LINKED_LIST": 4,
-    "STACK": 3,
-    "QUEUE": 1,
-    "TREE": 6,
-    "GRAPH": 3,
-    "DP": 6,
+    "ARRAY": 61,
+    "STRING": 6,
+    "LINKED_LIST": 12,
+    "STACK": 8,
+    "QUEUE": 7,
+    "TREE": 18,
+    "GRAPH": 20,
+    "DP": 23,
 }
 
 
@@ -126,8 +126,8 @@ def test_first_blood_awarded_once_and_stats_update(monkeypatch):
     assert stats["total_solved"] == 1
     assert stats["total_submissions"] == 2
     assert stats["acceptance_rate"] == 100.0
-    assert stats["solved_by_difficulty"]["EASY"] == {"solved": 1, "total": 12}
-    assert stats["solved_by_topic"]["ARRAY"] == {"solved": 1, "total": 6}
+    assert stats["solved_by_difficulty"]["EASY"] == {"solved": 1, "total": 31}
+    assert stats["solved_by_topic"]["ARRAY"] == {"solved": 1, "total": 61}
     assert len(stats["recent_submissions"]) == 2
     latest = stats["recent_submissions"][0]
     assert latest["problem_slug"] == "two-sum"
@@ -198,22 +198,24 @@ def test_streak_week_awarded_at_seven_days(monkeypatch):
     assert "Streak Week" in result["new_badges"]
 
 
-def test_array_mastery_on_full_topic_clear(monkeypatch):
+def test_topic_mastery_on_full_topic_clear(monkeypatch):
     stub_accept(monkeypatch)
     headers, user_id = register_and_login()
 
-    five_of_six = [
-        "two-sum",
-        "move-zeroes",
-        "maximum-subarray",
-        "subarray-sum-equals-k",
-        "product-of-array-except-self",
+    # STRING is the smallest coarse topic (6 problems) — solve all of them.
+    string_slugs = [
+        "best-time-to-buy-and-sell-stock",
+        "longest-substring-without-repeating-characters",
+        "longest-repeating-character-replacement",
+        "permutation-in-string",
+        "minimum-window-substring",
+        "sliding-window-maximum",
     ]
-    for slug in five_of_six:
+    for slug in string_slugs[:-1]:
         insert_accepted(user_id, slug)
 
-    result = submit_accepted(headers, slug="first-missing-positive")
-    assert "Array Adept" in result["new_badges"]
+    result = submit_accepted(headers, slug="sliding-window-maximum")
+    assert "String Sage" in result["new_badges"]
 
 
 def test_badges_endpoint_returns_full_catalog(monkeypatch):

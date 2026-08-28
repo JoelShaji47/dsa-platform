@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -13,8 +13,10 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      {/* The roadmap is the default landing page after login. */}
+      <Route path="/" element={<Navigate to="/roadmap" replace />} />
       <Route
-        path="/"
+        path="/campaign"
         element={
           <ProtectedRoute>
             <Dashboard />

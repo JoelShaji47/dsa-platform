@@ -29,4 +29,5 @@ class ProblemDetail(BaseModel):
     topic: Topic
     starter_code: dict[str, Any]
     test_cases: list[TestCaseOut]
+    solvable: bool = False
     solved: bool

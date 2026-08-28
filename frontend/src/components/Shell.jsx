@@ -50,7 +50,7 @@ export function TopBar({ active, children }) {
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
         <Brand />
         <nav className="flex items-center gap-1">
-          <NavLink to="/" active={active === 'dashboard'}>
+          <NavLink to="/campaign" active={active === 'dashboard'}>
             Campaign
           </NavLink>
           <NavLink to="/roadmap" active={active === 'roadmap'}>

@@ -28,16 +28,27 @@ def main() -> None:
     created = updated = 0
     with SessionLocal() as db:
         for seed in validated:
-            payload = {
+            payload: dict = {
                 "title": seed.title,
                 "difficulty": Difficulty(seed.difficulty),
                 "topic": Topic(seed.topic),
-                "description": seed.description,
-                "starter_code": seed.starter_code,
-                "test_cases": [tc.model_dump() for tc in seed.test_cases],
             }
+            # Description / starter_code / test_cases are only applied when the seed
+            # actually provides them. Catalog-only entries omit them so that existing
+            # fully-authored problems are never clobbered.
+            if seed.description is not None:
+                payload["description"] = seed.description
+            if seed.starter_code:
+                payload["starter_code"] = seed.starter_code
+            if seed.test_cases:
+                payload["test_cases"] = [tc.model_dump() for tc in seed.test_cases]
+
             problem = db.query(Problem).filter(Problem.slug == seed.slug).first()
             if problem is None:
+                # Placeholder defaults for catalog-only rows that have no authored content.
+                payload.setdefault("description", f"Practice: {seed.title}")
+                payload.setdefault("starter_code", {})
+                payload.setdefault("test_cases", [])
                 db.add(Problem(slug=seed.slug, **payload))
                 created += 1
             else:

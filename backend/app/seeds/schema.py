@@ -23,9 +23,15 @@ class ProblemSeed(BaseModel):
         "GRAPH",
         "DP",
     ]
-    description: str = Field(min_length=50)
-    starter_code: dict[Literal["python", "cpp", "java"], str]
-    test_cases: list[TestCase] = Field(min_length=4)
+    # Optional roadmap category (NeetCode pattern key/name). Only present in the
+    # NeetCode 150 catalog seed; coarse `topic` remains the DB-level classification.
+    category: str | None = None
+    # Description is required for new fully-authored problems, but catalog-only
+    # entries may omit it (seed keeps any existing authored description).
+    description: str | None = Field(default=None, min_length=50)
+    # Catalog-only problems have no runnable content yet.
+    starter_code: dict[Literal["python", "cpp", "java"], str] = Field(default_factory=dict)
+    test_cases: list[TestCase] = Field(default_factory=list)
 
     def visible_tests(self) -> list[TestCase]:
         return [t for t in self.test_cases if not t.is_hidden]

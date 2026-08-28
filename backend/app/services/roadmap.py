@@ -19,11 +19,9 @@ PATTERNS: list[dict] = [
         "prerequisites": [],
         "snippet": "Hash maps and array manipulation — the foundation of most interviews.",
         "problems": [
-            "two-sum",
-            "valid-anagram",
-            "group-anagrams",
-            "product-of-array-except-self",
-            "first-missing-positive",
+            "contains-duplicate", "valid-anagram", "two-sum", "group-anagrams",
+            "top-k-frequent-elements", "product-of-array-except-self",
+            "valid-sudoku", "encode-and-decode-strings", "longest-consecutive-sequence",
         ],
     },
     {
@@ -32,103 +30,210 @@ PATTERNS: list[dict] = [
         "order": 2,
         "prerequisites": ["arrays-hashing"],
         "snippet": "Move two indices through a sequence to find pairs or shrink windows.",
-        "problems": ["valid-palindrome", "move-zeroes"],
+        "problems": [
+            "valid-palindrome", "two-sum-ii-input-array-is-sorted", "3sum",
+            "container-with-most-water", "trapping-rain-water",
+        ],
     },
     {
         "key": "sliding-window",
         "name": "Sliding Window",
-        "order": 3,
+        "order": 2,
         "prerequisites": ["arrays-hashing"],
         "snippet": "Maintain an expanding/shrinking window over an array or string.",
         "problems": [
+            "best-time-to-buy-and-sell-stock",
             "longest-substring-without-repeating-characters",
-            "minimum-window-substring",
-        ],
-    },
-    {
-        "key": "subarray",
-        "name": "Subarrays & Prefix Sums",
-        "order": 3,
-        "prerequisites": ["arrays-hashing"],
-        "snippet": "Contiguous subarray problems: Kadane, prefix sums, and running totals.",
-        "problems": ["maximum-subarray", "subarray-sum-equals-k"],
-    },
-    {
-        "key": "linked-list",
-        "name": "Linked List",
-        "order": 4,
-        "prerequisites": ["arrays-hashing"],
-        "snippet": "Pointers, cycles, and merging nodes in a linear chain.",
-        "problems": [
-            "reverse-linked-list",
-            "middle-of-the-linked-list",
-            "linked-list-cycle",
-            "merge-two-sorted-lists",
+            "longest-repeating-character-replacement", "permutation-in-string",
+            "minimum-window-substring", "sliding-window-maximum",
         ],
     },
     {
         "key": "stack",
         "name": "Stack",
-        "order": 5,
+        "order": 2,
         "prerequisites": ["arrays-hashing"],
         "snippet": "Last-in, first-out structures for matching and monotonic ordering.",
         "problems": [
-            "valid-parentheses",
-            "next-greater-element",
-            "daily-temperatures",
+            "valid-parentheses", "min-stack", "evaluate-reverse-polish-notation",
+            "generate-parentheses", "daily-temperatures", "car-fleet",
+            "largest-rectangle-in-histogram",
         ],
     },
     {
-        "key": "queue",
-        "name": "Queue & Deque",
-        "order": 5,
-        "prerequisites": ["sliding-window"],
-        "snippet": "First-in, first-out structures and monotonic deques.",
-        "problems": ["sliding-window-maximum"],
+        "key": "binary-search",
+        "name": "Binary Search",
+        "order": 2,
+        "prerequisites": ["arrays-hashing"],
+        "snippet": "Halve the search space on sorted data or monotonic answer spaces.",
+        "problems": [
+            "binary-search", "search-a-2d-matrix", "koko-eating-bananas",
+            "find-minimum-in-rotated-sorted-array", "search-in-rotated-sorted-array",
+            "time-based-key-value-store", "median-of-two-sorted-arrays",
+        ],
     },
     {
-        "key": "binary-tree",
-        "name": "Binary Tree",
-        "order": 6,
+        "key": "linked-list",
+        "name": "Linked List",
+        "order": 3,
+        "prerequisites": ["arrays-hashing"],
+        "snippet": "Pointers, cycles, and merging nodes in a linear chain.",
+        "problems": [
+            "reverse-linked-list", "merge-two-sorted-lists", "reorder-list",
+            "remove-nth-node-from-end-of-list", "copy-list-with-random-pointer",
+            "add-two-numbers", "linked-list-cycle", "find-the-duplicate-number",
+            "lru-cache", "merge-k-sorted-lists", "reverse-nodes-in-k-group",
+        ],
+    },
+    {
+        "key": "heap-priority-queue",
+        "name": "Heap / Priority Queue",
+        "order": 3,
+        "prerequisites": ["arrays-hashing"],
+        "snippet": "Efficient access to min/max elements and k-th order statistics.",
+        "problems": [
+            "kth-largest-element-in-a-stream", "last-stone-weight",
+            "k-closest-points-to-origin", "kth-largest-element-in-an-array",
+            "task-scheduler", "design-twitter", "find-median-from-data-stream",
+        ],
+    },
+    {
+        "key": "math-geometry",
+        "name": "Math & Geometry",
+        "order": 3,
+        "prerequisites": ["arrays-hashing"],
+        "snippet": "Number theory, matrix manipulation, and computational geometry.",
+        "problems": [
+            "rotate-image", "spiral-matrix", "set-matrix-zeroes", "happy-number",
+            "plus-one", "powx-n", "multiply-strings", "detect-squares",
+        ],
+    },
+    {
+        "key": "bit-manipulation",
+        "name": "Bit Manipulation",
+        "order": 3,
+        "prerequisites": ["arrays-hashing"],
+        "snippet": "Bitwise operations, XOR tricks, and binary counting.",
+        "problems": [
+            "single-number", "number-of-1-bits", "counting-bits", "reverse-bits",
+            "missing-number", "sum-of-two-integers", "reverse-integer",
+        ],
+    },
+    {
+        "key": "trees",
+        "name": "Trees",
+        "order": 4,
         "prerequisites": ["stack"],
         "snippet": "Recursive traversal, BST invariants, and tree properties.",
         "problems": [
-            "maximum-depth-binary-tree",
-            "invert-binary-tree",
-            "diameter-of-binary-tree",
-            "binary-tree-level-order-traversal",
-            "validate-binary-search-tree",
-            "lowest-common-ancestor-bst",
+            "invert-binary-tree", "maximum-depth-binary-tree", "diameter-of-binary-tree",
+            "balanced-binary-tree", "same-tree", "subtree-of-another-tree",
+            "lowest-common-ancestor-bst", "binary-tree-level-order-traversal",
+            "binary-tree-right-side-view", "count-good-nodes-in-binary-tree",
+            "validate-binary-search-tree", "kth-smallest-element-in-a-bst",
+            "construct-binary-tree-from-preorder-and-inorder-traversal",
+            "binary-tree-maximum-path-sum", "serialize-and-deserialize-binary-tree",
         ],
     },
     {
-        "key": "graph",
+        "key": "tries",
+        "name": "Tries",
+        "order": 5,
+        "prerequisites": ["trees"],
+        "snippet": "Prefix trees for efficient string lookup and autocomplete.",
+        "problems": [
+            "implement-trie-prefix-tree",
+            "design-add-and-search-words-data-structure", "word-search-ii",
+        ],
+    },
+    {
+        "key": "backtracking",
+        "name": "Backtracking",
+        "order": 4,
+        "prerequisites": ["stack"],
+        "snippet": "Enumerate combinations, permutations, and solutions via recursion.",
+        "problems": [
+            "subsets", "combination-sum", "permutations", "subsets-ii",
+            "combination-sum-ii", "word-search", "palindrome-partitioning",
+            "letter-combinations-of-a-phone-number", "n-queens",
+        ],
+    },
+    {
+        "key": "graphs",
         "name": "Graphs",
-        "order": 7,
-        "prerequisites": ["binary-tree"],
+        "order": 5,
+        "prerequisites": ["trees"],
         "snippet": "DFS/BFS traversal, connectivity, and topological ordering.",
-        "problems": ["flood-fill", "number-of-islands", "course-schedule"],
+        "problems": [
+            "number-of-islands", "clone-graph", "max-area-of-island",
+            "pacific-atlantic-water-flow", "surrounded-regions", "rotting-oranges",
+            "walls-and-gates", "course-schedule", "course-schedule-ii",
+            "redundant-connection",
+            "number-of-connected-components-in-an-undirected-graph",
+            "graph-valid-tree", "word-ladder",
+        ],
+    },
+    {
+        "key": "greedy",
+        "name": "Greedy",
+        "order": 4,
+        "prerequisites": ["two-pointers"],
+        "snippet": "Make locally optimal choices that lead to a global optimum.",
+        "problems": [
+            "maximum-subarray", "jump-game", "jump-game-ii", "gas-station",
+            "hand-of-straights", "merge-triplets-to-form-target-triplet",
+            "partition-labels", "valid-parenthesis-string",
+        ],
+    },
+    {
+        "key": "intervals",
+        "name": "Intervals",
+        "order": 4,
+        "prerequisites": ["two-pointers"],
+        "snippet": "Merge, overlap, and schedule interval-based constraints.",
+        "problems": [
+            "insert-interval", "merge-intervals", "non-overlapping-intervals",
+            "meeting-rooms", "meeting-rooms-ii",
+        ],
     },
     {
         "key": "dp-1d",
         "name": "1-D Dynamic Programming",
-        "order": 8,
-        "prerequisites": ["sliding-window", "binary-tree"],
+        "order": 5,
+        "prerequisites": ["sliding-window", "backtracking"],
         "snippet": "Break problems into optimal substeps over a single dimension.",
         "problems": [
-            "climbing-stairs",
-            "longest-increasing-subsequence",
-            "coin-change",
-            "word-break",
+            "climbing-stairs", "min-cost-climbing-stairs", "house-robber",
+            "house-robber-ii", "longest-palindromic-substring", "palindromic-substrings",
+            "decode-ways", "coin-change", "maximum-product-subarray", "word-break",
+            "longest-increasing-subsequence", "partition-equal-subset-sum",
+        ],
+    },
+    {
+        "key": "advanced-graphs",
+        "name": "Advanced Graphs",
+        "order": 6,
+        "prerequisites": ["graphs", "heap-priority-queue"],
+        "snippet": "Shortest path, MST, Eulerian path, and other advanced algorithms.",
+        "problems": [
+            "reconstruct-itinerary", "min-cost-to-connect-all-points",
+            "network-delay-time", "swim-in-rising-water", "alien-dictionary",
+            "cheapest-flights-within-k-stops",
         ],
     },
     {
         "key": "dp-2d",
         "name": "2-D Dynamic Programming",
-        "order": 9,
-        "prerequisites": ["dp-1d"],
+        "order": 6,
+        "prerequisites": ["dp-1d", "graphs"],
         "snippet": "Grids, edit distance, and path counting over two dimensions.",
-        "problems": ["unique-paths", "edit-distance"],
+        "problems": [
+            "unique-paths", "longest-common-subsequence",
+            "best-time-to-buy-and-sell-stock-with-cooldown", "coin-change-ii",
+            "target-sum", "interleaving-string", "longest-increasing-path-in-a-matrix",
+            "distinct-subsequences", "edit-distance", "burst-balloons",
+            "regular-expression-matching",
+        ],
     },
 ]
 
@@ -255,6 +360,7 @@ def get_roadmap(
                     "solved": solved_by_problem.get(slug, False),
                     "attempts": attempts_by_problem.get(slug, 0),
                     "hints_used": hints_by_problem.get(slug, 0),
+                    "solvable": bool(p.starter_code and p.test_cases),
                     "recommended": slug == top_recommended,
                 }
             )
@@ -373,6 +479,66 @@ def get_recommendations(db: Session, user: User) -> list[dict]:
                 **r,
                 "title": p.title if p else r["slug"],
                 "difficulty": p.difficulty.value if p else "MEDIUM",
+                "solvable": bool(p and p.starter_code and p.test_cases),
             }
         )
     return out
+
+
+def get_daily_question(db: Session, user: User) -> dict | None:
+    """Pick the single daily question for a user.
+
+    Uses the adaptive recommendation ranking (weak/unlocked/unsolved patterns)
+    and selects one deterministically per user per day, so the problem is stable
+    all day but personalised. This is the rule that an ML model will later
+    replace: once a trained recommender is live, it predicts the daily pick.
+    """
+    import hashlib
+    from datetime import date
+
+    recommended = get_recommendations(db, user)
+    if not recommended:
+        return {"problem": None}
+
+    # A larger pool keeps the daily pick fresh while still drawing from the
+    # strongest candidates the heuristic surfaced first.
+    pool = recommended[:8]
+    seed = int(hashlib.sha256(
+        f"{user.id}:{date.today().isoformat()}".encode()
+    ).hexdigest(), 16)
+    daily = pool[seed % len(pool)]
+    return {"problem": daily}
+
+
+def get_activity(db: Session, user: User, days: int = 140) -> dict:
+    """Accepted submissions counted per calendar day for the roadmap heatmap.
+
+    Returns a dict { "days": [{"date": "YYYY-MM-DD", "count": int}, ...] } covering
+    the trailing `days` days (oldest to newest) so the frontend can render a
+    submission calendar where each day the user solved shows up as a tile.
+    """
+    from datetime import date, timedelta
+
+    start = date.today() - timedelta(days=days - 1)
+
+    rows = (
+        db.query(
+            func.date(Submission.submitted_at).label("day"),
+            func.count(Submission.id).label("n"),
+        )
+        .filter(
+            Submission.user_id == user.id,
+            Submission.status == SubmissionStatus.ACCEPTED,
+            func.date(Submission.submitted_at) >= start,
+        )
+        .group_by(func.date(Submission.submitted_at))
+        .all()
+    )
+    counts = {str(day): int(n) for day, n in rows}
+
+    out = []
+    for offset in range(days):
+        d = start + timedelta(days=offset)
+        key = d.isoformat()
+        out.append({"date": key, "count": counts.get(key, 0)})
+    return {"days": out}

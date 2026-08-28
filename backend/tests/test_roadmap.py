@@ -40,6 +40,8 @@ def stub_grader(monkeypatch):
 def test_roadmap_requires_auth():
     assert client.get("/api/v1/roadmap").status_code == 401
     assert client.get("/api/v1/roadmap/recommendations").status_code == 401
+    assert client.get("/api/v1/roadmap/daily").status_code == 401
+    assert client.get("/api/v1/roadmap/activity").status_code == 401
 
 
 def test_roadmap_returns_all_patterns_and_totals():
@@ -49,8 +51,8 @@ def test_roadmap_returns_all_patterns_and_totals():
     body = res.json()
 
     patterns = body["patterns"]
-    assert len(patterns) >= 11
-    assert body["totals"]["total"] == 34
+    assert len(patterns) == 18
+    assert body["totals"]["total"] == 149
     assert body["totals"]["solved"] == 0
 
     key_order = [p["key"] for p in patterns]
@@ -60,7 +62,7 @@ def test_roadmap_returns_all_patterns_and_totals():
                 "solved", "total", "mastery", "complete", "problems"} <= set(pattern)
         for problem in pattern["problems"]:
             assert {"slug", "title", "difficulty", "solved",
-                    "attempts", "hints_used", "recommended"} <= set(problem)
+                    "attempts", "hints_used", "solvable", "recommended"} <= set(problem)
 
     # arrays-hashing must be the root (no prerequisites)
     root = next(p for p in patterns if p["key"] == "arrays-hashing")
@@ -128,3 +130,50 @@ def test_recommendations_advance_after_solving(monkeypatch):
         if pr["recommended"]
     ]
     assert len(flagged) == 1
+
+
+def test_daily_question_is_single_unsolved_personalized_problem():
+    headers = make_user_and_token()
+    res = client.get("/api/v1/roadmap/daily", headers=headers)
+    assert res.status_code == 200
+    problem = res.json()["problem"]
+
+    # Stable within the day for the same user.
+    again = client.get("/api/v1/roadmap/daily", headers=headers).json()["problem"]
+    assert problem["slug"] == again["slug"]
+
+    # Must be a real, unsolved problem from an unlocked pattern.
+    assert problem["title"]
+    assert problem["reason"]
+    roadmap = client.get("/api/v1/roadmap", headers=headers).json()
+    pattern = next(p for p in roadmap["patterns"] if p["key"] == problem["pattern_key"])
+    row = next(pr for pr in pattern["problems"] if pr["slug"] == problem["slug"])
+    assert row["solved"] is False
+
+
+def test_activity_returns_chronological_days():
+    headers = make_user_and_token()
+    res = client.get("/api/v1/roadmap/activity", headers=headers)
+    assert res.status_code == 200
+    days = res.json()["days"]
+    # Trailing window of accepted-submission history, oldest → newest.
+    assert len(days) == 140
+    dates = [d["date"] for d in days]
+    assert dates == sorted(dates)
+    assert all(isinstance(d["count"], int) for d in days)
+
+
+def test_activity_marks_day_after_solving(monkeypatch):
+    stub_grader(monkeypatch)
+    headers = make_user_and_token()
+
+    res = client.post(
+        "/api/v1/problems/two-sum/submit",
+        headers=headers,
+        json={"source_code": "print('x')", "language": "python"},
+    )
+    assert res.json()["status"] == "ACCEPTED"
+
+    days = client.get("/api/v1/roadmap/activity", headers=headers).json()["days"]
+    # Today must show an accepted submission.
+    assert days[-1]["count"] >= 1

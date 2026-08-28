@@ -172,6 +172,36 @@
     background-size: 24px 24px, auto, auto;
   }
 
+  /* Light, airy roadmap canvas: very light blue-gray with a subtle dotted grid. */
+  .roadmap-canvas {
+    background-color: #1e1e1e;
+    background-image: radial-gradient(rgb(245 245 245 / 0.055) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  /* Thin gold connection branch from a parent node toward its children. */
+  .roadmap-edge {
+    fill: none;
+    stroke: #d4a72c;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    opacity: 0.7;
+  }
+
+  /* Compact dark roadmap node card. */
+  .roadmap-node {
+    border-radius: 11px;
+    background-color: #252525;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
+    color: #f5f5f5;
+  }
+
+  .roadmap-node:hover {
+    border-color: rgb(212 167 44 / 0.55);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.55);
+  }
+
   .arena-bg {
     background-color: var(--color-arena);
     background-image: radial-gradient(rgb(220 227 242 / 0.045) 1px, transparent 1px),

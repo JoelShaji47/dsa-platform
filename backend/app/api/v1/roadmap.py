@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.services.roadmap import get_recommendations
+from app.services.roadmap import get_activity, get_daily_question, get_recommendations
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
@@ -25,3 +25,19 @@ def recommendations(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     return {"recommendations": get_recommendations(db, current_user)}
+
+
+@router.get("/daily")
+def daily_question(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    return get_daily_question(db, current_user)
+
+
+@router.get("/activity")
+def roadmap_activity(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    return get_activity(db, current_user)

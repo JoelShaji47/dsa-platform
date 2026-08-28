@@ -98,6 +98,7 @@ def get_problem(
         topic=problem.topic,
         starter_code=problem.starter_code,
         test_cases=visible_cases,
+        solvable=bool(problem.starter_code and problem.test_cases),
         solved=problem.id in solved_ids,
     )
 

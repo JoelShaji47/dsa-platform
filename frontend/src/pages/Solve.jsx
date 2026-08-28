@@ -79,6 +79,7 @@ export default function Solve() {
   const navigate = useNavigate()
   const [problem, setProblem] = useState(null)
   const [pageStatus, setPageStatus] = useState('loading')
+  const [unavailable, setUnavailable] = useState(false)
   const [lang, setLang] = useState('python')
   const [code, setCode] = useState('')
   const [running, setRunning] = useState(false)
@@ -100,6 +101,7 @@ export default function Solve() {
       .then((res) => {
         if (cancelled) return
         setProblem(res.data)
+        setUnavailable(!res.data.solvable)
         setCode(res.data.starter_code.python)
         setPageStatus('ok')
         return client.get(`/problems/${slug}/hints`)
@@ -231,6 +233,23 @@ export default function Solve() {
         <p className="text-[1.05rem] text-arena-dim">This problem does not exist.</p>
         <Link to="/problems" className="font-semibold text-gold hover:underline">
           Back to the library
+        </Link>
+      </div>
+    )
+  }
+
+  if (unavailable) {
+    return (
+      <div className="arena-bg flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="font-display text-[1.6rem] font-bold tracking-tight text-arena-text">
+          Coming soon
+        </p>
+        <p className="max-w-md text-[1.02rem] text-arena-dim">
+          "{problem.title}" is in the roadmap catalog but hasn't been fully authored yet
+          (no starter code or test cases). It will be solvable once it's added to the library.
+        </p>
+        <Link to={`/problems/${slug}`} className="font-semibold text-gold hover:underline">
+          Back to problem overview
         </Link>
       </div>
     )
