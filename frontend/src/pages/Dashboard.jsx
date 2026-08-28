@@ -204,7 +204,7 @@ export default function Dashboard() {
                       {stats.recent_submissions.map((sub) => (
                         <li key={sub.id} className="flex items-center justify-between gap-3 py-2.5">
                           <Link
-                            to={`/problems/${sub.problem_slug}`}
+                            to={`/problems/${sub.problem_slug}/solve`}
                             className="truncate text-[0.95rem] font-medium text-ink hover:text-gold-deep"
                           >
                             {sub.problem_title}

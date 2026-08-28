@@ -132,7 +132,7 @@ export default function Problems() {
               {problems.map((p) => (
                 <li key={p.id}>
                   <Link
-                    to={`/problems/${p.slug}`}
+                    to={`/problems/${p.slug}/solve`}
                     className="group flex items-center gap-4 px-5 py-4 transition-colors duration-150 hover:bg-paper"
                   >
                     {p.solved ? (

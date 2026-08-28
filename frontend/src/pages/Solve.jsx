@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Award,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Lightbulb,
   Loader2,
-  LogOut,
   Play,
   Send,
   Sparkles,
@@ -22,7 +23,6 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import { Brand } from '../components/Shell'
 
 const LANGS = [
   { key: 'python', label: 'Python', ext: python() },
@@ -32,40 +32,46 @@ const LANGS = [
 
 const STATUS_STYLES = {
   ACCEPTED: {
-    chip: 'border-quest bg-quest/15 text-emerald-300',
-    icon: <CheckCircle2 size={18} />,
+    chip: 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400',
+    icon: <CheckCircle2 size={16} />,
     label: 'Accepted',
   },
   WRONG_ANSWER: {
-    chip: 'border-rust bg-rust/15 text-red-300',
-    icon: <XCircle size={18} />,
-    label: 'Wrong answer',
+    chip: 'border-red-500/50 bg-red-500/15 text-red-400',
+    icon: <XCircle size={16} />,
+    label: 'Wrong Answer',
   },
   TLE: {
-    chip: 'border-gold bg-gold/15 text-yellow-200',
-    icon: <XCircle size={18} />,
-    label: 'Time limit exceeded',
+    chip: 'border-yellow-500/50 bg-yellow-500/15 text-yellow-300',
+    icon: <XCircle size={16} />,
+    label: 'Time Limit Exceeded',
   },
   RUNTIME_ERROR: {
-    chip: 'border-orange-400/70 bg-orange-500/10 text-orange-300',
-    icon: <XCircle size={18} />,
-    label: 'Runtime error',
+    chip: 'border-orange-500/50 bg-orange-500/15 text-orange-300',
+    icon: <XCircle size={16} />,
+    label: 'Runtime Error',
   },
   COMPILATION_ERROR: {
-    chip: 'border-purple-400/70 bg-purple-500/10 text-purple-300',
-    icon: <XCircle size={18} />,
-    label: 'Compilation error',
+    chip: 'border-purple-500/50 bg-purple-500/15 text-purple-300',
+    icon: <XCircle size={16} />,
+    label: 'Compilation Error',
   },
+}
+
+const DIFFICULTY_STYLE = {
+  EASY: 'text-emerald-400',
+  MEDIUM: 'text-yellow-300',
+  HARD: 'text-red-400',
 }
 
 function TestChip({ passed, index }) {
   return (
     <span
       title={`Test ${index + 1}: ${passed ? 'passed' : 'failed'}`}
-      className={`flex h-8 w-8 items-center justify-center rounded-lg border-[1.5px] font-mono text-xs font-bold ${
+      className={`flex h-7 w-7 items-center justify-center rounded-md border font-mono text-xs font-bold ${
         passed
-          ? 'border-quest/60 bg-quest/15 text-emerald-300'
-          : 'border-rust/60 bg-rust/15 text-red-300'
+          ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400'
+          : 'border-red-500/50 bg-red-500/15 text-red-400'
       }`}
     >
       {index + 1}
@@ -75,8 +81,7 @@ function TestChip({ passed, index }) {
 
 export default function Solve() {
   const { slug } = useParams()
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [problem, setProblem] = useState(null)
   const [pageStatus, setPageStatus] = useState('loading')
   const [unavailable, setUnavailable] = useState(false)
@@ -93,6 +98,8 @@ export default function Solve() {
   const [loadingHint, setLoadingHint] = useState(null)
   const [review, setReview] = useState(null)
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [consoleOpen, setConsoleOpen] = useState(false)
+  const [consoleTab, setConsoleTab] = useState('result')
 
   useEffect(() => {
     let cancelled = false
@@ -137,6 +144,8 @@ export default function Solve() {
         { timeout: 120000 },
       )
       setRunResult(res.data)
+      setConsoleOpen(true)
+      setConsoleTab('result')
     } catch (err) {
       setError(err.response?.data?.detail || 'Could not reach the judge. Try again.')
     } finally {
@@ -156,6 +165,8 @@ export default function Solve() {
         { timeout: 120000 },
       )
       setSubmitResult(res.data)
+      setConsoleOpen(true)
+      setConsoleTab('result')
     } catch (err) {
       setError(err.response?.data?.detail || 'Could not reach the judge. Try again.')
     } finally {
@@ -220,18 +231,18 @@ export default function Solve() {
 
   if (pageStatus === 'loading') {
     return (
-      <div className="arena-bg flex min-h-screen items-center justify-center gap-2 text-arena-dim">
+      <div className="flex h-screen items-center justify-center gap-2 bg-[#1a1a2e] text-gray-400">
         <Loader2 size={20} className="animate-spin" />
-        Entering the arena…
+        Loading...
       </div>
     )
   }
 
   if (pageStatus === 'error') {
     return (
-      <div className="arena-bg flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-[1.05rem] text-arena-dim">This problem does not exist.</p>
-        <Link to="/problems" className="font-semibold text-gold hover:underline">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[#1a1a2e]">
+        <p className="text-lg text-gray-300">This problem does not exist.</p>
+        <Link to="/problems" className="font-semibold text-emerald-400 hover:underline">
           Back to the library
         </Link>
       </div>
@@ -240,16 +251,14 @@ export default function Solve() {
 
   if (unavailable) {
     return (
-      <div className="arena-bg flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="font-display text-[1.6rem] font-bold tracking-tight text-arena-text">
-          Coming soon
-        </p>
-        <p className="max-w-md text-[1.02rem] text-arena-dim">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[#1a1a2e] px-6 text-center">
+        <p className="text-2xl font-bold text-gray-100">Coming soon</p>
+        <p className="max-w-md text-gray-400">
           "{problem.title}" is in the roadmap catalog but hasn't been fully authored yet
           (no starter code or test cases). It will be solvable once it's added to the library.
         </p>
-        <Link to={`/problems/${slug}`} className="font-semibold text-gold hover:underline">
-          Back to problem overview
+        <Link to="/problems" className="font-semibold text-emerald-400 hover:underline">
+          Back to library
         </Link>
       </div>
     )
@@ -259,88 +268,108 @@ export default function Solve() {
   const statement = problem.description.replace(/^#\s+.+\r?\n+/, '')
 
   return (
-    <div className="arena-bg flex min-h-screen flex-col lg:h-screen">
-      <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-arena-line px-4 lg:px-6">
-        <div className="flex min-w-0 items-center gap-4">
-          <Brand dark />
-          <span className="hidden h-5 w-px bg-arena-line sm:block" />
+    <div className="flex h-screen flex-col bg-[#1a1a2e]">
+      {/* ── Top bar ──────────────────────────────────────────── */}
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#1e1e30] px-4">
+        <div className="flex min-w-0 items-center gap-3">
           <Link
-            to={`/problems/${slug}`}
-            aria-label="Back to problem overview"
-            className="flex items-center gap-1.5 rounded-lg border border-arena-line px-2.5 py-1.5 text-sm text-arena-dim transition-colors hover:border-arena-dim hover:text-arena-text"
+            to="/problems"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-400 transition-colors hover:text-gray-200"
           >
             <ArrowLeft size={15} />
-            Overview
+            Library
           </Link>
-        </div>
-        <button
-          onClick={() => {
-            logout()
-            navigate('/login')
-          }}
-          className="btn shrink-0 border border-arena-line px-3 py-1.5 text-sm text-arena-dim hover:border-rust hover:text-red-300"
-        >
-          <LogOut size={15} />
-          Log out
-        </button>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-[1700px] flex-1 flex-col gap-5 p-4 lg:flex-row lg:gap-6 lg:overflow-hidden lg:p-5">
-        <section className="min-h-0 w-full shrink-0 overflow-y-auto pr-1 lg:h-full lg:w-[44%] lg:max-w-[760px]">
-          <div className="flex items-center gap-3">
-            {problem.solved && (
-              <span className="stamp-chip border-quest bg-quest/15 text-emerald-300">
-                Solved
-              </span>
-            )}
-            <span className="stamp-chip border-arena-line bg-arena-raised text-arena-dim">
-              {problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()}
-            </span>
-            <span className="stamp-chip border-arena-line bg-arena-raised text-arena-dim">
-              {problem.topic.replace('_', ' ')}
-            </span>
-          </div>
-
-          <h1 className="mt-3 font-display text-[1.9rem] font-bold leading-snug tracking-tight text-arena-text">
+          <span className="h-4 w-px bg-white/10" />
+          <h1 className="truncate text-sm font-semibold text-gray-100">
             {problem.title}
           </h1>
+          <span className={`text-xs font-medium ${DIFFICULTY_STYLE[problem.difficulty]}`}>
+            {problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()}
+          </span>
+          {problem.solved && (
+            <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+              Solved
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Language selector */}
+          <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
+            {LANGS.map((l) => (
+              <button
+                key={l.key}
+                onClick={() => setLang(l.key)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  lang === l.key
+                    ? 'bg-white/10 text-gray-100'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          {/* Run + Submit */}
+          <button
+            onClick={run}
+            disabled={running || submitting}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
+          >
+            {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+            Run
+          </button>
+          <button
+            onClick={submit}
+            disabled={running || submitting}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+            Submit
+          </button>
+        </div>
+      </header>
 
-          <article className="prose prose-invert mt-5 max-w-none text-[1.0625rem] leading-[1.78] prose-headings:text-arena-text prose-strong:text-white prose-code:rounded prose-code:bg-arena-raised prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-gold prose-code:before:content-none prose-code:after:content-none">
+      {/* ── Main content: two-panel split ────────────────────── */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* Left: problem description */}
+        <section className="min-h-0 w-full overflow-y-auto border-b border-white/10 p-5 lg:w-[45%] lg:border-b-0 lg:border-r lg:border-white/10">
+          <article className="prose prose-invert max-w-none text-[15px] leading-relaxed prose-headings:text-gray-100 prose-p:text-gray-300 prose-strong:text-white prose-code:rounded prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none">
             <Markdown remarkPlugins={[remarkGfm]}>{statement}</Markdown>
           </article>
 
+          {/* Hints */}
           {hintMeta && (
-            <div className="arena-panel mt-7 p-5">
-              <p className="flex flex-wrap items-center gap-2 font-display text-sm font-semibold uppercase tracking-wide text-arena-text">
-                <Lightbulb size={16} className="text-gold" />
+            <div className="mt-6 rounded-xl border border-white/10 bg-[#1e1e30] p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+                <Lightbulb size={15} className="text-yellow-400" />
                 Hints
-                <span className="font-sans text-xs font-normal normal-case tracking-normal text-gold/90">
+                <span className="text-xs font-normal text-gray-500">
                   Viewing any hint forfeits first-solve XP
                 </span>
               </p>
-              <div className="mt-3.5 space-y-2">
+              <div className="mt-3 space-y-1.5">
                 {hintMeta.levels.map((entry) => (
-                  <div key={entry.level} className="overflow-hidden rounded-xl border border-arena-line">
+                  <div key={entry.level} className="overflow-hidden rounded-lg border border-white/10">
                     <button
                       onClick={() => onHintClick(entry.level)}
                       disabled={loadingHint !== null}
-                      className={`flex w-full items-center gap-2.5 px-4 py-3 text-left text-[0.95rem] transition-colors ${
+                      className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
                         entry.revealed || armedHint === entry.level
-                          ? 'bg-gold/10 text-gold'
-                          : 'text-arena-dim hover:bg-arena-raised hover:text-arena-text'
+                          ? 'bg-yellow-500/10 text-yellow-300'
+                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
                       } disabled:opacity-50`}
                     >
                       {loadingHint === entry.level ? (
-                        <Loader2 size={16} className="animate-spin" />
+                        <Loader2 size={14} className="animate-spin" />
                       ) : (
                         <Lightbulb
-                          size={16}
-                          className={entry.revealed || armedHint === entry.level ? 'text-gold' : ''}
+                          size={14}
+                          className={entry.revealed || armedHint === entry.level ? 'text-yellow-400' : ''}
                         />
                       )}
                       Level {entry.level}: {entry.label}
                       {!entry.revealed && (
-                        <span className="ml-auto text-xs font-medium">
+                        <span className="ml-auto text-xs text-gray-500">
                           {hintMeta.xp_forfeit_applies
                             ? armedHint === entry.level
                               ? 'Click again — XP will be forfeited'
@@ -350,8 +379,8 @@ export default function Solve() {
                       )}
                     </button>
                     {revealedHints[entry.level] && (
-                      <div className="border-t border-arena-line bg-arena/40 px-4 py-3">
-                        <article className="prose prose-invert prose-base max-w-none text-[0.95rem] leading-relaxed prose-code:text-gold">
+                      <div className="border-t border-white/10 bg-white/[0.02] px-3 py-2.5">
+                        <article className="prose prose-invert prose-sm max-w-none text-[13px] leading-relaxed prose-code:text-emerald-400">
                           <Markdown remarkPlugins={[remarkGfm]}>
                             {revealedHints[entry.level]}
                           </Markdown>
@@ -365,48 +394,14 @@ export default function Solve() {
           )}
         </section>
 
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex gap-1 rounded-xl border border-arena-line bg-arena-panel p-1">
-              {LANGS.map((l) => (
-                <button
-                  key={l.key}
-                  onClick={() => setLang(l.key)}
-                  className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                    lang === l.key
-                      ? 'bg-arena-raised text-arena-text shadow-card'
-                      : 'text-arena-dim hover:text-arena-text'
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2.5">
-              <button
-                onClick={run}
-                disabled={running || submitting}
-                className="btn border border-arena-line px-4 py-2.5 text-[0.95rem] text-arena-text hover:border-arena-dim disabled:opacity-50"
-              >
-                {running ? <Loader2 size={17} className="animate-spin" /> : <Play size={17} />}
-                Run
-              </button>
-              <button
-                onClick={submit}
-                disabled={running || submitting}
-                className="btn btn-quest px-4 py-2.5 text-[0.95rem]"
-              >
-                {submitting ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-                Submit
-              </button>
-            </div>
-          </div>
-
-          <div className="arena-panel min-h-[65vh] overflow-hidden lg:min-h-0 lg:flex-[5] lg:basis-0">
+        {/* Right: code editor + console */}
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* Code editor */}
+          <div className="min-h-0 flex-1 overflow-hidden">
             <CodeMirror
               value={code}
               height="100%"
-              style={{ fontSize: '17px', height: '100%' }}
+              style={{ fontSize: '14px', height: '100%' }}
               theme={oneDark}
               extensions={[activeLang.ext]}
               onChange={setCode}
@@ -414,59 +409,97 @@ export default function Solve() {
             />
           </div>
 
-          <div className="min-h-0 space-y-4 lg:flex-[2] lg:basis-0 lg:overflow-y-auto lg:pr-1">
-            {error && (
-              <div className="rounded-xl border border-rust/50 bg-rust/10 p-4 text-[0.95rem] text-red-300">
-                {error}
-              </div>
-            )}
-
+          {/* Console bar */}
+          <div className="flex h-9 shrink-0 items-center justify-between border-t border-white/10 bg-[#1e1e30] px-4">
+            <button
+              onClick={() => setConsoleOpen((o) => !o)}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-200"
+            >
+              Console
+              {consoleOpen ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+            </button>
             {shown && (
-              <div className="arena-panel p-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className={`stamp-chip stamp-tilt px-3 py-1.5 text-xs ${STATUS_STYLES[shown.status].chip}`}>
-                    {STATUS_STYLES[shown.status].icon}
-                    {STATUS_STYLES[shown.status].label}
-                  </span>
-                  <span className="ml-auto font-mono text-xs text-arena-dim">
-                    {shown.runtime_ms.toFixed(0)} ms · {(shown.memory_kb / 1024).toFixed(1)} MB
-                  </span>
+              <span className={`flex items-center gap-1.5 text-xs font-medium ${STATUS_STYLES[shown.status]?.chip || 'text-gray-400'}`}>
+                {STATUS_STYLES[shown.status]?.icon}
+                {STATUS_STYLES[shown.status]?.label}
+              </span>
+            )}
+          </div>
+
+          {/* Console panel */}
+          {consoleOpen && (
+            <div className="max-h-[40vh] shrink-0 overflow-y-auto border-t border-white/10 bg-[#16162a]">
+              {/* Error */}
+              {error && (
+                <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
                 </div>
+              )}
 
-                {submitResult && submitResult.xp_awarded > 0 && (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-gold/45 bg-gold/10 p-3 text-[0.95rem] text-gold">
-                    <Zap size={16} />
-                    +{submitResult.xp_awarded} XP earned
-                    {submitResult.current_streak > 1 && (
-                      <span className="ml-auto font-mono text-xs text-gold/80">
-                        Streak · {submitResult.current_streak}d
-                      </span>
-                    )}
-                  </div>
-                )}
+              {/* Tabs */}
+              {shown && (
+                <div className="flex border-b border-white/10">
+                  <button
+                    onClick={() => setConsoleTab('result')}
+                    className={`border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
+                      consoleTab === 'result'
+                        ? 'border-emerald-400 text-emerald-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    Result
+                  </button>
+                  <button
+                    onClick={() => setConsoleTab('testcase')}
+                    className={`border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
+                      consoleTab === 'testcase'
+                        ? 'border-emerald-400 text-emerald-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    Testcase
+                  </button>
+                </div>
+              )}
 
-                {submitResult && submitResult.xp_forfeited && (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-arena-line bg-arena-raised p-3 text-sm text-arena-dim">
-                    <Lightbulb size={15} className="text-gold/70" />
-                    First-solve XP forfeited — hints were used on this problem.
-                  </div>
-                )}
+              {/* Result tab content */}
+              {shown && consoleTab === 'result' && (
+                <div className="p-4">
+                  {/* XP + badges (submit only) */}
+                  {submitResult && submitResult.xp_awarded > 0 && (
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
+                      <Zap size={14} />
+                      +{submitResult.xp_awarded} XP earned
+                      {submitResult.current_streak > 1 && (
+                        <span className="ml-auto text-xs text-yellow-400/70">
+                          Streak · {submitResult.current_streak}d
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                {submitResult && submitResult.new_badges?.length > 0 && (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-gold/45 bg-gold/10 p-3 text-[0.95rem] font-medium text-gold">
-                    <Award size={16} />
-                    Badge unlocked: {submitResult.new_badges.join(', ')}
-                  </div>
-                )}
+                  {submitResult && submitResult.xp_forfeited && (
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-400">
+                      <Lightbulb size={13} className="text-yellow-400/70" />
+                      First-solve XP forfeited — hints were used.
+                    </div>
+                  )}
 
-                <div className="mt-4 space-y-4">
+                  {submitResult && submitResult.new_badges?.length > 0 && (
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm font-medium text-yellow-300">
+                      <Award size={14} />
+                      Badge unlocked: {submitResult.new_badges.join(', ')}
+                    </div>
+                  )}
+
+                  {/* Test chips (submit) */}
                   {submitResult && (
-                    <div>
-                      <p className="eyebrow !text-arena-dim">
+                    <div className="mb-3">
+                      <p className="mb-2 text-xs text-gray-500">
                         Tests · {submitResult.test_results.filter((t) => t.passed).length}/
                         {submitResult.test_results.length} passed
                       </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
                         {submitResult.test_results.map((t) => (
                           <TestChip key={t.index} index={t.index} passed={t.passed} />
                         ))}
@@ -474,25 +507,31 @@ export default function Solve() {
                     </div>
                   )}
 
+                  {/* Runtime + memory */}
+                  <div className="mb-3 font-mono text-xs text-gray-500">
+                    {shown.runtime_ms.toFixed(0)} ms · {(shown.memory_kb / 1024).toFixed(1)} MB
+                  </div>
+
+                  {/* AI review (submit, not accepted) */}
                   {submitResult && submitResult.status !== 'ACCEPTED' && (
-                    <div>
+                    <div className="mt-3">
                       {review ? (
-                        <div className="rounded-xl border border-gold/40 bg-gold/[0.06] p-4">
-                          <p className="flex flex-wrap items-center gap-2 font-display text-sm font-semibold uppercase tracking-wide text-gold">
-                            <Sparkles size={16} />
+                        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
+                          <p className="flex items-center gap-2 text-sm font-semibold text-yellow-300">
+                            <Sparkles size={14} />
                             AI review
-                            <span className="rounded-md border border-gold/40 px-2 py-0.5 font-sans text-xs normal-case tracking-normal">
+                            <span className="rounded border border-yellow-500/30 px-1.5 py-0.5 text-[10px] font-normal text-yellow-400/80">
                               {review.bug_type}
                             </span>
                           </p>
-                          <p className="mt-2.5 text-[0.95rem] font-semibold text-arena-text">
-                            {review.verdict}
-                          </p>
-                          <article className="prose prose-invert prose-sm mt-2 max-w-none text-[0.95rem] leading-relaxed prose-code:text-gold">
+                          <p className="mt-2 text-sm font-medium text-gray-200">{review.verdict}</p>
+                          <article className="prose prose-invert prose-sm mt-2 max-w-none text-[13px] leading-relaxed prose-code:text-emerald-400">
                             <Markdown remarkPlugins={[remarkGfm]}>{review.explanation}</Markdown>
                           </article>
-                          <p className="eyebrow mt-4 mb-1 !text-arena-dim">How to fix</p>
-                          <article className="prose prose-invert prose-sm max-w-none text-[0.95rem] leading-relaxed prose-code:text-emerald-300">
+                          <p className="mt-3 mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
+                            How to fix
+                          </p>
+                          <article className="prose prose-invert prose-sm max-w-none text-[13px] leading-relaxed prose-code:text-emerald-400">
                             <Markdown remarkPlugins={[remarkGfm]}>{review.fix_hint}</Markdown>
                           </article>
                         </div>
@@ -500,57 +539,62 @@ export default function Solve() {
                         <button
                           onClick={fetchReview}
                           disabled={reviewLoading}
-                          className="btn border border-gold/50 bg-gold/10 px-4 py-2.5 text-[0.95rem] text-gold hover:bg-gold/20 disabled:opacity-50"
+                          className="flex items-center gap-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs font-medium text-yellow-300 hover:bg-yellow-500/20 disabled:opacity-50"
                         >
                           {reviewLoading ? (
-                            <Loader2 size={16} className="animate-spin" />
+                            <Loader2 size={13} className="animate-spin" />
                           ) : (
-                            <Sparkles size={16} />
+                            <Sparkles size={13} />
                           )}
-                          Get AI review of this attempt
+                          Get AI review
                         </button>
                       )}
                     </div>
                   )}
 
+                  {/* Failed test details (run) */}
                   {runResult &&
                     runResult.test_results.map((t) => (
                       <div
                         key={t.index}
-                        className={`rounded-xl border p-3.5 ${
+                        className={`mt-2 rounded-lg border p-3 ${
                           t.passed
-                            ? 'border-quest/35 bg-quest/[0.07]'
-                            : 'border-rust/40 bg-rust/[0.08]'
+                            ? 'border-emerald-500/30 bg-emerald-500/5'
+                            : 'border-red-500/30 bg-red-500/5'
                         }`}
                       >
-                        <p className="flex items-center gap-2 font-mono text-xs font-medium text-arena-dim">
+                        <p className="flex items-center gap-1.5 font-mono text-xs font-medium text-gray-400">
                           {t.passed ? (
-                            <CheckCircle2 size={14} className="text-emerald-300" />
+                            <CheckCircle2 size={12} className="text-emerald-400" />
                           ) : (
-                            <XCircle size={14} className="text-red-300" />
+                            <XCircle size={12} className="text-red-400" />
                           )}
                           Case {t.index + 1}
                           {!t.passed && <span>· {STATUS_STYLES[shown.status]?.label}</span>}
                         </p>
                         {!t.passed && (
-                          <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <div className="space-y-2.5 font-mono text-[13px]">
-                              <div>
-                                <p className="eyebrow !text-arena-dim mb-1">Input</p>
-                                <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-arena p-2.5 text-arena-text">
-                                  {t.input.trimEnd()}
-                                </pre>
-                              </div>
-                              <div>
-                                <p className="eyebrow !text-arena-dim mb-1">Expected</p>
-                                <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-arena p-2.5 text-emerald-300">
-                                  {t.expected_output}
-                                </pre>
-                              </div>
+                          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div>
+                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
+                                Input
+                              </p>
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-gray-300">
+                                {t.input.trimEnd()}
+                              </pre>
                             </div>
                             <div>
-                              <p className="eyebrow !text-arena-dim mb-1">Your output</p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-rust/30 bg-arena p-2.5 font-mono text-[13px] text-red-300">
+                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
+                                Expected
+                              </p>
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-emerald-400">
+                                {t.expected_output}
+                              </pre>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
+                                Your output
+                              </p>
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[12px] text-red-300">
                                 {t.actual_output ?? '(no output)'}
                               </pre>
                             </div>
@@ -559,11 +603,33 @@ export default function Solve() {
                       </div>
                     ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {/* Testcase tab content */}
+              {shown && consoleTab === 'testcase' && (
+                <div className="p-4">
+                  <p className="mb-2 text-xs text-gray-500">Test case inputs (read-only)</p>
+                  {shown.test_results.map((t) => (
+                    <div key={t.index} className="mb-2 rounded-lg border border-white/10 bg-[#1a1a2e] p-3">
+                      <p className="mb-1 font-mono text-xs text-gray-500">Case {t.index + 1}</p>
+                      <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-gray-300">
+                        {t.input.trimEnd()}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!shown && !error && (
+                <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                  Run or submit your code to see results here.
+                </div>
+              )}
+            </div>
+          )}
         </section>
-      </main>
+      </div>
     </div>
   )
 }

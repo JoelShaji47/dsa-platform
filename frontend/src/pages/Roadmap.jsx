@@ -634,8 +634,9 @@ export default function Roadmap() {
       <aside className="absolute right-4 bottom-4 top-20 z-30 w-[340px] max-w-[92vw] overflow-hidden rounded-[22px] border border-white/10 bg-[#242424] shadow-[0_30px_70px_-30px_rgb(0_0_0/0.8)]">
         {selectedPattern ? (
           <div className="flex h-full flex-col">
-            <PanelHeader pattern={selectedPattern} isRoot={!selectedPattern.prerequisites?.length} />
+            <PanelHeader pattern={selectedPattern} isRoot={!selectedPattern.prerequisites?.length} onClose={() => setSelectedKey(null)} />
             <div className="flex-1 overflow-y-auto px-5 pb-6">
+              <PatternStats pattern={selectedPattern} />
               <ProblemList pattern={selectedPattern} />
             </div>
           </div>
@@ -647,7 +648,7 @@ export default function Roadmap() {
   )
 }
 
-function PanelHeader({ pattern, isRoot }) {
+function PanelHeader({ pattern, isRoot, onClose }) {
   if (!pattern) return null
   return (
     <div className="border-b border-white/10 px-5 py-4">
@@ -660,9 +661,16 @@ function PanelHeader({ pattern, isRoot }) {
             {pattern.name}
           </h2>
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-[#b8b8b8]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#00BFA5]" />
-        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-[#b8b8b8] transition-colors hover:border-white/25 hover:text-[#f5f5f5]"
+          title="Back to dashboard"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M1 1l12 12M13 1L1 13" />
+          </svg>
+        </button>
       </div>
       <p className="mt-2 text-sm text-[#b8b8b8]">{pattern.snippet}</p>
       <Prerequisites pattern={pattern} />
@@ -678,6 +686,35 @@ function PanelHeader({ pattern, isRoot }) {
           </span>
         )}
       </div>
+    </div>
+  )
+}
+
+function PatternStats({ pattern }) {
+  const counts = { EASY: 0, MEDIUM: 0, HARD: 0 }
+  pattern.problems.forEach((p) => {
+    if (counts[p.difficulty] != null) counts[p.difficulty] += 1
+  })
+  const solvedCounts = { EASY: 0, MEDIUM: 0, HARD: 0 }
+  pattern.problems.forEach((p) => {
+    if (p.solved && solvedCounts[p.difficulty] != null) solvedCounts[p.difficulty] += 1
+  })
+  const stats = [
+    { label: 'Easy', solved: solvedCounts.EASY, total: counts.EASY, color: COLORS.easy },
+    { label: 'Medium', solved: solvedCounts.MEDIUM, total: counts.MEDIUM, color: COLORS.medium },
+    { label: 'Hard', solved: solvedCounts.HARD, total: counts.HARD, color: COLORS.hard },
+  ]
+  return (
+    <div className="mb-4 mt-4 flex items-center gap-4 rounded-xl border border-white/10 bg-[#1f1f1f] px-4 py-3">
+      {stats.map((s) => (
+        <div key={s.label} className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+          <span className="font-mono text-xs text-[#b8b8b8]">
+            {s.label}{' '}
+            <span className="font-bold text-[#f5f5f5]">{s.solved}/{s.total}</span>
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

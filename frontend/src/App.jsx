@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
-import ProblemDetail from './pages/ProblemDetail'
 import Problems from './pages/Problems'
 import Register from './pages/Register'
 import Roadmap from './pages/Roadmap'
@@ -43,7 +42,7 @@ export default function App() {
         path="/problems/:slug"
         element={
           <ProtectedRoute>
-            <ProblemDetail />
+            <Solve />
           </ProtectedRoute>
         }
       />
