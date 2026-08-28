@@ -17,5 +17,55 @@ services:
       timeout: 5s
       retries: 10
 
+  judge0-db:
+    image: postgres:16-alpine
+    container_name: judge0_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${JUDGE0_DB_USER:-judge0_user}
+      POSTGRES_PASSWORD: ${JUDGE0_DB_PASS:-judge0_pass}
+      POSTGRES_DB: ${JUDGE0_DB_NAME:-judge0}
+    volumes:
+      - judge0_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${JUDGE0_DB_USER:-judge0_user} -d ${JUDGE0_DB_NAME:-judge0}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  judge0-redis:
+    image: redis:7-alpine
+    container_name: judge0_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  judge0:
+    image: judge0/judge0:latest
+    container_name: judge0_server
+    restart: unless-stopped
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    ports:
+      - "2358:2358"
+    environment:
+      JUDGE0_SECRET_KEY: ${JUDGE0_SECRET_KEY:-super-secret-judge0-key-change-me}
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${JUDGE0_DB_USER:-judge0_user}
+      POSTGRES_PASSWORD: ${JUDGE0_DB_PASS:-judge0_pass}
+      POSTGRES_DB: ${JUDGE0_DB_NAME:-judge0}
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+      ENABLE_WAIT_RESULT: "true"
+      NUM_WORKERS: 2
+
 volumes:
   postgres_data:
+  judge0_db_data:
