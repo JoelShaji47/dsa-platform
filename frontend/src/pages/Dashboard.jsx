@@ -88,7 +88,7 @@ export default function Dashboard() {
                 </h1>
                 <p className="mt-1 text-[1.05rem] text-ink-soft">Here is where you stand.</p>
               </div>
-              <Link to="/problems" className="btn btn-ink px-5 py-3 text-base">
+              <Link to="/roadmap" className="btn btn-ink px-5 py-3 text-base">
                 <Play size={17} />
                 Continue the quest
               </Link>

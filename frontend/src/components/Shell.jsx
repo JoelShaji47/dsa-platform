@@ -53,6 +53,9 @@ export function TopBar({ active, children }) {
           <NavLink to="/" active={active === 'dashboard'}>
             Campaign
           </NavLink>
+          <NavLink to="/roadmap" active={active === 'roadmap'}>
+            Roadmap
+          </NavLink>
           <NavLink to="/problems" active={active === 'problems'}>
             Problems
           </NavLink>

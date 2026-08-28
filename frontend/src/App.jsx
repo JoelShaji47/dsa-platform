@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import ProblemDetail from './pages/ProblemDetail'
 import Problems from './pages/Problems'
 import Register from './pages/Register'
+import Roadmap from './pages/Roadmap'
 import Solve from './pages/Solve'
 
 export default function App() {
@@ -17,6 +18,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/roadmap"
+        element={
+          <ProtectedRoute>
+            <Roadmap />
           </ProtectedRoute>
         }
       />

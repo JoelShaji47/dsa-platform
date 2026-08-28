@@ -75,7 +75,13 @@ def update_streak(user: User, today: date | None = None) -> None:
     user.last_active_date = today
 
 
+_catalog_synced = False
+
+
 def ensure_badge_catalog(db: Session) -> None:
+    global _catalog_synced
+    if _catalog_synced:
+        return
     for definition in BADGE_DEFINITIONS:
         badge = (
             db.query(Badge).filter(Badge.criteria == definition["criteria"]).first()
@@ -86,6 +92,7 @@ def ensure_badge_catalog(db: Session) -> None:
             badge.name = definition["name"]
             badge.description = definition["description"]
     db.commit()
+    _catalog_synced = True
 
 
 def _earned_conditions(db: Session, user: User) -> set[str]:
@@ -152,8 +159,7 @@ def award_new_badges(db: Session, user: User) -> list[str]:
 
 
 def list_user_badges(db: Session, user: User) -> list[dict]:
-    ensure_badge_catalog(db)
-    earned = {
+    owned = {
         row[0]: row[1]
         for row in db.query(Badge.criteria, UserBadge.earned_at)
         .join(UserBadge, UserBadge.badge_id == Badge.id)
@@ -165,8 +171,8 @@ def list_user_badges(db: Session, user: User) -> list[dict]:
             "criteria": definition["criteria"],
             "name": definition["name"],
             "description": definition["description"],
-            "earned": definition["criteria"] in earned,
-            "earned_at": earned.get(definition["criteria"]),
+            "earned": definition["criteria"] in owned,
+            "earned_at": owned.get(definition["criteria"]),
         }
         for definition in BADGE_DEFINITIONS
     ]

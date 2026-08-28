@@ -44,7 +44,13 @@ def list_problems(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ProblemListItem]:
-    query = db.query(Problem)
+    query = db.query(
+        Problem.id,
+        Problem.title,
+        Problem.slug,
+        Problem.difficulty,
+        Problem.topic,
+    )
     if topic is not None:
         query = query.filter(Problem.topic == topic)
     if difficulty is not None:
@@ -55,14 +61,14 @@ def list_problems(
     solved_ids = _solved_problem_ids(db, current_user.id)
     return [
         ProblemListItem(
-            id=problem.id,
-            title=problem.title,
-            slug=problem.slug,
-            difficulty=problem.difficulty,
-            topic=problem.topic,
-            solved=problem.id in solved_ids,
+            id=row.id,
+            title=row.title,
+            slug=row.slug,
+            difficulty=row.difficulty,
+            topic=row.topic,
+            solved=row.id in solved_ids,
         )
-        for problem in query.order_by(Problem.difficulty, Problem.title).all()
+        for row in query.order_by(Problem.difficulty, Problem.title).all()
     ]
 
 
