@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Check,
   Clock,
   EyeOff,
   FileCode2,
@@ -20,6 +21,7 @@ import {
   Play,
   Send,
   Sparkles,
+  SquareTerminal,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -34,6 +36,7 @@ import client from "@/lib/api";
 import { CodeEditor } from "@/components/arena/code-editor";
 import { ProblemStatement } from "@/components/arena/problem-statement";
 import type {
+  CustomRunOut,
   Difficulty,
   HintLevelInfo,
   HintMetaOut,
@@ -44,7 +47,6 @@ import type {
   SubmissionHistoryItem,
   SubmissionResultOut,
   SubmissionStatus,
-  VisibleTestResult,
 } from "@/lib/types";
 
 const LANGS: { key: Language; label: string; ext: () => unknown }[] = [
@@ -339,6 +341,10 @@ export default function SolveClient() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [consoleTab, setConsoleTab] = useState("result");
+  const [caseIdx, setCaseIdx] = useState(0);
+  const [customInput, setCustomInput] = useState("");
+  const [customResult, setCustomResult] = useState<CustomRunOut | null>(null);
+  const [customRunning, setCustomRunning] = useState(false);
 
   const [leftTab, setLeftTab] = useState("description");
   const [submissions, setSubmissions] = useState<SubmissionHistoryItem[]>([]);
@@ -419,6 +425,31 @@ export default function SolveClient() {
       setRunning(false);
     }
   }, [slug, lang, code]);
+
+  const runCustom = useCallback(async () => {
+    setCustomRunning(true);
+    setCustomResult(null);
+    try {
+      const res = await client.post<CustomRunOut>(
+        "/custom-run",
+        { language: lang, source_code: code, stdin: customInput },
+        { timeout: 120000 }
+      );
+      setCustomResult(res.data);
+      setConsoleOpen(true);
+      setConsoleTab("custom");
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail || "Could not run with custom input. Try again.";
+      setCustomResult(null);
+      setError(message);
+      setConsoleOpen(true);
+      setConsoleTab("custom");
+    } finally {
+      setCustomRunning(false);
+    }
+  }, [lang, code, customInput]);
 
   const submit = useCallback(async () => {
     setSubmitting(true);
@@ -507,6 +538,12 @@ export default function SolveClient() {
     }
   }, [submitResult]);
 
+  useEffect(() => {
+    if (!runResult?.test_results.length) return;
+    const firstFailed = runResult.test_results.findIndex((t) => !t.passed);
+    setCaseIdx(firstFailed === -1 ? 0 : firstFailed);
+  }, [runResult]);
+
   if (pageStatus === "loading") {
     return (
       <div className="flex h-screen items-center justify-center gap-2 bg-[#1a1a2e] text-gray-400">
@@ -547,9 +584,14 @@ export default function SolveClient() {
   const compileError =
     shown &&
     (shownStatus === "COMPILATION_ERROR" || shownStatus === "RUNTIME_ERROR")
-      ? (shown as RunResultOut).test_results?.find((t) => t.actual_output)?.actual_output
+      ? (
+          shown as { test_results?: { stderr?: string | null }[] }
+        ).test_results?.find((t) => t && t.stderr)?.stderr ?? null
       : null;
   const hasOutputTab = error || compileError;
+  const runSel = runResult?.test_results
+    ? runResult.test_results[Math.min(caseIdx, runResult.test_results.length - 1)]
+    : null;
 
   return (
     <div className="flex h-screen flex-col bg-[#1a1a2e]">
@@ -727,49 +769,48 @@ export default function SolveClient() {
               )}
 
               {/* Tabs */}
-              {shown && (
-                <div className="flex border-b border-white/10">
+              <div className="flex border-b border-white/10">
+                <button
+                  onClick={() => setConsoleTab("result")}
+                  className={`border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
+                    consoleTab === "result"
+                      ? "border-emerald-400 text-emerald-400"
+                      : "border-transparent text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  Result
+                </button>
+                <button
+                  onClick={() => setConsoleTab("custom")}
+                  className={`flex items-center gap-1.5 border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
+                    consoleTab === "custom"
+                      ? "border-emerald-400 text-emerald-400"
+                      : "border-transparent text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  {customResult ? <Check size={12} className="text-emerald-400" /> : <SquareTerminal size={13} />}
+                  Custom
+                </button>
+                {hasOutputTab && (
                   <button
-                    onClick={() => setConsoleTab("result")}
-                    className={`border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
-                      consoleTab === "result"
+                    onClick={() => setConsoleTab("output")}
+                    className={`flex items-center gap-1.5 border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
+                      consoleTab === "output"
                         ? "border-emerald-400 text-emerald-400"
                         : "border-transparent text-gray-500 hover:text-gray-300"
                     }`}
                   >
-                    Result
+                    {compileError ? (
+                      <>
+                        <XCircle size={12} className="text-red-400" />
+                        Compile Error
+                      </>
+                    ) : (
+                      "Output"
+                    )}
                   </button>
-                  <button
-                    onClick={() => setConsoleTab("testcase")}
-                    className={`border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
-                      consoleTab === "testcase"
-                        ? "border-emerald-400 text-emerald-400"
-                        : "border-transparent text-gray-500 hover:text-gray-300"
-                    }`}
-                  >
-                    Testcase
-                  </button>
-                  {hasOutputTab && (
-                    <button
-                      onClick={() => setConsoleTab("output")}
-                      className={`flex items-center gap-1.5 border-b-2 px-4 py-2 text-xs font-medium transition-colors ${
-                        consoleTab === "output"
-                          ? "border-emerald-400 text-emerald-400"
-                          : "border-transparent text-gray-500 hover:text-gray-300"
-                      }`}
-                    >
-                      {compileError ? (
-                        <>
-                          <XCircle size={12} className="text-red-400" />
-                          Compile Error
-                        </>
-                      ) : (
-                        "Output"
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Result tab */}
               {shown && consoleTab === "result" && (
@@ -780,6 +821,21 @@ export default function SolveClient() {
                       ? `Run · ${runResult.test_results.length} visible case${runResult.test_results.length === 1 ? "" : "s"}`
                       : `Submit · all ${(submitResult?.test_results.length ?? 0)} cases (${problem.hidden_test_count} hidden)`}
                   </p>
+                  {(shownStatus === "COMPILATION_ERROR" ||
+                    shownStatus === "RUNTIME_ERROR") &&
+                    compileError && (
+                      <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                        <p className="flex items-center gap-2 font-mono text-[13px] font-bold text-red-300">
+                          <XCircle size={14} className="shrink-0" />
+                          {shownStatus === "COMPILATION_ERROR"
+                            ? "Compilation Error"
+                            : "Runtime Error"}
+                        </p>
+                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-red-200">
+                          {compileError}
+                        </pre>
+                      </div>
+                    )}
                   {/* XP + badges */}
                   {submitResult && submitResult.xp_awarded > 0 && (
                     <div className="mb-3 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
@@ -932,71 +988,100 @@ export default function SolveClient() {
                     </div>
                   )}
 
-                  {/* Failed test details (run) */}
+                  {/* Run test cases (platform-style toggles) */}
                   {runResult &&
-                    runResult.test_results.map((t: VisibleTestResult) => (
-                      <div
-                        key={t.index}
-                        className={`mt-2 rounded-lg border p-3 ${
-                          t.passed
-                            ? "border-emerald-500/30 bg-emerald-500/5"
-                            : "border-red-500/30 bg-red-500/5"
-                        }`}
-                      >
-                        <p className="flex items-center gap-1.5 font-mono text-[13px] font-medium text-gray-400">
-                          {t.passed ? (
-                            <CheckCircle2 size={12} className="text-emerald-400" />
-                          ) : (
-                            <XCircle size={12} className="text-red-400" />
-                          )}
-                          Case {t.index + 1}
-                          {!t.passed && shownStatus && <span>· {STATUS_STYLES[shownStatus]?.label}</span>}
-                        </p>
-                        {!t.passed && t.input != null && (
-                          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <div>
-                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
-                                Input
-                              </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[14px] text-gray-300">
-                                {(t.input || "").trimEnd()}
-                              </pre>
+                    runSel && (
+                      <div className="mt-3">
+                        {shownStatus === "ACCEPTED" && (
+                          <p className="mb-3 text-sm text-emerald-400">
+                            All sample cases passed.
+                          </p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {runResult.test_results.map((t, i) => (
+                            <button
+                              key={t.index}
+                              type="button"
+                              onClick={() => setCaseIdx(i)}
+                              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition-colors ${
+                                i === caseIdx
+                                  ? "border-[#d4a72c]/60 bg-[#d4a72c]/15 text-[#f5f5f5]"
+                                  : "border-white/10 text-[#93a1bd] hover:border-white/25 hover:text-[#dce3f2]"
+                              }`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  t.passed ? "bg-emerald-400" : "bg-red-400"
+                                }`}
+                              />
+                              Testcase {i + 1}
+                            </button>
+                          ))}
+                        </div>
+
+                          <div
+                            className={`mt-2 overflow-hidden rounded-xl border bg-[#16162a] ${
+                              runSel.passed
+                                ? "border-emerald-500/25"
+                                : "border-red-500/25"
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center justify-between border-b px-3 py-1.5 ${
+                                runSel.passed
+                                  ? "border-emerald-500/25 bg-emerald-500/10"
+                                  : "border-red-500/25 bg-red-500/10"
+                              }`}
+                            >
+                              <span
+                                className={`font-mono text-[11px] font-bold uppercase tracking-[0.14em] ${
+                                  runSel.passed ? "text-emerald-400" : "text-red-300"
+                                }`}
+                              >
+                                {runSel.passed ? "Testcase Passed" : "Testcase Failed"}
+                              </span>
+                              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                                Case {runSel.index + 1} ·{" "}
+                                {!runSel.passed && runSel.status_key === "ACCEPTED"
+                                  ? "Wrong Answer"
+                                  : statusKeyLabel(runSel.status_key)}
+                              </span>
                             </div>
-                            <div>
-                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
-                                Expected
-                              </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[14px] text-emerald-400">
-                                {t.expected_output}
-                              </pre>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
-                                Your output
-                              </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[14px] text-red-300">
-                                {t.actual_output || "(no output)"}
-                              </pre>
+                            <div className="space-y-3 px-3 py-3">
+                              <div>
+                                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                                  Input (stdin)
+                                </p>
+                                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-[#1e1e30] p-2 font-mono text-[13px] leading-relaxed text-[#c3cde3]">
+                                  {(runSel.input || "").trimEnd()}
+                                </pre>
+                              </div>
+                              <div>
+                                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                                  Your Output (stdout)
+                                </p>
+                                <pre
+                                  className={`overflow-x-auto whitespace-pre-wrap break-words rounded-md border p-2 font-mono text-[13px] leading-relaxed ${
+                                    runSel.passed
+                                      ? "border-emerald-500/30 bg-[#1e1e30] text-emerald-400"
+                                      : "border-red-500/30 bg-[#1e1e30] text-red-300"
+                                  }`}
+                                >
+                                  {(runSel.actual_output ?? "(no output)").trimEnd()}
+                                </pre>
+                              </div>
+                              <div>
+                                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                                  Expected Output
+                                </p>
+                                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-[#1e1e30] p-2 font-mono text-[13px] leading-relaxed text-emerald-400">
+                                  {(runSel.expected_output || "").trimEnd()}
+                                </pre>
+                              </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              )}
-
-              {/* Testcase tab */}
-              {shown && consoleTab === "testcase" && runResult && (
-                <div className="p-4">
-                  <p className="mb-2 text-[13px] text-gray-500">Test case inputs (read-only)</p>
-                  {runResult.test_results.map((t) => (
-                    <div key={t.index} className="mb-2 rounded-lg border border-white/10 bg-[#1a1a2e] p-3">
-                      <p className="mb-1 font-mono text-xs text-gray-500">Case {t.index + 1}</p>
-                      <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[14px] text-gray-300">
-                        {(t.input || "").trimEnd()}
-                      </pre>
-                    </div>
-                  ))}
+                        </div>
+                      )}
                 </div>
               )}
 
@@ -1035,8 +1120,93 @@ export default function SolveClient() {
                 </div>
               )}
 
+              {/* Custom tab (user stdin, not graded) */}
+              {consoleTab === "custom" && (
+                <div className="p-4">
+                  <p className="mb-2 text-[13px] text-gray-500">
+                    Run your code against your own input. This is not graded.
+                  </p>
+                  <textarea
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    rows={4}
+                    spellCheck={false}
+                    placeholder="Paste stdin input\u2026 each case on its own line"
+                    className="w-full resize-y rounded-lg border border-white/10 bg-[#1a1a2e] p-3 font-mono text-[13px] text-gray-200 placeholder:text-gray-600 outline-none focus:border-emerald-400/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={runCustom}
+                    disabled={customRunning}
+                    className="mt-3 flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/25 hover:text-gray-100 disabled:opacity-50"
+                  >
+                    {customRunning ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Play size={13} />
+                    )}
+                    Run custom
+                  </button>
+
+                  {error && consoleTab === "custom" && (
+                    <div className="mt-3 overflow-x-auto whitespace-pre-wrap rounded-lg border border-red-500/20 bg-red-500/5 p-4 font-mono text-[14px] leading-relaxed text-red-200">
+                      {error}
+                    </div>
+                  )}
+
+                  {customResult && (
+                    <div className="mt-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {customResult.status ? (
+                          <span
+                            className={`flex items-center gap-1.5 text-xs font-medium ${STATUS_STYLES[customResult.status]?.chip || "text-gray-400"}`}
+                          >
+                            {STATUS_STYLES[customResult.status]?.icon}
+                            {STATUS_STYLES[customResult.status]?.label}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-gray-400">
+                            {customResult.status_key}
+                          </span>
+                        )}
+                        <span className="font-mono text-xs text-gray-500">
+                          {customResult.runtime_ms.toFixed(0)} ms ·{" "}
+                          {(customResult.memory_kb / 1024).toFixed(1)} MB
+                        </span>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                          Your Output (stdout)
+                        </p>
+                        <pre
+                          className={`overflow-x-auto whitespace-pre-wrap break-words rounded-md border p-2 font-mono text-[13px] leading-relaxed ${
+                            customResult.status === "ACCEPTED"
+                              ? "border-emerald-500/30 bg-[#1e1e30] text-emerald-400"
+                              : "border-red-500/30 bg-[#1e1e30] text-red-300"
+                          }`}
+                        >
+                          {(customResult.stdout || "(no output)").trimEnd()}
+                        </pre>
+                      </div>
+
+                      {(customResult.stderr || customResult.compile_output) && (
+                        <div className="mt-3">
+                          <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                            Error
+                          </p>
+                          <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-red-500/30 bg-[#1e1e30] p-2 font-mono text-[13px] leading-relaxed text-red-300">
+                            {customResult.stderr || customResult.compile_output}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Empty state */}
-              {!shown && !error && (
+              {!shown && !error && consoleTab === "result" && (
                 <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
                   <p className="text-sm text-gray-500">Run or submit your code to see results here.</p>
                   <p className="font-mono text-xs text-gray-600">

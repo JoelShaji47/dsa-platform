@@ -392,3 +392,68 @@ def test_language_enum_values_accepted(monkeypatch):
             headers=headers,
         )
         assert res.status_code == 200
+
+
+def test_custom_run_returns_stdout_without_storing(monkeypatch):
+    async def fake_submit(source_code, language, stdin):
+        assert language == Language.PYTHON.value
+        assert stdin == "4 2 6"
+        return {
+            "stdout": "6\n",
+            "stderr": None,
+            "compile_output": None,
+            "status_key": "ACCEPTED",
+            "time": 0.012,
+            "memory": 4096,
+        }
+
+    monkeypatch.setattr("app.api.v1.problems.submit", fake_submit)
+    headers, user_id = register_and_login()
+    res = client.post(
+        "/api/v1/custom-run",
+        json={
+            "language": "python",
+            "source_code": "a = list(map(int, input().split()))\nprint(sum(a))",
+            "stdin": "4 2 6",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "ACCEPTED"
+    assert body["status_key"] == "ACCEPTED"
+    assert body["stdout"] == "6\n"
+    assert body["stderr"] is None
+    assert body["runtime_ms"] == 12
+    with SessionLocal() as db:
+        stored = db.query(Submission).filter(Submission.user_id == user_id).count()
+    assert stored == 0
+
+
+def test_custom_run_maps_runtime_error(monkeypatch):
+    async def fake_submit(source_code, language, stdin):
+        return {
+            "stdout": None,
+            "stderr": "Exception in thread main ...",
+            "compile_output": None,
+            "status_key": "RUNTIME_ERROR_UNKNOWN",
+            "time": 0.01,
+            "memory": 8192,
+        }
+
+    monkeypatch.setattr("app.api.v1.problems.submit", fake_submit)
+    headers, _ = register_and_login()
+    res = client.post(
+        "/api/v1/custom-run",
+        json={
+            "language": "java",
+            "source_code": "class Main { public static void main(String[] a) { int x = 1/0; } }",
+            "stdin": "",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "RUNTIME_ERROR"
+    assert body["stdout"] is None
+    assert "Exception" in (body["stderr"] or "")

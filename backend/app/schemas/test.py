@@ -73,6 +73,7 @@ class TestSessionOut(BaseModel):
     started_at: str
     deadline_at: str
     time_remaining_seconds: int
+    violations: int = 0
     problems: list[TestProblemOut]
 
 
@@ -106,6 +107,7 @@ class TestResultsOut(BaseModel):
     passed_count: int
     total: int
     time_taken_seconds: int
+    violations: int = 0
     topics: list[Topic]
     assigned_topics: list[Topic]
     started_at: str

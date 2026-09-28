@@ -53,6 +53,9 @@ class TestSession(Base):
         DateTime(timezone=True), nullable=True
     )
     time_taken_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    violations: Mapped[int] = mapped_column(
+        Integer, server_default=text("0"), nullable=False
+    )
     score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     passed_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

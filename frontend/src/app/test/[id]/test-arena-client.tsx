@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -16,6 +17,7 @@ import {
   Play,
   Send,
   Square,
+  SquareTerminal,
   Terminal,
   XCircle,
 } from "lucide-react";
@@ -23,6 +25,8 @@ import ProtectedRoute from "@/components/protected-route";
 import { Brand } from "@/components/shell";
 import { CodeEditor, LanguagePicker } from "@/components/arena/code-editor";
 import Countdown from "@/components/arena/countdown";
+import { CameraFeed } from "@/components/arena/camera-feed";
+import { useTestProctoring } from "@/components/arena/use-test-proctoring";
 import { ProblemStatement } from "@/components/arena/problem-statement";
 import TestChip from "@/components/arena/test-chip";
 import {
@@ -35,6 +39,7 @@ import {
 } from "@/components/arena/status-styles";
 import client from "@/lib/api";
 import type {
+  CustomRunOut,
   Language,
   RunResultOut,
   TestSession,
@@ -62,6 +67,10 @@ function TestArenaScreen() {
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [termTab, setTermTab] = useState<"result" | "custom">("result");
+  const [customInput, setCustomInput] = useState("");
+  const [customResult, setCustomResult] = useState<CustomRunOut | null>(null);
+  const [customRunning, setCustomRunning] = useState(false);
 
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leavingRef = useRef(false);
@@ -239,6 +248,25 @@ function TestArenaScreen() {
     }
   };
 
+  const runCustom = async () => {
+    if (!current || !draft || busy) return;
+    setCustomRunning(true);
+    setCustomResult(null);
+    setError(null);
+    try {
+      const res = await client.post<CustomRunOut>("/custom-run", {
+        language: draft.language,
+        source_code: draft.code,
+        stdin: customInput,
+      });
+      setCustomResult(res.data);
+    } catch (err) {
+      setError(errDetail(err));
+    } finally {
+      setCustomRunning(false);
+    }
+  };
+
   const submit = async () => {
     if (!current || !draft || busy) return;
     setBusy("submit");
@@ -326,6 +354,22 @@ function TestArenaScreen() {
     [questions]
   );
 
+  const onProctorAutoSubmit = useCallback(
+    (data: TestSession) => {
+      if (leavingRef.current) return;
+      leavingRef.current = true;
+      router.replace(`/test/${data.id}/results`);
+    },
+    [router]
+  );
+
+  const procActive = session?.status === "IN_PROGRESS" && !!current;
+  const { violations, limit } = useTestProctoring({
+    sessionId,
+    enabled: procActive,
+    onAutoSubmit: onProctorAutoSubmit,
+  });
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 bg-[#1a1a2e] text-sm text-[#93a1bd]">
@@ -350,7 +394,7 @@ function TestArenaScreen() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#1a1a2e] text-[#dce3f2]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#1a1a2e] text-[#dce3f2]">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#1e1e30]/95 backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
             <div className="flex items-center gap-4">
@@ -367,6 +411,7 @@ function TestArenaScreen() {
             </div>
 
             <div className="flex items-center gap-2.5">
+              <StrikeMeter violations={violations} limit={limit} />
               <Countdown
                 key={timeRemaining}
                 timeRemainingSeconds={timeRemaining}
@@ -424,7 +469,7 @@ function TestArenaScreen() {
             ))}
             <div className="ml-auto hidden items-center gap-1.5 pl-4 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-[#93a1bd] md:flex">
               Topics
-              {session.assigned_topics.map((t) => (
+              {Array.from(new Set(session.assigned_topics)).map((t) => (
                 <span
                   key={t}
                   className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5"
@@ -452,7 +497,7 @@ function TestArenaScreen() {
           </div>
         )}
 
-        <div className="grid flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,420px)_1fr]">
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(0,420px)_1fr] lg:overflow-hidden">
           <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1e1e30]">
             <div className="border-b border-white/10 px-5 py-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -524,7 +569,7 @@ function TestArenaScreen() {
               </div>
             </div>
 
-            <div className="min-h-[320px] flex-1 overflow-hidden rounded-2xl border border-white/10 bg-[#1e1e30]">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-[#1e1e30]">
               <CodeEditor
                 value={draft.code}
                 language={draft.language}
@@ -573,19 +618,147 @@ function TestArenaScreen() {
                 )}
               </button>
               {terminalOpen && (
-                <div className="max-h-72 overflow-y-auto border-t border-white/10 px-5 py-3">
-                  {busy === "run" || busy === "submit" ? (
-                    <p className="flex items-center gap-2 text-sm text-[#93a1bd]">
-                      <Loader2 size={13} className="animate-spin" />
-                      Running test cases…
-                    </p>
-                  ) : verdict ? (
-                    <VerdictPanel verdict={verdict} />
-                  ) : (
-                    <p className="text-sm text-[#93a1bd]">
-                      Run or submit to see results here.
-                    </p>
-                  )}
+                <div className="border-t border-white/10">
+                  <div className="flex gap-1 border-b border-white/10 px-5 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setTermTab("result")}
+                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                        termTab === "result"
+                          ? "bg-white/10 text-[#dce3f2]"
+                          : "text-[#93a1bd] hover:bg-white/5 hover:text-[#dce3f2]"
+                      }`}
+                    >
+                      <Terminal size={12} />
+                      Results
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTermTab("custom")}
+                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                        termTab === "custom"
+                          ? "bg-white/10 text-[#dce3f2]"
+                          : "text-[#93a1bd] hover:bg-white/5 hover:text-[#dce3f2]"
+                      }`}
+                    >
+                      {customResult ? (
+                        <Check size={12} className="text-emerald-400" />
+                      ) : (
+                        <SquareTerminal size={12} />
+                      )}
+                      Custom
+                    </button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto px-5 py-3">
+                    {termTab === "result" ? (
+                      error ? (
+                        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                          <p className="flex items-center gap-2 font-mono text-[13px] font-semibold text-red-300">
+                            <AlertTriangle size={14} className="shrink-0" />
+                            {error}
+                          </p>
+                        </div>
+                      ) : busy === "run" || busy === "submit" ? (
+                        <p className="flex items-center gap-2 text-sm text-[#93a1bd]">
+                          <Loader2 size={13} className="animate-spin" />
+                          Running test cases…
+                        </p>
+                      ) : verdict ? (
+                        <div className="space-y-3">
+                          {verdictError(verdict) && (
+                            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                              <p className="flex items-center gap-2 font-mono text-[13px] font-bold text-red-300">
+                                <XCircle size={14} className="shrink-0" />
+                                {verdictError(verdict)?.label}
+                              </p>
+                              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-red-200">
+                                {verdictError(verdict)?.output}
+                              </pre>
+                            </div>
+                          )}
+                          <VerdictPanel verdict={verdict} />
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[#93a1bd]">
+                          Run or submit to see results here.
+                        </p>
+                      )
+                    ) : (
+                      <div>
+                        <p className="text-[13px] text-[#93a1bd]">
+                          Run your code against your own input. This is not graded.
+                        </p>
+                        <textarea
+                          value={customInput}
+                          onChange={(e) => setCustomInput(e.target.value)}
+                          rows={4}
+                          spellCheck={false}
+                          placeholder="Paste stdin input\u2026 each case on its own line"
+                          className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-[#12121f] p-3 font-mono text-[13px] text-[#dce3f2] placeholder:text-[#3c4a63] outline-none focus:border-emerald-400/50"
+                        />
+                        <button
+                          type="button"
+                          onClick={runCustom}
+                          disabled={customRunning || busy !== null || !draft?.code.trim()}
+                          className="mt-3 flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-[#dce3f2] transition-colors hover:border-white/25 hover:bg-white/10 disabled:opacity-50"
+                        >
+                          {customRunning ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <Play size={13} />
+                          )}
+                          Run custom
+                        </button>
+
+                        {customResult && (
+                          <div className="mt-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {customResult.status ? (
+                                <span
+                                  className={`flex items-center gap-1.5 text-xs font-medium ${STATUS_STYLES[customResult.status]?.chip || "text-[#93a1bd]"}`}
+                                >
+                                  {STATUS_STYLES[customResult.status]?.icon}
+                                  {STATUS_STYLES[customResult.status]?.label}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-medium text-[#93a1bd]">
+                                  {customResult.status_key}
+                                </span>
+                              )}
+                              <span className="font-mono text-xs text-[#93a1bd]">
+                                {customResult.runtime_ms.toFixed(0)} ms ·{" "}
+                                {(customResult.memory_kb / 1024).toFixed(1)} MB
+                              </span>
+                            </div>
+                            <div className="mt-3">
+                              <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                                Your Output (stdout)
+                              </p>
+                              <pre
+                                className={`overflow-x-auto whitespace-pre-wrap break-words rounded-md border p-2 font-mono text-[13px] leading-relaxed ${
+                                  customResult.status === "ACCEPTED"
+                                    ? "border-emerald-500/30 text-emerald-400"
+                                    : "border-red-500/30 text-red-300"
+                                }`}
+                              >
+                                {(customResult.stdout || "(no output)").trimEnd()}
+                              </pre>
+                            </div>
+                            {(customResult.stderr || customResult.compile_output) && (
+                              <div className="mt-3">
+                                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                                  Error
+                                </p>
+                                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-red-500/30 p-2 font-mono text-[13px] leading-relaxed text-red-300">
+                                  {customResult.stderr || customResult.compile_output}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -623,6 +796,8 @@ function TestArenaScreen() {
             </div>
           </div>
         )}
+
+        {procActive && <CameraFeed />}
       </div>
   );
 }
@@ -635,8 +810,62 @@ export default function TestArenaClient() {
   );
 }
 
+function verdictError(
+  verdict: Verdict
+): { label: string; output: string } | null {
+  const { data } = verdict;
+  if (data.status !== "COMPILATION_ERROR" && data.status !== "RUNTIME_ERROR") {
+    return null;
+  }
+  const withOutput = data.test_results.find((r) => {
+    const err = (r as { stderr?: string | null }).stderr;
+    return typeof err === "string" && err.length > 0;
+  });
+  const output = (withOutput as { stderr?: string | null }).stderr;
+  if (!output) return null;
+  const style = STATUS_STYLES[data.status];
+  return { label: style?.label ?? data.status, output };
+}
+
+function StrikeMeter({
+  violations,
+  limit,
+}: {
+  violations: number;
+  limit: number;
+}) {
+  return (
+    <div
+      className="flex items-center gap-1.5"
+      title={`${violations} of ${limit} proctoring violations`}
+    >
+      <span className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#93a1bd]">
+        Focus
+      </span>
+      {Array.from({ length: limit }).map((_, i) => {
+        const used = i < violations;
+        return (
+          <span
+            key={i}
+            className={`h-2 w-2 rounded-full ${violations >= limit ? "bg-red-500" : used ? "bg-amber-400" : "bg-white/15"}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function VerdictPanel({ verdict }: { verdict: Verdict }) {
-  const [open, setOpen] = useState(false);
+  const [caseIndex, setCaseIndex] = useState(0);
+
+  useEffect(() => {
+    if (verdict.kind === "run") {
+      const firstFailed = verdict.data.test_results
+        .slice(0, verdict.visibleCount)
+        .findIndex((r) => !r.passed);
+      setCaseIndex(firstFailed === -1 ? 0 : firstFailed);
+    }
+  }, [verdict]);
 
   if (verdict.kind === "submit") {
     const { data } = verdict;
@@ -670,6 +899,9 @@ function VerdictPanel({ verdict }: { verdict: Verdict }) {
   const { data } = verdict;
   const style = STATUS_STYLES[data.status] ?? STATUS_STYLES.WRONG_ANSWER;
   const visible = data.test_results.slice(0, verdict.visibleCount);
+  const selected = visible[Math.min(caseIndex, visible.length - 1)] ?? visible[0];
+
+  if (!selected) return null;
 
   return (
     <div>
@@ -685,48 +917,95 @@ function VerdictPanel({ verdict }: { verdict: Verdict }) {
             <TestChip key={r.index} passed={r.passed} index={r.index} />
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="font-mono text-xs text-[#93a1bd] transition-colors hover:text-[#dce3f2]"
-        >
-          {open ? "Hide" : "Details"}
-        </button>
       </div>
 
-      {open && (
-        <div className="mt-3 space-y-2">
-          {data.test_results.map((r) => {
-            const caseLabel =
-              !r.passed && r.status_key === "ACCEPTED"
-                ? "Wrong Answer"
-                : statusKeyLabel(r.status_key);
-            return (
-              <div
-                key={r.index}
-                className="rounded-xl border border-white/10 bg-[#16162a] p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
-                    Case {r.index + 1} · {caseLabel}
-                  </span>
-                  <TestChip passed={r.passed} index={r.index} />
-                </div>
-                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[13px] text-[#c3cde3]">
-                  {r.input}
-                </pre>
-                {!r.passed && (
-                  <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words border-t border-white/5 pt-2 font-mono text-[13px] text-red-300">
-                    expected: {r.expected_output}
-                    {"\n"}
-                    received: {r.actual_output ?? "(no output)"}
-                  </pre>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {data.status === "ACCEPTED" && (
+        <p className="mb-3 text-sm text-emerald-400">All sample cases passed.</p>
       )}
+
+      <div className="mt-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {visible.map((r, i) => (
+            <button
+              key={r.index}
+              type="button"
+              onClick={() => setCaseIndex(i)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition-colors ${
+                i === caseIndex
+                  ? "border-[#d4a72c]/60 bg-[#d4a72c]/15 text-[#f5f5f5]"
+                  : "border-white/10 text-[#93a1bd] hover:border-white/25 hover:text-[#dce3f2]"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  r.passed ? "bg-emerald-400" : "bg-red-400"
+                }`}
+              />
+              Testcase {i + 1}
+            </button>
+          ))}
+        </div>
+
+          <div
+            className={`mt-2 overflow-hidden rounded-xl border bg-[#16162a] ${
+              selected.passed ? "border-emerald-500/25" : "border-red-500/25"
+            }`}
+          >
+            <div
+              className={`flex items-center justify-between border-b px-3 py-1.5 ${
+                selected.passed
+                  ? "border-emerald-500/25 bg-emerald-500/10"
+                  : "border-red-500/25 bg-red-500/10"
+              }`}
+            >
+              <span
+                className={`font-mono text-[11px] font-bold uppercase tracking-[0.14em] ${
+                  selected.passed ? "text-emerald-400" : "text-red-300"
+                }`}
+              >
+                {selected.passed ? "Testcase Passed" : "Testcase Failed"}
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                Case {selected.index + 1} ·{" "}
+                {!selected.passed && selected.status_key === "ACCEPTED"
+                  ? "Wrong Answer"
+                  : statusKeyLabel(selected.status_key)}
+              </span>
+            </div>
+            <div className="space-y-3 px-3 py-3">
+              <div>
+                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                  Input (stdin)
+                </p>
+                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-[#1e1e30] p-2 font-mono text-[13px] leading-relaxed text-[#c3cde3]">
+                  {(selected.input || "").trimEnd()}
+                </pre>
+              </div>
+              <div>
+                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                  Your Output (stdout)
+                </p>
+                <pre
+                  className={`overflow-x-auto whitespace-pre-wrap break-words rounded-md border p-2 font-mono text-[13px] leading-relaxed ${
+                    selected.passed
+                      ? "border-emerald-500/30 bg-[#1e1e30] text-emerald-400"
+                      : "border-red-500/30 bg-[#1e1e30] text-red-300"
+                  }`}
+                >
+                  {(selected.actual_output ?? "(no output)").trimEnd()}
+                </pre>
+              </div>
+              <div>
+                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]">
+                  Expected Output
+                </p>
+                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-[#1e1e30] p-2 font-mono text-[13px] leading-relaxed text-emerald-400">
+                  {(selected.expected_output || "").trimEnd()}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
   );
 }

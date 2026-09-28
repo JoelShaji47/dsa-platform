@@ -107,7 +107,11 @@ def _failing_case_lines(problem: Problem, result: dict) -> str:
                 f"- Hidden test #{index + 1} failed (its input is secret).{status_note}"
             )
             continue
-        actual = (outcome.get("actual_output") or "(no output)").strip()
+        actual = (
+            outcome.get("stderr")
+            or outcome.get("actual_output")
+            or "(no output)"
+        ).strip()
         lines.append(
             f"- Failing visible test #{index + 1}:{status_note}\n"
             f"  Input:\n```\n{case['input'].strip()}\n```\n"

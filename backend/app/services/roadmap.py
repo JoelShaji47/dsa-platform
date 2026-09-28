@@ -671,22 +671,20 @@ def get_activity(db: Session, user: User, days: int = 140) -> dict:
     the trailing `days` days (oldest to newest) so the frontend can render a
     submission calendar where each day the user solved shows up as a tile.
     """
-    from datetime import date, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    start = date.today() - timedelta(days=days - 1)
+    start = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+    day_expr = func.date(func.timezone("UTC", Submission.submitted_at))
 
     rows = (
-        db.query(
-            func.date(Submission.submitted_at).label("day"),
-            func.count(Submission.id).label("n"),
-        )
+        db.query(day_expr.label("day"), func.count(Submission.id).label("n"))
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
             Submission.test_session_id.is_(None),
-            func.date(Submission.submitted_at) >= start,
+            day_expr >= start,
         )
-        .group_by(func.date(Submission.submitted_at))
+        .group_by(day_expr)
         .all()
     )
     counts = {str(day): int(n) for day, n in rows}

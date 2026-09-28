@@ -24,6 +24,7 @@ ROUTES = [
     ("get", "/api/v1/tests/{sid}/results"),
     ("post", "/api/v1/tests/{sid}/end"),
     ("post", "/api/v1/tests/{sid}/abandon"),
+    ("post", "/api/v1/tests/{sid}/violations"),
 ]
 
 
@@ -314,14 +315,18 @@ def test_submit_grades_every_case_including_hidden(monkeypatch):
     body = create_test(headers)
     question = body["problems"][0]
 
-    client.post(
+    response = client.post(
         f"/api/v1/tests/{body['id']}/questions/{question['id']}/submit",
         json={"language": "python", "source_code": "print(1)"},
         headers=headers,
     )
+    assert response.status_code == 200
     assert len(calls) == 1
     assert len(calls[0]) == all_case_count(question["problem_id"])
-    assert any(c.get("is_hidden") for c in calls[0])
+    with SessionLocal() as db:
+        stored = db.get(Problem, uuid.UUID(question["problem_id"]))
+        hidden_in_problem = sum(1 for c in stored.test_cases if c.get("is_hidden", False))
+    assert sum(1 for c in calls[0] if c.get("is_hidden")) == hidden_in_problem
 
 
 def test_submit_records_the_attempt(monkeypatch):
@@ -561,6 +566,68 @@ def test_abandoned_session_rejects_submissions(monkeypatch):
         json={"language": "python", "source_code": "print(1)"},
         headers=headers,
     )
+    assert response.status_code == 409
+
+
+# ---------------------------------------------------------------- proctoring
+
+
+def test_violations_persist_across_requests():
+    headers, _ = register_and_login()
+    body = create_test(headers)
+    assert body["violations"] == 0
+
+    first = client.post(f"/api/v1/tests/{body['id']}/violations", headers=headers).json()
+    assert first["status"] == TestStatus.IN_PROGRESS.value
+    assert first["violations"] == 1
+
+    second = client.post(f"/api/v1/tests/{body['id']}/violations", headers=headers).json()
+    assert second["status"] == TestStatus.IN_PROGRESS.value
+    assert second["violations"] == 2
+
+
+def test_third_violation_finalizes_the_test():
+    headers, _ = register_and_login()
+    body = create_test(headers)
+
+    for _ in range(3):
+        state = client.post(
+            f"/api/v1/tests/{body['id']}/violations", headers=headers
+        ).json()
+
+    assert state["status"] == TestStatus.SUBMITTED.value
+    assert state["violations"] == 3
+
+    results = client.get(f"/api/v1/tests/{body['id']}/results", headers=headers).json()
+    assert results["status"] == TestStatus.SUBMITTED.value
+    assert results["total"] == 3
+
+
+def test_violations_are_per_session():
+    headers, _ = register_and_login()
+    first = create_test(headers)
+
+    reported = client.post(
+        f"/api/v1/tests/{first['id']}/violations", headers=headers
+    ).json()
+    assert reported["violations"] == 1
+
+    second = create_test(headers)
+    assert first["violations"] == 0
+    assert second["violations"] == 0
+    with SessionLocal() as db:
+        stored = db.get(TestSession, uuid.UUID(first["id"]))
+        fresh = db.get(TestSession, uuid.UUID(second["id"]))
+        assert stored.violations == 1
+        assert fresh.violations == 0
+
+
+def test_violation_after_end_is_rejected():
+    headers, _ = register_and_login()
+    body = create_test(headers)
+    client.post(f"/api/v1/tests/{body['id']}/end", headers=headers)
+
+    response = client.post(f"/api/v1/tests/{body['id']}/violations", headers=headers)
     assert response.status_code == 409
 
 

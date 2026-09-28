@@ -5,7 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.badges import router as badges_router
-from app.api.v1.problems import router as problems_router
+from app.api.v1.problems import (
+    custom_router as custom_router,
+    router as problems_router,
+)
 from app.api.v1.roadmap import router as roadmap_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.tests import router as tests_router
@@ -41,6 +44,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(problems_router, prefix="/api/v1")
+app.include_router(custom_router, prefix="/api/v1")
 app.include_router(stats_router, prefix="/api/v1")
 app.include_router(badges_router, prefix="/api/v1")
 app.include_router(tutor_router, prefix="/api/v1")

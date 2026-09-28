@@ -150,6 +150,7 @@ def _session_out(db: Session, session: TestSession) -> TestSessionOut:
         started_at=session.started_at.isoformat(),
         deadline_at=session.deadline_at.isoformat(),
         time_remaining_seconds=_remaining(session),
+        violations=session.violations,
         problems=[_problem_out(row, row.problem) for row in rows],
     )
 
@@ -313,6 +314,7 @@ async def run_question(
                 "input": case.get("input", ""),
                 "expected_output": case.get("expected_output", ""),
                 "actual_output": outcome.actual_output,
+                "stderr": outcome.stderr,
                 "status_key": outcome.status_key,
             }
             for outcome, case in zip(result.test_results, visible)
@@ -367,6 +369,7 @@ async def submit_question(
                     input=case.get("input"),
                     expected_output=case.get("expected_output"),
                     actual_output=outcome.actual_output,
+                    stderr=outcome.stderr,
                 )
             )
 
@@ -402,6 +405,21 @@ async def submit_question(
         memory_kb=result.memory_kb,
         test_results=submit_results,
     )
+
+
+@router.post("/{session_id}/violations", response_model=TestSessionOut)
+def report_violation(
+    session_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TestSessionOut:
+    """Record a proctoring violation. The third one finalizes the test."""
+    session = _require_active(db, _get_session(db, session_id, current_user.id))
+    session.violations += 1
+    if session.violations >= 3:
+        _finalize(db, session, TestStatus.SUBMITTED)
+    db.commit()
+    return _session_out(db, session)
 
 
 @router.post("/{session_id}/end", response_model=TestSessionOut)

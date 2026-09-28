@@ -1,17 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Camera,
   Check,
   Loader2,
+  ShieldAlert,
   Sparkles,
   Timer,
 } from "lucide-react";
 import ProtectedRoute from "@/components/protected-route";
 import { Brand } from "@/components/shell";
+import {
+  acquireCamera,
+  getCameraStream,
+  requestTestFullscreen,
+} from "@/components/arena/proctoring";
 import client from "@/lib/api";
 import type { TestConfigOut, TestSession } from "@/lib/types";
 import {
@@ -19,6 +26,8 @@ import {
   formatClock,
   topicLabel,
 } from "@/components/arena/status-styles";
+
+type CameraState = "idle" | "requesting" | "on" | "error";
 
 export default function TestSetupClient() {
   return (
@@ -34,6 +43,8 @@ function TestSetupScreen() {
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [cameraState, setCameraState] = useState<CameraState>("idle");
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,10 +94,45 @@ function TestSetupScreen() {
   const duration = config?.default_duration_seconds ?? 3600;
   const minutes = Math.round(duration / 60);
 
+  const enableCamera = async () => {
+    if (cameraState === "requesting") return;
+    setCameraState("requesting");
+    setCameraError(null);
+    try {
+      await acquireCamera();
+      setCameraState("on");
+    } catch (err) {
+      const name = (err as DOMException)?.name;
+      if (name === "NotAllowedError") {
+        setCameraError(
+          "Camera permission is required to start a proctored test. Allow camera access in your browser and retry."
+        );
+      } else if (name === "NotFoundError") {
+        setCameraError("No camera was detected on this device.");
+      } else {
+        setCameraError(
+          "Could not access the camera. Check your browser permissions."
+        );
+      }
+      setCameraState("error");
+    }
+  };
+
   const start = async () => {
-    if (!selected.length || starting) return;
+    if (!selected.length || starting || cameraState !== "on") return;
     setStarting(true);
     setError(null);
+    try {
+      await requestTestFullscreen();
+    } catch (err) {
+      setError(
+        `Fullscreen is required for the proctored test. ${
+          err instanceof Error ? err.message : "Enable fullscreen and retry."
+        }`
+      );
+      setStarting(false);
+      return;
+    }
     try {
       const res = await client.post<TestSession>("/tests", {
         topics: selected,
@@ -221,23 +267,114 @@ function TestSetupScreen() {
           <CoverageNote selectedCount={selected.length} />
         </section>
 
-        <div className="mt-6 flex justify-end rounded-2xl border border-ink/10 bg-card px-6 py-4 shadow-card">
-          <button
-            type="button"
-            onClick={start}
-            disabled={selected.length === 0 || starting || !config}
-            className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-6 py-3 font-semibold leading-6 text-primary-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {starting ? (
-              <Loader2 size={16} className="animate-spin" />
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-card p-6 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-display text-lg font-bold text-ink">
+                <ShieldAlert size={18} className="text-rust" />
+                Proctored test
+              </h2>
+              <p className="mt-1 text-sm text-ink-soft">
+                The test runs in fullscreen. Leaving the window, switching tabs,
+                or exiting fullscreen counts as a violation. Three violations
+                and the test auto-submits. Copy, paste and right-click stay
+                locked for the session, and your camera stays on the whole time.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            {cameraState === "on" ? (
+              <div className="flex items-center gap-3">
+                <CameraPreview />
+                <div>
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Camera on
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-soft">
+                    Three violations auto-submit your test, so stay in fullscreen
+                    until you finish.
+                  </p>
+                </div>
+              </div>
             ) : (
-              <Sparkles size={16} />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={enableCamera}
+                  disabled={cameraState === "requesting"}
+                  className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-ink/15 bg-paper/60 px-4 py-2.5 text-sm font-semibold leading-5 text-ink transition-colors hover:border-ink/30 disabled:opacity-50"
+                >
+                  {cameraState === "requesting" ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Camera size={16} />
+                  )}
+                  {cameraState === "requesting" ? "Requesting camera" : "Enable camera"}
+                </button>
+                <p className="max-w-xs text-sm text-ink-soft">
+                  The test cannot start until your camera is allowed.
+                </p>
+              </div>
             )}
-            {starting ? "Starting" : "Start test"}
-          </button>
+
+            {cameraError && (
+              <p className="w-full rounded-xl border border-rust/30 bg-rust/10 px-4 py-2.5 text-sm text-rust">
+                {cameraError}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <div className="mt-6 flex justify-end rounded-2xl border border-ink/10 bg-card px-6 py-4 shadow-card">
+          <div className="flex w-full flex-col items-end gap-2">
+            {cameraState !== "on" && (
+              <p className="text-xs text-ink-faint">
+                Enable your camera to start the test.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={start}
+              disabled={
+                selected.length === 0 || starting || !config || cameraState !== "on"
+              }
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-6 py-3 font-semibold leading-6 text-primary-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {starting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}
+              {starting ? "Starting" : "Start test"}
+            </button>
+          </div>
         </div>
       </main>
     </div>
+  );
+}
+
+function CameraPreview() {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = getCameraStream();
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch(() => undefined);
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted
+      className="h-28 w-36 -scale-x-100 rounded-lg border border-ink/10 bg-black object-cover shadow-card"
+    />
   );
 }
 

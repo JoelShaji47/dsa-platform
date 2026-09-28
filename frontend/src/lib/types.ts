@@ -59,6 +59,7 @@ export interface VisibleTestResult {
   input: string;
   expected_output: string;
   actual_output: string | null;
+  stderr?: string | null;
   status_key: string;
 }
 
@@ -69,6 +70,16 @@ export interface RunResultOut {
   test_results: VisibleTestResult[];
 }
 
+export interface CustomRunOut {
+  status_key: string;
+  status: SubmissionStatus | null;
+  stdout: string | null;
+  stderr: string | null;
+  compile_output: string | null;
+  runtime_ms: number;
+  memory_kb: number;
+}
+
 export interface SubmissionTestResult {
   index: number;
   passed: boolean;
@@ -77,6 +88,7 @@ export interface SubmissionTestResult {
   input?: string | null;
   expected_output?: string | null;
   actual_output?: string | null;
+  stderr?: string | null;
 }
 
 export interface SubmissionResultOut {
@@ -202,6 +214,7 @@ export interface TestSession {
   started_at: string;
   deadline_at: string;
   time_remaining_seconds: number;
+  violations: number;
   problems: TestQuestion[];
 }
 
