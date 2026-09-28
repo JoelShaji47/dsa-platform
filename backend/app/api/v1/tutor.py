@@ -1,3 +1,5 @@
+import threading
+import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,11 +11,38 @@ from app.models.enums import SubmissionStatus
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
-from app.schemas.tutor import HintLevelInfo, HintMetaOut, HintRevealOut, ReviewOut
+from app.schemas.tutor import (
+    AssistantRequest,
+    AssistantResponse,
+    HintLevelInfo,
+    HintMetaOut,
+    HintRevealOut,
+    ReviewOut,
+)
 from app.services import gemini, tutor
-from app.services.activity import HINT, REVIEW, log_event
+from app.services.activity import CHAT, HINT, REVIEW, log_event
+from app.services.llm import LLMError
 
 router = APIRouter(tags=["tutor"])
+
+_ASSIST_LIMIT = 20
+_ASSIST_WINDOW = 60.0
+_assist_hits: dict = {}
+_assist_lock = threading.Lock()
+
+
+def _check_assist_rate(user_id) -> None:
+    now = time.monotonic()
+    key = str(user_id)
+    with _assist_lock:
+        hits = [t for t in _assist_hits.get(key, []) if now - t < _ASSIST_WINDOW]
+        if len(hits) >= _ASSIST_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Coach rate limit: 20 messages per minute. Slow down a touch.",
+            )
+        hits.append(now)
+        _assist_hits[key] = hits
 
 
 def _get_problem_or_404(db: Session, slug: str) -> Problem:
@@ -150,3 +179,43 @@ def review_submission(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
     return ReviewOut(**review)
+
+
+@router.post("/problems/{slug}/assistant", response_model=AssistantResponse)
+def chat_assistant(
+    slug: str,
+    payload: AssistantRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AssistantResponse:
+    problem = _get_problem_or_404(db, slug)
+    _check_assist_rate(current_user.id)
+
+    code = payload.code if payload.include_code else ""
+    # Strip null bytes; ORM-bound downstream so no SQLi surface.
+    code = code.replace("\x00", "")
+    message = payload.message.replace("\x00", "")
+    history = [{"role": h.role, "content": h.content.replace("\x00", "")} for h in payload.history]
+    last_result = payload.last_result.model_dump() if payload.last_result else None
+
+    try:
+        reply, provider = tutor.chat_with_coach(
+            problem,
+            language=payload.language,
+            code=code,
+            last_result=last_result,
+            history=history,
+            message=message,
+        )
+    except LLMError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=problem.id,
+        event=CHAT,
+        meta={"language": payload.language},
+    )
+    return AssistantResponse(reply=reply, provider=provider)

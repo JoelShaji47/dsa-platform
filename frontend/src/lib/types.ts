@@ -122,6 +122,16 @@ export interface ReviewOut {
   fix_hint: string;
 }
 
+export interface AssistantHistoryItem {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AssistantResponse {
+  reply: string;
+  provider: string;
+}
+
 export interface Bucket {
   solved: number;
   total: number;

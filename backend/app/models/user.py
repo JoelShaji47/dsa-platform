@@ -21,7 +21,11 @@ class User(Base):
     )
     username: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(255))
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Supabase Auth user id (auth.users.id). Null for legacy local accounts.
+    supabase_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
     xp: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     current_streak: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")

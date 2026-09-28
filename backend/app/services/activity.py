@@ -13,6 +13,7 @@ RUN = "run"
 SUBMIT = "submit"
 HINT = "hint"
 REVIEW = "review"
+CHAT = "chat"
 
 
 def log_event(

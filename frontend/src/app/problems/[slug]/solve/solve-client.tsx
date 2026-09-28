@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Award,
   BookOpen,
+  Brain,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -31,6 +32,9 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import client from "@/lib/api";
+import AssistantPanel, {
+  type CoachMessage,
+} from "./assistant-panel";
 import type {
   Difficulty,
   HintLevelInfo,
@@ -347,6 +351,12 @@ export default function SolveClient() {
   const [submissions, setSubmissions] = useState<SubmissionHistoryItem[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachProvider, setCoachProvider] = useState<string | null>(null);
+  const [includeCode, setIncludeCode] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     client
@@ -512,6 +522,65 @@ export default function SolveClient() {
     }
   }, [submitResult]);
 
+  const sendCoach = useCallback(
+    async (text: string) => {
+      const history = coachMessages.slice(-8).map((m) => ({
+        role: m.role,
+        content: m.content.slice(0, 2000),
+      }));
+      const shown = submitResult || runResult;
+      const failing =
+        shown && shown.status !== "ACCEPTED"
+          ? shown.test_results
+              .filter((t) => !t.passed)
+              .slice(0, 2)
+              .map(
+                (t) =>
+                  `case ${t.index + 1} (${t.status_key}): expected ${String(
+                    (t as { expected_output?: unknown }).expected_output ?? ""
+                  ).slice(0, 300)} got ${String(
+                    t.actual_output ?? ""
+                  ).slice(0, 300)}`
+              )
+              .join("\n")
+          : "";
+      const next: CoachMessage[] = [...coachMessages, { role: "user", content: text }];
+      setCoachMessages(next);
+      setCoachLoading(true);
+      try {
+        const res = await client.post<{ reply: string; provider: string }>(
+          `/problems/${slug}/assistant`,
+          {
+            message: text,
+            language: lang,
+            code: includeCode ? code.slice(0, 8000) : "",
+            include_code: includeCode,
+            history,
+            last_result: shown
+              ? {
+                  status: shown.status,
+                  passed: shown.test_results.filter((t) => t.passed).length,
+                  total: shown.test_results.length,
+                  failing,
+                }
+              : null,
+          },
+          { timeout: 60000 }
+        );
+        setCoachProvider(res.data.provider);
+        setCoachMessages([...next, { role: "assistant", content: res.data.reply }]);
+      } catch (err) {
+        const detail =
+          (err as { response?: { data?: { detail?: string } } })?.response?.data
+            ?.detail || "Coach is unavailable right now. Try again.";
+        setCoachMessages([...next, { role: "assistant", content: `_${detail}_` }]);
+      } finally {
+        setCoachLoading(false);
+      }
+    },
+    [coachMessages, submitResult, runResult, slug, lang, code, includeCode]
+  );
+
   if (pageStatus === "loading") {
     return (
       <div className="flex h-screen items-center justify-center gap-2 bg-[#1a1a2e] text-gray-400">
@@ -597,6 +666,18 @@ export default function SolveClient() {
               </button>
             ))}
           </div>
+          <button
+            onClick={() => setAssistantOpen((o) => !o)}
+            title="Toggle coach"
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              assistantOpen
+                ? "border-violet-400/50 bg-violet-500/15 text-violet-200"
+                : "border-white/10 bg-[#252540] text-gray-300 hover:border-white/20 hover:text-gray-100"
+            }`}
+          >
+            <Brain size={13} />
+            Coach
+          </button>
           <button
             onClick={run}
             disabled={running || submitting}
@@ -1063,6 +1144,31 @@ export default function SolveClient() {
             </div>
           )}
         </section>
+
+        {assistantOpen && (
+          <section className="flex min-h-[40vh] w-full flex-col border-t border-white/10 lg:min-h-0 lg:w-[340px] lg:shrink-0 lg:border-l lg:border-t-0">
+            <AssistantPanel
+              messages={coachMessages}
+              loading={coachLoading}
+              provider={coachProvider}
+              includeCode={includeCode}
+              contextNote={`${lang} · ${
+                submitResult
+                  ? `submit ${submitResult.test_results.filter((t) => t.passed).length}/${submitResult.test_results.length}`
+                  : runResult
+                    ? `run ${runResult.test_results.filter((t) => t.passed).length}/${runResult.test_results.length}`
+                    : "no run yet"
+              } · code ${includeCode ? "attached" : "off"}`}
+              onToggleInclude={() => setIncludeCode((v) => !v)}
+              onSend={sendCoach}
+              onClear={() => {
+                setCoachMessages([]);
+                setCoachProvider(null);
+              }}
+              onClose={() => setAssistantOpen(false)}
+            />
+          </section>
+        )}
       </div>
     </div>
   );
