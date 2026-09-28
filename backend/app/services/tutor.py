@@ -100,12 +100,16 @@ def _failing_case_lines(problem: Problem, result: dict) -> str:
         if index >= len(cases):
             continue
         case = cases[index]
-        if case.get("is_hidden", False):
-            lines.append(f"- Hidden test #{index + 1} failed (its input is secret).")
+        status_key = outcome.get("status_key", "")
+        status_note = f" Judge status: {status_key}." if status_key else ""
+        if case.get("is_hidden", False) or outcome.get("hidden", False):
+            lines.append(
+                f"- Hidden test #{index + 1} failed (its input is secret).{status_note}"
+            )
             continue
         actual = (outcome.get("actual_output") or "(no output)").strip()
         lines.append(
-            f"- Failing visible test #{index + 1}:\n"
+            f"- Failing visible test #{index + 1}:{status_note}\n"
             f"  Input:\n```\n{case['input'].strip()}\n```\n"
             f"  Expected:\n```\n{case['expected_output'].strip()}\n```\n"
             f"  Got:\n```\n{actual[:2000]}\n```"

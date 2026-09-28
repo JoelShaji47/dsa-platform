@@ -4,6 +4,7 @@ GRAPHS_DP = [
     {
         "title": "Flood Fill",
         "slug": "flood-fill",
+        "pattern_key": "graphs",
         "difficulty": "EASY",
         "topic": "GRAPH",
         "description": """# Flood Fill

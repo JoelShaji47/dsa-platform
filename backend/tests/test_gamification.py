@@ -1,4 +1,5 @@
 import uuid
+from collections import Counter
 from datetime import date
 
 from fastapi.testclient import TestClient
@@ -9,21 +10,24 @@ from app.models.enums import SubmissionStatus
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
+from app.seeds import PROBLEMS
 from app.services.grader import GradeResult, TestOutcome as Outcome
 
 client = TestClient(app)
 
-EXPECTED_DIFFICULTY_TOTALS = {"EASY": 31, "MEDIUM": 103, "HARD": 21}
-EXPECTED_TOPIC_TOTALS = {
-    "ARRAY": 61,
-    "STRING": 6,
-    "LINKED_LIST": 12,
-    "STACK": 8,
-    "QUEUE": 7,
-    "TREE": 18,
-    "GRAPH": 20,
-    "DP": 23,
-}
+
+def _seed_totals():
+    difficulties: Counter = Counter()
+    topics: Counter = Counter()
+    for p in PROBLEMS:
+        difficulties[p["difficulty"]] += 1
+        topics[p["topic"]] += 1
+    return dict(difficulties), dict(topics)
+
+
+# Derived from the seed catalog so the suite survives catalog growth
+# (NeetCode 250 delta, TUF A2Z, ...).
+EXPECTED_DIFFICULTY_TOTALS, EXPECTED_TOPIC_TOTALS = _seed_totals()
 
 
 def register_and_login():
@@ -126,8 +130,14 @@ def test_first_blood_awarded_once_and_stats_update(monkeypatch):
     assert stats["total_solved"] == 1
     assert stats["total_submissions"] == 2
     assert stats["acceptance_rate"] == 100.0
-    assert stats["solved_by_difficulty"]["EASY"] == {"solved": 1, "total": 31}
-    assert stats["solved_by_topic"]["ARRAY"] == {"solved": 1, "total": 61}
+    assert stats["solved_by_difficulty"]["EASY"] == {
+        "solved": 1,
+        "total": EXPECTED_DIFFICULTY_TOTALS["EASY"],
+    }
+    assert stats["solved_by_topic"]["ARRAY"] == {
+        "solved": 1,
+        "total": EXPECTED_TOPIC_TOTALS["ARRAY"],
+    }
     assert len(stats["recent_submissions"]) == 2
     latest = stats["recent_submissions"][0]
     assert latest["problem_slug"] == "two-sum"
@@ -202,19 +212,19 @@ def test_topic_mastery_on_full_topic_clear(monkeypatch):
     stub_accept(monkeypatch)
     headers, user_id = register_and_login()
 
-    # STRING is the smallest coarse topic (6 problems) — solve all of them.
+    # Solve every STRING-topic problem in the catalog (derived live so the
+    # test survives catalog growth), submitting the last one via the API.
     string_slugs = [
-        "best-time-to-buy-and-sell-stock",
-        "longest-substring-without-repeating-characters",
-        "longest-repeating-character-replacement",
-        "permutation-in-string",
-        "minimum-window-substring",
-        "sliding-window-maximum",
+        p["slug"]
+        for p in client.get(
+            "/api/v1/problems", params={"topic": "STRING"}, headers=headers
+        ).json()
     ]
+    assert len(string_slugs) >= 2
     for slug in string_slugs[:-1]:
         insert_accepted(user_id, slug)
 
-    result = submit_accepted(headers, slug="sliding-window-maximum")
+    result = submit_accepted(headers, slug=string_slugs[-1])
     assert "String Sage" in result["new_badges"]
 
 

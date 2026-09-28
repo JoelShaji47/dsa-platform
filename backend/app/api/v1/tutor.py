@@ -11,6 +11,7 @@ from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.tutor import HintLevelInfo, HintMetaOut, HintRevealOut, ReviewOut
 from app.services import gemini, tutor
+from app.services.activity import HINT, REVIEW, log_event
 
 router = APIRouter(tags=["tutor"])
 
@@ -89,6 +90,13 @@ def reveal_hint(
         )
 
     tutor.record_hint_usage(db, current_user.id, problem.id, level)
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=problem.id,
+        event=HINT,
+        meta={"level": level},
+    )
 
     return HintRevealOut(level=level, label=tutor.HINT_LEVEL_META[level][0], content=content)
 
@@ -117,6 +125,13 @@ def review_submission(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only failed submissions can be reviewed",
         )
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=submission.problem_id,
+        event=REVIEW,
+        meta={"submission_id": str(submission.id)},
+    )
     if submission.ai_review is not None:
         return ReviewOut(**submission.ai_review)
 

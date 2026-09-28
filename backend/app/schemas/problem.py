@@ -13,6 +13,8 @@ class ProblemListItem(BaseModel):
     difficulty: Difficulty
     topic: Topic
     solved: bool
+    sources: list[str] = []
+    pattern_key: str | None = None
 
 
 class TestCaseOut(BaseModel):
@@ -31,3 +33,9 @@ class ProblemDetail(BaseModel):
     test_cases: list[TestCaseOut]
     solvable: bool = False
     solved: bool
+    hidden_test_count: int = 0
+    sources: list[str] = []
+    pattern_key: str | None = None
+    companies: list[str] = []
+    editorial_url: str | None = None
+    video_url: str | None = None

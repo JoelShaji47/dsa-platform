@@ -1,12 +1,33 @@
-# ML Recommendation Plan
+# ML Recommendation Plan — IMPLEMENTED (hybrid)
+
+Status: live as a hybrid. The heuristic still generates candidates and serves
+cold users; a LightGBM LambdaRank model re-ranks candidates when a trained
+artifact exists AND the user has ≥3 logged submissions.
+
+Serving: `GET /roadmap/recommendations?explain=true` returns each item with
+`model` (`heuristic-v1` | `ml-YYYYMMDD-HHMM`) and, with `explain`, the raw
+`score`. The daily question draws from the same ranked pool, so it improves
+automatically once the model is live.
+
+Pipeline: `interaction_events` telemetry (run/submit/hint/review) →
+`app/ml/features.py` (21 features, engaged-solve labels 2/1/0) →
+`scripts/train_recommender.py` (time-split validation, NDCG@10/Precision@5) →
+`backend/artifacts/ranker.txt` → `app/ml/infer.py` (abstains safely to the
+heuristic on missing artifact, feature mismatch, or errors).
+
+First training (local dev data, 477 rows / 230 users): NDCG@10 0.8,
+Precision@5 0.8 on the time-split holdout. Retrain nightly/weekly as real
+behavioral data accumulates; the script exits 2 (heuristic stays live) when
+data is insufficient.
+
+Original design notes below — §4b (learning-to-rank) was built, §4a/§4c
+remain future work (MF retrieval, epsilon-greedy exploration).
+
+---
 
 The roadmap shows a **Daily Question** derived from a per-person adaptive heuristic. This document
 is the plan for replacing that heuristic with a real machine-learning recommender once enough
 behavioral data has been collected.
-
-The heuristic is intentionally simple — it ships today and requires no training — but it ignores
-rich signals already being captured (attempts, hints taken, time spent, pass rates). The ML model
-described below consumes those signals to pick the *next best problem* for each user.
 
 ---
 

@@ -133,6 +133,7 @@ public class Main {
     {
         "title": "Middle of the Linked List",
         "slug": "middle-of-the-linked-list",
+        "pattern_key": "linked-list",
         "difficulty": "EASY",
         "topic": "LINKED_LIST",
         "description": """# Middle of the Linked List
@@ -254,7 +255,7 @@ public class Main {
     {
         "title": "Linked List Cycle",
         "slug": "linked-list-cycle",
-        "difficulty": "MEDIUM",
+        "difficulty": "EASY",
         "topic": "LINKED_LIST",
         "description": """# Linked List Cycle
 
@@ -387,7 +388,7 @@ public class Main {
     {
         "title": "Merge Two Sorted Lists",
         "slug": "merge-two-sorted-lists",
-        "difficulty": "MEDIUM",
+        "difficulty": "EASY",
         "topic": "LINKED_LIST",
         "description": """# Merge Two Sorted Lists
 
@@ -609,6 +610,7 @@ public class Main {
     {
         "title": "Next Greater Element",
         "slug": "next-greater-element",
+        "pattern_key": "stack",
         "difficulty": "MEDIUM",
         "topic": "STACK",
         "description": """# Next Greater Element

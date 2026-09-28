@@ -27,3 +27,6 @@ Thumbs.db
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# Trained recommender artifacts (rebuilt by backend/scripts/train_recommender.py)
+backend/artifacts/

@@ -17,7 +17,7 @@ Solve problems in Python, C++, or Java against a real judge, earn XP and badges,
 
 ## Features
 
-- **Problem library** — **155 problems** (~full NeetCode 150 + authored extras) across **18 NeetCode-style categories** (Arrays & Hashing 61, DP 23, Graphs 20, Trees 18, Linked List 12, Stack 8, Queue 7, Strings 6, plus Sliding Window, Two Pointers, Binary Search, Backtracking, Heap, Intervals, Greedy, Tries, Bit Manipulation, Math & Geometry). Difficulty split: 31 Easy / 103 Medium / 21 Hard. Fully searchable and filterable with difficulty stamps.
+- **Problem library** — **587 problems** (NeetCode 150 + NeetCode 250 delta + Striver A2Z + authored extras, deduplicated; 124 shared rows carry both source tags) across **20 roadmap patterns**. Difficulty split: 185 Easy / 274 Medium / 128 Hard. Fully searchable and filterable by topic, difficulty, status, and source (NeetCode / TakeUForward).
 - **Real judging** — Run (visible cases with input/expected/your-output diff) and Submit (all cases, runtime + memory per attempt) via self-hosted Judge0 for **Python, C++, Java** (183 authored entries, each with 3-language starter scaffolds).
 - **Parse-only starter code** — every language scaffold parses input and marks where your solution goes; no stub answers to delete (validated by `backend/scripts/check_starters.py`).
 - **Hidden test cases** — each problem carries extra hidden cases used only on Submit; they are never returned to the client or exposed to the AI tutor.
@@ -71,7 +71,7 @@ npm install
 npm run dev
 ```
 
-App: http://localhost:5173 (proxies `/api` to the backend)
+App: http://localhost:3000 (Next.js rewrites `/api` to the backend)
 
 ## Self-hosted Judge0 (Apple Silicon notes)
 
@@ -110,4 +110,4 @@ cd backend
 pytest -q
 ```
 
-47 tests cover auth, problems, grading, gamification, and the AI tutor endpoints (Gemini and Judge0 are mocked; tests run against a test database).
+50 tests cover auth, problems, grading, gamification, and the AI tutor endpoints (Gemini and Judge0 are mocked; run against a local Postgres with `DATABASE_URL` overridden — see AGENTS.md).

@@ -484,11 +484,11 @@ NEETCODE_AUTHORING["encode-and-decode-strings"] = {
             '    pass\n\n\n'
             'def main():\n'
             '    data = sys.stdin.read()\n'
-            '    lines = data.split("\n")\n'
+            '    lines = data.split("\\n")\n'
             '    n = int(lines[0])\n'
             '    strings = lines[1:1 + n]\n'
             '    result = decode(encode(strings))\n'
-            '    sys.stdout.write("\n".join(result))\n\n\n'
+            '    sys.stdout.write("\\n".join(result))\n\n\n'
             'if __name__ == "__main__":\n'
             '    main()\n'
         ),
@@ -511,7 +511,7 @@ NEETCODE_AUTHORING["encode-and-decode-strings"] = {
             '    for (auto& s : strs) getline(cin, s);\n'
             '    auto res = decode(encode(strs));\n'
             '    for (size_t i = 0; i < res.size(); i++) {\n'
-            '        if (i) cout << "\n";\n'
+            '        if (i) cout << "\\n";\n'
             '        cout << res[i];\n'
             '    }\n'
             '    return 0;\n'
@@ -619,66 +619,6 @@ NEETCODE_AUTHORING["longest-consecutive-sequence"] = {
 # ===========================================================================
 # Arrays & Hashing
 # ===========================================================================
-
-NEETCODE_AUTHORING['group-anagrams'] = {
-    "description": '# Group Anagrams\n\n## Statement\nGiven an array of strings `strs`, group the anagrams together. You can return the\nanswer in any order. An anagram is a word formed by rearranging the letters of another,\nusing all the original letters exactly once.\n\n## Input Format\n- Line 1: integer `n` — the number of strings\n- Next `n` lines: each line contains a string\n\n## Output Format\nEach group on its own line, with strings within a group separated by spaces.\nGroups should be sorted by their first string (lexicographically).\n\n## Constraints\n- `1 <= n <= 10^4`\n- `0 <= strs[i].length <= 100`\n- `strs[i]` consists of lowercase English letters.\n\n## Example\n\n**Input**\n```\n6\neat\ntea\ntan\nate\nnat\nbat\n```\n**Output**\n```\nbat\neat tea ate\ntan nat\n```\nExplanation: "bat" is alone. "eat", "tea", and "ate" are anagrams. "tan" and "nat" are anagrams.',
-    "starter_code": {
-        'python': 'import sys\n\n\ndef main():\n    data = sys.stdin.read().split("\\n")\n    n = int(data[0])\n    strs = [data[i + 1].rstrip("\\n") for i in range(n)]\n\n    # ===== YOUR CODE HERE =====\n\n\nif __name__ == "__main__":\n    main()\n',
-        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    vector<string> strs(n);\n    for (auto& s : strs) cin >> s;\n\n    // ===== YOUR CODE HERE =====\n\n    return 0;\n}\n',
-        'java': 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = Integer.parseInt(sc.nextLine().trim());\n        String[] strs = new String[n];\n        for (int i = 0; i < n; i++) strs[i] = sc.nextLine().trim();\n\n        // ===== YOUR CODE HERE =====\n    }\n}\n',
-    },
-    "test_cases": [
-        TestCase(input='6\neat\ntea\ntan\nate\nnat\nbat\n', expected_output='bat\neat tea ate\ntan nat', is_hidden=False),
-        TestCase(input='1\na\n', expected_output='a', is_hidden=False),
-        TestCase(input='4\nab\ncd\nef\nba\n', expected_output='ab ba\ncd\nef', is_hidden=True),
-        TestCase(input='3\nlisten\nsilent\nenlist\n', expected_output='listen silent enlist', is_hidden=True),
-    ],
-}
-
-NEETCODE_AUTHORING['product-of-array-except-self'] = {
-    "description": '# Product of Array Except Self\n\n## Statement\nGiven an integer array `nums`, return an array `answer` such that `answer[i]` is\nthe product of all the elements of `nums` except `nums[i]`.\n\nThe product of any prefix or suffix of `nums` is guaranteed to fit in a 32-bit integer.\nYou must write an algorithm that runs in `O(n)` time and without using division.\n\n## Input Format\n- Line 1: integer `n` — the number of elements\n- Line 2: `n` space-separated integers — the array `nums`\n\n## Output Format\nSpace-separated integers representing the answer array.\n\n## Constraints\n- `2 <= n <= 10^5`\n- `-30 <= nums[i] <= 30`\n- The product of any prefix or suffix of `nums` is guaranteed to fit in a 32-bit integer.\n\n## Example\n\n**Input**\n```\n4\n1 2 3 4\n```\n**Output**\n```\n24 12 8 6\n```\nExplanation: answer[0] = 2*3*4 = 24, answer[1] = 1*3*4 = 12,\nanswer[2] = 1*2*4 = 8, answer[3] = 1*2*3 = 6.',
-    "starter_code": {
-        'python': 'import sys\n\n\ndef main():\n    data = sys.stdin.read().split()\n    n = int(data[0])\n    nums = [int(x) for x in data[1:n + 1]]\n\n    # ===== YOUR CODE HERE =====\n\n\nif __name__ == "__main__":\n    main()\n',
-        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    vector<int> nums(n);\n    for (auto& x : nums) cin >> x;\n\n    // ===== YOUR CODE HERE =====\n\n    return 0;\n}\n',
-        'java': 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();\n\n        // ===== YOUR CODE HERE =====\n    }\n}\n',
-    },
-    "test_cases": [
-        TestCase(input='4\n1 2 3 4\n', expected_output='24 12 8 6', is_hidden=False),
-        TestCase(input='2\n-1 1\n', expected_output='1 -1', is_hidden=False),
-        TestCase(input='3\n2 3 4\n', expected_output='12 8 6', is_hidden=True),
-        TestCase(input='4\n1 0 3 0\n', expected_output='0 0 0 0', is_hidden=True),
-    ],
-}
-
-NEETCODE_AUTHORING['two-sum'] = {
-    "description": '# Two Sum\n\n## Statement\nGiven an array of integers `nums` and an integer `target`, return the indices of\nthe two numbers such that they add up to `target`. You may assume that each input\nwould have exactly one solution, and you may not use the same element twice.\n\nReturn the answer as two space-separated 0-indexed integers.\n\n## Input Format\n- Line 1: integers `n target`\n- Line 2: `n` space-separated integers — the array `nums`\n\n## Output Format\nTwo space-separated integers: the 0-indexed indices of the two numbers.\n\n## Constraints\n- `2 <= n <= 10^4`\n- `-10^9 <= nums[i] <= 10^9`\n- `-10^9 <= target <= 10^9`\n- Exactly one valid answer exists.\n\n## Example\n\n**Input**\n```\n4 9\n2 7 11 15\n```\n**Output**\n```\n0 1\n```\nExplanation: Because `nums[0] + nums[1] == 9`, we return `[0, 1]`.',
-    "starter_code": {
-        'python': 'import sys\n\n\ndef main():\n    data = sys.stdin.read().split()\n    n, target = int(data[0]), int(data[1])\n    nums = [int(x) for x in data[2:2 + n]]\n\n    # ===== YOUR CODE HERE =====\n\n\nif __name__ == "__main__":\n    main()\n',
-        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n, target;\n    cin >> n >> target;\n    vector<int> nums(n);\n    for (auto& x : nums) cin >> x;\n\n    // ===== YOUR CODE HERE =====\n\n    return 0;\n}\n',
-        'java': 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt(), target = sc.nextInt();\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();\n\n        // ===== YOUR CODE HERE =====\n    }\n}\n',
-    },
-    "test_cases": [
-        TestCase(input='4 9\n2 7 11 15\n', expected_output='0 1', is_hidden=False),
-        TestCase(input='3 6\n3 2 4\n', expected_output='1 2', is_hidden=False),
-        TestCase(input='2 6\n3 3\n', expected_output='0 1', is_hidden=True),
-        TestCase(input='5 10\n1 5 3 7 2\n', expected_output='3 4', is_hidden=True),
-    ],
-}
-
-NEETCODE_AUTHORING['valid-anagram'] = {
-    "description": '# Valid Anagram\n\n## Statement\nGiven two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and\n`false` otherwise. An anagram is a word formed by rearranging the letters of another,\nusing all the original letters exactly once.\n\n## Input Format\n- Line 1: string `s`\n- Line 2: string `t`\n\n## Output Format\nA single line: `true` if `t` is an anagram of `s`, otherwise `false`.\n\n## Constraints\n- `1 <= s.length, t.length <= 5 * 10^4`\n- `s` and `t` consist of lowercase English letters.\n\n## Example\n\n**Input**\n```\nanagram\nnagaram\n```\n**Output**\n```\ntrue\n```\nExplanation: Both strings contain the same characters rearranged.',
-    "starter_code": {
-        'python': 'import sys\n\n\ndef main():\n    data = sys.stdin.read().split("\\n")\n    s = data[0].rstrip("\\n")\n    t = data[1].rstrip("\\n")\n\n    # ===== YOUR CODE HERE =====\n\n\nif __name__ == "__main__":\n    main()\n',
-        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s, t;\n    cin >> s >> t;\n\n    // ===== YOUR CODE HERE =====\n\n    return 0;\n}\n',
-        'java': 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.next();\n        String t = sc.next();\n\n        // ===== YOUR CODE HERE =====\n    }\n}\n',
-    },
-    "test_cases": [
-        TestCase(input='anagram\nnagaram\n', expected_output='true', is_hidden=False),
-        TestCase(input='rat\ncar\n', expected_output='false', is_hidden=False),
-        TestCase(input='a\nab\n', expected_output='false', is_hidden=True),
-        TestCase(input='listen\nsilent\n', expected_output='true', is_hidden=True),
-    ],
-}
 
 # ===========================================================================
 # Two Pointers

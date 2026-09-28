@@ -10,11 +10,13 @@ from app.models.user import User
 from app.schemas.problem import ProblemDetail, ProblemListItem
 from app.schemas.submission import (
     RunResultOut,
+    SubmissionHistoryItem,
     SubmissionResultOut,
     SubmitPayload,
-    TestResultOut,
+    SubmitTestResult,
     VisibleTestResult,
 )
+from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, award_xp, update_streak
 from app.services.grader import grade_code
 from app.services.judge0 import Judge0Error
@@ -41,34 +43,35 @@ def list_problems(
     topic: Topic | None = None,
     difficulty: Difficulty | None = None,
     search: str | None = None,
+    source: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ProblemListItem]:
-    query = db.query(
-        Problem.id,
-        Problem.title,
-        Problem.slug,
-        Problem.difficulty,
-        Problem.topic,
-    )
+    query = db.query(Problem)
     if topic is not None:
         query = query.filter(Problem.topic == topic)
     if difficulty is not None:
         query = query.filter(Problem.difficulty == difficulty)
     if search:
         query = query.filter(Problem.title.ilike(f"%{search}%"))
+    if source is not None:
+        # JSONB containment: row.sources includes the requested sheet.
+        query = query.filter(Problem.sources.contains([source]))
 
     solved_ids = _solved_problem_ids(db, current_user.id)
+    problems = query.order_by(Problem.difficulty, Problem.title).all()
     return [
         ProblemListItem(
-            id=row.id,
-            title=row.title,
-            slug=row.slug,
-            difficulty=row.difficulty,
-            topic=row.topic,
-            solved=row.id in solved_ids,
+            id=p.id,
+            title=p.title,
+            slug=p.slug,
+            difficulty=p.difficulty,
+            topic=p.topic,
+            solved=p.id in solved_ids,
+            sources=p.sources or [],
+            pattern_key=p.pattern_key,
         )
-        for row in query.order_by(Problem.difficulty, Problem.title).all()
+        for p in problems
     ]
 
 
@@ -100,7 +103,52 @@ def get_problem(
         test_cases=visible_cases,
         solvable=bool(problem.starter_code and problem.test_cases),
         solved=problem.id in solved_ids,
+        hidden_test_count=sum(
+            1 for case in problem.test_cases if case.get("is_hidden", False)
+        ),
+        sources=problem.sources or [],
+        pattern_key=problem.pattern_key,
+        companies=problem.companies or [],
+        editorial_url=problem.editorial_url,
+        video_url=problem.video_url,
     )
+
+
+@router.get("/{slug}/submissions", response_model=list[SubmissionHistoryItem])
+def get_problem_submissions(
+    slug: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[SubmissionHistoryItem]:
+    problem = db.query(Problem).filter(Problem.slug == slug).first()
+    if problem is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+    rows = (
+        db.query(Submission)
+        .filter(
+            Submission.user_id == current_user.id,
+            Submission.problem_id == problem.id,
+        )
+        .order_by(Submission.submitted_at.desc())
+        .limit(20)
+        .all()
+    )
+    return [
+        SubmissionHistoryItem(
+            submission_id=s.id,
+            status=s.status,
+            language=s.language,
+            code=s.code,
+            runtime_ms=s.runtime_ms,
+            memory_kb=s.memory_kb,
+            judge_summary=s.judge_summary,
+            submitted_at=s.submitted_at.isoformat() if s.submitted_at else "",
+        )
+        for s in rows
+    ]
 
 
 def _get_problem_or_404(db: Session, slug: str) -> Problem:
@@ -134,6 +182,14 @@ async def run_code(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
 
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=problem.id,
+        event=RUN,
+        meta={"language": payload.language.value, "status": result.status.value},
+    )
+
     return RunResultOut(
         status=result.status,
         runtime_ms=result.runtime_ms,
@@ -152,7 +208,11 @@ async def run_code(
     )
 
 
-@router.post("/{slug}/submit", response_model=SubmissionResultOut)
+@router.post(
+    "/{slug}/submit",
+    response_model=SubmissionResultOut,
+    response_model_exclude_none=True,
+)
 async def submit_solution(
     slug: str,
     payload: SubmitPayload,
@@ -192,6 +252,35 @@ async def submit_solution(
                 current_user.xp += xp_awarded
         update_streak(current_user)
 
+    # Build per-test feedback: visible cases carry the full diff context,
+    # hidden cases carry only pass/fail + status key (inputs never leak).
+    cases = problem.test_cases or []
+    submit_results: list[SubmitTestResult] = []
+    for outcome in result.test_results:
+        case = cases[outcome.index] if 0 <= outcome.index < len(cases) else {}
+        hidden = bool(outcome.hidden or case.get("is_hidden", False))
+        if hidden:
+            submit_results.append(
+                SubmitTestResult(
+                    index=outcome.index,
+                    passed=outcome.passed,
+                    hidden=True,
+                    status_key=outcome.status_key,
+                )
+            )
+        else:
+            submit_results.append(
+                SubmitTestResult(
+                    index=outcome.index,
+                    passed=outcome.passed,
+                    hidden=False,
+                    status_key=outcome.status_key,
+                    input=case.get("input"),
+                    expected_output=case.get("expected_output"),
+                    actual_output=outcome.actual_output,
+                )
+            )
+
     submission = Submission(
         user_id=current_user.id,
         problem_id=problem.id,
@@ -200,10 +289,7 @@ async def submit_solution(
         status=result.status,
         runtime_ms=result.runtime_ms,
         memory_kb=result.memory_kb,
-        judge_summary=[
-            {"index": outcome.index, "passed": outcome.passed}
-            for outcome in result.test_results
-        ],
+        judge_summary=[r.model_dump() for r in submit_results],
     )
     db.add(submission)
     db.flush()
@@ -215,6 +301,18 @@ async def submit_solution(
     db.commit()
     db.refresh(submission)
 
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=problem.id,
+        event=SUBMIT,
+        meta={
+            "language": payload.language.value,
+            "status": result.status.value,
+            "passed": result.status == SubmissionStatus.ACCEPTED,
+        },
+    )
+
     return SubmissionResultOut(
         submission_id=submission.id,
         status=submission.status,
@@ -225,8 +323,5 @@ async def submit_solution(
         user_xp=current_user.xp,
         current_streak=current_user.current_streak,
         new_badges=new_badges,
-        test_results=[
-            TestResultOut(index=outcome.index, passed=outcome.passed)
-            for outcome in result.test_results
-        ],
+        test_results=submit_results,
     )

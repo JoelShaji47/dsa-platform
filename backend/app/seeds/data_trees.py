@@ -306,7 +306,7 @@ int main() {
     {
         "title": "Lowest Common Ancestor of a BST",
         "slug": "lowest-common-ancestor-bst",
-        "difficulty": "EASY",
+        "difficulty": "MEDIUM",
         "topic": "TREE",
         "description": """# Lowest Common Ancestor of a BST
 
@@ -557,7 +557,7 @@ int main() {
     {
         "title": "Diameter of Binary Tree",
         "slug": "diameter-of-binary-tree",
-        "difficulty": "MEDIUM",
+        "difficulty": "EASY",
         "topic": "TREE",
         "description": """# Diameter of Binary Tree
 

@@ -71,7 +71,7 @@ async def _run_test(source_code: str, language: str, index: int, case: dict) -> 
     )
     result = await submit(source_code, language, stdin=case["input"])
     outcome.status_key = result.get("status_key", "UNKNOWN")
-    outcome.runtime_ms = float(result.get("time") or 0)
+    outcome.runtime_ms = float(result.get("time") or 0) * 1000
     outcome.memory_kb = float(result.get("memory") or 0)
 
     execution_status = _execution_status(outcome.status_key)

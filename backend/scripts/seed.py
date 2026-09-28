@@ -14,6 +14,12 @@ from app.models.problem import Problem
 from app.seeds import PROBLEMS
 from app.seeds.schema import ProblemSeed
 from app.services.gamification import ensure_badge_catalog
+from app.services.roadmap import SLUG_TO_PATTERN
+
+try:
+    from app.seeds.data_tuf_a2z import TUF_A2Z_SLUGS
+except ImportError:  # pragma: no cover - seed file always present in practice
+    TUF_A2Z_SLUGS: set[str] = set()
 
 
 def main() -> None:
@@ -42,6 +48,16 @@ def main() -> None:
                 payload["starter_code"] = seed.starter_code
             if seed.test_cases:
                 payload["test_cases"] = [tc.model_dump() for tc in seed.test_cases]
+            if seed.sources:
+                payload["sources"] = list(seed.sources)
+            if seed.pattern_key:
+                payload["pattern_key"] = seed.pattern_key
+            if seed.companies:
+                payload["companies"] = list(seed.companies)
+            if seed.editorial_url:
+                payload["editorial_url"] = seed.editorial_url
+            if seed.video_url:
+                payload["video_url"] = seed.video_url
 
             problem = db.query(Problem).filter(Problem.slug == seed.slug).first()
             if problem is None:
@@ -49,12 +65,43 @@ def main() -> None:
                 payload.setdefault("description", f"Practice: {seed.title}")
                 payload.setdefault("starter_code", {})
                 payload.setdefault("test_cases", [])
-                db.add(Problem(slug=seed.slug, **payload))
+                problem = Problem(slug=seed.slug, **payload)
+                db.add(problem)
+                # The session runs with autoflush=False, so flush explicitly:
+                # later sources reuse authored slugs (e.g. NeetCode 150 catalog
+                # entries) and their existence check must see this row.
+                db.flush()
                 created += 1
             else:
                 for field, value in payload.items():
                     setattr(problem, field, value)
                 updated += 1
+            # Backfill provenance without clobbering explicit values: every
+            # current entry derives from the NeetCode curriculum unless the
+            # seed says otherwise (e.g. sources=["tuf"]).
+            if not (problem.sources or []):
+                problem.sources = (
+                    list(seed.sources) if seed.sources else ["neetcode"]
+                )
+            # Shared curriculum rows carry both sheets (e.g. two-sum lives in
+            # NeetCode 150/250 and the A2Z Arrays step).
+            if seed.slug in TUF_A2Z_SLUGS and "tuf" not in (problem.sources or []):
+                problem.sources = [*(problem.sources or []), "tuf"]
+            if not problem.pattern_key:
+                problem.pattern_key = (
+                    seed.pattern_key or SLUG_TO_PATTERN.get(seed.slug)
+                )
+        # Source-tag merge for shared rows: catalog entries that overlap with
+        # the A2Z sheet are dropped from PROBLEMS by dedupe, so tag them here.
+        if TUF_A2Z_SLUGS:
+            shared = (
+                db.query(Problem)
+                .filter(Problem.slug.in_(sorted(TUF_A2Z_SLUGS)))
+                .all()
+            )
+            for problem in shared:
+                if "tuf" not in (problem.sources or []):
+                    problem.sources = [*(problem.sources or []), "tuf"]
         db.commit()
 
     with SessionLocal() as db:

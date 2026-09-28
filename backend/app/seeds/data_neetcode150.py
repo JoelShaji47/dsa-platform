@@ -1184,6 +1184,13 @@ for _entry in NEETCODE_150:
     _auth = _AUTHORING.get(_entry["slug"])
     if _auth:
         _entry.update(_auth)
+        # The authoring manifest uses TestCase models while the rest of the
+        # pipeline (verify_seeds.py, check_starters.py) expects plain dicts.
+        # Normalise here so every PROBLEMS entry has the same shape.
+        _entry["test_cases"] = [
+            _tc if isinstance(_tc, dict) else _tc.model_dump()
+            for _tc in _entry.get("test_cases", [])
+        ]
 
 del _AUTHORING, _entry, _auth
 

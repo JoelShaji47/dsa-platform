@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, String, Text, func
+from sqlalchemy import DateTime, Enum, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,20 @@ class Problem(Base):
     topic: Mapped[Topic] = mapped_column(Enum(Topic, name="topic", validate_strings=True))
     starter_code: Mapped[dict] = mapped_column(JSONB)
     test_cases: Mapped[list] = mapped_column(JSONB)
+    # Multi-source catalog provenance: which sheets list this problem
+    # (e.g. ["neetcode", "tuf"]), roadmap pattern key, frequent companies,
+    # and editorial/video links.
+    sources: Mapped[list] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    pattern_key: Mapped[str | None] = mapped_column(
+        String(60), nullable=True, index=True
+    )
+    companies: Mapped[list] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    editorial_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

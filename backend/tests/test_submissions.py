@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.enums import Difficulty, Language, SubmissionStatus
+from app.models.interaction import InteractionEvent
+from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
 from app.services.grader import GradeResult
@@ -190,8 +192,24 @@ def test_submit_masks_hidden_tests(monkeypatch):
     )
     results = res.json()["test_results"]
     assert len(results) == 5
-    for case in results:
-        assert set(case.keys()) == {"index", "passed"}
+    visible = [c for c in results if not c["hidden"]]
+    hidden = [c for c in results if c["hidden"]]
+    # two-sum seed: 2 visible + 3 hidden
+    assert len(visible) == 2
+    assert len(hidden) == 3
+    for case in visible:
+        assert case["input"] == "4\n2 7 11 15\n9\n" or case["input"]
+        assert "expected_output" in case and case["expected_output"]
+    for case in hidden:
+        # Exact key set: inputs, expected outputs and actuals never leak.
+        assert set(case.keys()) == {"index", "passed", "hidden", "status_key"}
+
+
+def test_detail_reports_hidden_test_count():
+    headers, _ = register_and_login()
+    body = client.get("/api/v1/problems/two-sum", headers=headers).json()
+    assert body["hidden_test_count"] == 3
+    assert len(body["test_cases"]) == 2
 
 
 @pytest.mark.parametrize(
@@ -278,6 +296,40 @@ def test_tle_status_recorded(monkeypatch):
         headers=headers,
     ).json()
     assert res["status"] == "TLE"
+
+
+def test_run_and_submit_emit_interaction_events(monkeypatch):
+    stub_grader(monkeypatch, status=SubmissionStatus.WRONG_ANSWER)
+    headers, user_id = register_and_login()
+
+    with SessionLocal() as db:
+        problem_id = db.query(Problem.id).filter(Problem.slug == "two-sum").scalar()
+
+    client.post(
+        "/api/v1/problems/two-sum/run",
+        json={"language": "python", "source_code": "x"},
+        headers=headers,
+    )
+    client.post(
+        "/api/v1/problems/two-sum/submit",
+        json={"language": "python", "source_code": "x"},
+        headers=headers,
+    )
+
+    with SessionLocal() as db:
+        events = (
+            db.query(InteractionEvent)
+            .filter(
+                InteractionEvent.user_id == user_id,
+                InteractionEvent.problem_id == problem_id,
+            )
+            .order_by(InteractionEvent.created_at)
+            .all()
+        )
+    kinds = [e.event for e in events]
+    assert kinds == ["run", "submit"]
+    assert events[1].meta["status"] == "WRONG_ANSWER"
+    assert events[1].meta["passed"] is False
 
 
 def test_language_enum_values_accepted(monkeypatch):

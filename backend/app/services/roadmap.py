@@ -1,3 +1,5 @@
+import logging
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 from sqlalchemy import func
@@ -9,9 +11,27 @@ from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
+
 # A pattern is a Neetcode-style study block. Problems are grouped into
 # patterns and the patterns form a prerequisite DAG (the "roadmap tree").
 PATTERNS: list[dict] = [
+    {
+        "key": "coding-basics",
+        "name": "Coding Basics",
+        "order": 0,
+        "prerequisites": [],
+        "snippet": "Language fundamentals, basic maths, recursion and hashing — the Striver A2Z starting block.",
+        "problems": [],
+    },
+    {
+        "key": "sorting",
+        "name": "Sorting Techniques",
+        "order": 1,
+        "prerequisites": ["coding-basics"],
+        "snippet": "Selection, bubble, insertion, merge, quick and recursive sorts.",
+        "problems": [],
+    },
     {
         "key": "arrays-hashing",
         "name": "Arrays & Hashing",
@@ -22,6 +42,7 @@ PATTERNS: list[dict] = [
             "contains-duplicate", "valid-anagram", "two-sum", "group-anagrams",
             "top-k-frequent-elements", "product-of-array-except-self",
             "valid-sudoku", "encode-and-decode-strings", "longest-consecutive-sequence",
+            "subarray-sum-equals-k", "first-missing-positive",
         ],
     },
     {
@@ -32,7 +53,7 @@ PATTERNS: list[dict] = [
         "snippet": "Move two indices through a sequence to find pairs or shrink windows.",
         "problems": [
             "valid-palindrome", "two-sum-ii-input-array-is-sorted", "3sum",
-            "container-with-most-water", "trapping-rain-water",
+            "container-with-most-water", "trapping-rain-water", "move-zeroes",
         ],
     },
     {
@@ -57,7 +78,7 @@ PATTERNS: list[dict] = [
         "problems": [
             "valid-parentheses", "min-stack", "evaluate-reverse-polish-notation",
             "generate-parentheses", "daily-temperatures", "car-fleet",
-            "largest-rectangle-in-histogram",
+            "largest-rectangle-in-histogram", "next-greater-element",
         ],
     },
     {
@@ -83,6 +104,7 @@ PATTERNS: list[dict] = [
             "remove-nth-node-from-end-of-list", "copy-list-with-random-pointer",
             "add-two-numbers", "linked-list-cycle", "find-the-duplicate-number",
             "lru-cache", "merge-k-sorted-lists", "reverse-nodes-in-k-group",
+            "middle-of-the-linked-list",
         ],
     },
     {
@@ -170,7 +192,7 @@ PATTERNS: list[dict] = [
             "walls-and-gates", "course-schedule", "course-schedule-ii",
             "redundant-connection",
             "number-of-connected-components-in-an-undirected-graph",
-            "graph-valid-tree", "word-ladder",
+            "graph-valid-tree", "word-ladder", "flood-fill",
         ],
     },
     {
@@ -236,6 +258,19 @@ PATTERNS: list[dict] = [
         ],
     },
 ]
+
+# Catalog growth: extra slugs per pattern, merged into the DAG below so the
+# roadmap grows with the catalog without hand-editing the lists above.
+from app.seeds.data_neetcode250 import NC250_PATTERN_EXTRAS as _NC250_EXTRAS
+from app.seeds.data_tuf_a2z import TUF_PATTERN_EXTRAS as _TUF_EXTRAS
+
+for _pattern in PATTERNS:
+    for _extra_map in (_NC250_EXTRAS, _TUF_EXTRAS):
+        for _slug in _extra_map.get(_pattern["key"], []):
+            if _slug not in _pattern["problems"]:
+                _pattern["problems"].append(_slug)
+
+del _pattern, _slug, _extra_map, _NC250_EXTRAS, _TUF_EXTRAS
 
 PATTERN_BY_KEY = {p["key"]: p for p in PATTERNS}
 SLUG_TO_PATTERN = {
@@ -326,6 +361,17 @@ def _build_user_state(
     )
 
 
+def get_user_progress(
+    db: Session, user: User
+) -> dict[str, PatternProgress]:
+    """Public progress helper for ML inference and other callers.
+
+    Returns only the per-pattern progress map. Prefer this over
+    ``_build_user_state`` (private, returns the full tuple).
+    """
+    return _build_user_state(db, user)[4]
+
+
 def get_roadmap(
     db: Session, user: User
 ) -> dict:
@@ -414,6 +460,10 @@ def recommend_next(
     progress: dict[str, PatternProgress],
 ) -> list[dict]:
     unlocked = _unlocked_patterns(progress)
+    solvable_by_slug = {
+        slug: bool(p.starter_code and p.test_cases)
+        for slug, p in _load_problems(db).items()
+    }
 
     candidates: list[dict] = []
     for pattern in PATTERNS:
@@ -430,13 +480,15 @@ def recommend_next(
                     "pattern_name": pattern["name"],
                     "order": pattern["order"],
                     "mastery": pp.mastery,
+                    "solvable": solvable_by_slug.get(slug, False),
                 }
             )
 
-    # score candidates: prefer weak patterns, in pattern order, and unsolved
+    # score candidates: solvable first (never recommend what can't be run),
+    # then weak patterns, in pattern order, and unsolved
     def score(c: dict) -> float:
         mastery = c["mastery"]
-        return (100.0 - mastery) + c["order"] * 0.1
+        return (0.0 if c["solvable"] else 1000.0) + (100.0 - mastery) + c["order"] * 0.1
 
     candidates.sort(key=score)
     recommendations = []
@@ -462,7 +514,17 @@ def _reason(c: dict, progress: dict[str, PatternProgress]) -> str:
     return f"Next up in {c['pattern_name']} to keep the momentum."
 
 
-def get_recommendations(db: Session, user: User) -> list[dict]:
+def get_recommendations(
+    db: Session, user: User, explain: bool = False
+) -> list[dict]:
+    """Hybrid recommendations: heuristic candidates, ML re-rank when available.
+
+    The heuristic always generates the candidate pool (top unsolved, unlocked),
+    so cold users and fresh deploys get sensible results. When a trained
+    ranker artifact exists AND the user has enough logged history, candidates
+    are re-scored by the model; otherwise the heuristic order stands. The
+    response shape never changes — only the ordering and the ``model`` tag.
+    """
     (
         problems,
         solved_by_problem,
@@ -471,17 +533,39 @@ def get_recommendations(db: Session, user: User) -> list[dict]:
         progress,
     ) = _build_user_state(db, user)
     recommendations = recommend_next(db, user, solved_by_problem, progress)
+
+    model_tag = "heuristic-v1"
+    try:
+        from app.ml import infer as _infer
+
+        scores = _infer.score_candidates(
+            db, user, [r["slug"] for r in recommendations]
+        )
+        if scores:
+            version = _infer.model_version() or "ml-unknown"
+            model_tag = version
+            # Stable re-rank: model score first, heuristic order breaks ties.
+            order = {r["slug"]: i for i, r in enumerate(recommendations)}
+            recommendations.sort(
+                key=lambda r: (-scores.get(r["slug"], 0.0), order[r["slug"]])
+            )
+    except Exception:
+        logger.debug("ML re-rank abstained; serving heuristic order", exc_info=True)
+        scores = {}
+
     out = []
     for r in recommendations:
         p = problems.get(r["slug"])
-        out.append(
-            {
-                **r,
-                "title": p.title if p else r["slug"],
-                "difficulty": p.difficulty.value if p else "MEDIUM",
-                "solvable": bool(p and p.starter_code and p.test_cases),
-            }
-        )
+        item = {
+            **r,
+            "title": p.title if p else r["slug"],
+            "difficulty": p.difficulty.value if p else "MEDIUM",
+            "solvable": bool(p and p.starter_code and p.test_cases),
+            "model": model_tag,
+        }
+        if explain and r["slug"] in scores:
+            item["score"] = round(scores[r["slug"]], 4)
+        out.append(item)
     return out
 
 
@@ -508,6 +592,71 @@ def get_daily_question(db: Session, user: User) -> dict | None:
     ).hexdigest(), 16)
     daily = pool[seed % len(pool)]
     return {"problem": daily}
+
+
+def get_review_due(db: Session, user: User, older_than_days: int = 7, limit: int = 10) -> list[dict]:
+    """Spaced-repetition queue: solved problems worth revisiting.
+
+    Surfaces accepted problems first solved more than ``older_than_days`` ago
+    where the original solve showed friction (hints used or >= 3 attempts).
+    Frictionless recent solves are assumed retained.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    problems = {p.id: p for p in db.query(Problem).all()}
+    subs = (
+        db.query(Submission)
+        .filter(
+            Submission.user_id == user.id,
+            Submission.status == SubmissionStatus.ACCEPTED,
+        )
+        .order_by(Submission.submitted_at)
+        .all()
+    )
+    first_accept: dict = {}
+    attempts: dict = defaultdict(int)
+    for s in subs:
+        attempts[s.problem_id] += 1
+        first_accept.setdefault(s.problem_id, s.submitted_at)
+
+    hint_counts: dict = defaultdict(int)
+    for (pid,) in (
+        db.query(HintUsage.problem_id)
+        .filter(HintUsage.user_id == user.id)
+        .all()
+    ):
+        hint_counts[pid] += 1
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
+    due = []
+    for pid, accepted_at in first_accept.items():
+        if accepted_at.tzinfo is None:
+            accepted_at = accepted_at.replace(tzinfo=timezone.utc)
+        if accepted_at >= cutoff:
+            continue
+        hints = hint_counts.get(pid, 0)
+        tries = attempts.get(pid, 0)
+        if hints == 0 and tries < 3:
+            continue
+        problem = problems.get(pid)
+        if problem is None:
+            continue
+        due.append(
+            {
+                "slug": problem.slug,
+                "title": problem.title,
+                "difficulty": problem.difficulty.value,
+                "pattern_key": problem.pattern_key,
+                "pattern_name": PATTERN_BY_KEY.get(problem.pattern_key or {}, {}).get(
+                    "name", problem.pattern_key
+                ),
+                "solved_at": accepted_at.isoformat(),
+                "hints_used": hints,
+                "attempts": tries,
+            }
+        )
+    due.sort(key=lambda d: d["solved_at"])
+    return due[:limit]
 
 
 def get_activity(db: Session, user: User, days: int = 140) -> dict:

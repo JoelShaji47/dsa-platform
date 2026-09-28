@@ -1,11 +1,19 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
+from app.db.session import SessionLocal
 from app.main import app
 from app.models.enums import SubmissionStatus
+from app.models.hint import HintUsage
+from app.models.problem import Problem
+from app.models.submission import Submission
+from app.models.user import User
+from app.seeds import PROBLEMS
 from app.services.grader import GradeResult
 from app.services.grader import TestOutcome as Outcome
+from app.services.roadmap import PATTERNS
 
 client = TestClient(app)
 
@@ -51,9 +59,16 @@ def test_roadmap_returns_all_patterns_and_totals():
     body = res.json()
 
     patterns = body["patterns"]
-    assert len(patterns) == 18
-    assert body["totals"]["total"] == 149
+    assert len(patterns) == len(PATTERNS)
+    # Roadmap total tracks the DAG membership, which grows with the catalog
+    # (NeetCode 250 delta merges into the pattern lists at import).
+    assert body["totals"]["total"] == sum(len(p["problems"]) for p in PATTERNS)
     assert body["totals"]["solved"] == 0
+    # Every roadmap slug must exist in the seeded catalog.
+    catalog_slugs = {p["slug"] for p in PROBLEMS}
+    for pattern in patterns:
+        for problem in pattern["problems"]:
+            assert problem["slug"] in catalog_slugs
 
     key_order = [p["key"] for p in patterns]
     assert "arrays-hashing" in key_order
@@ -149,6 +164,63 @@ def test_daily_question_is_single_unsolved_personalized_problem():
     pattern = next(p for p in roadmap["patterns"] if p["key"] == problem["pattern_key"])
     row = next(pr for pr in pattern["problems"] if pr["slug"] == problem["slug"])
     assert row["solved"] is False
+
+
+def test_recommendations_pattern_drill_filters_to_pattern():
+    headers = make_user_and_token()
+    body = client.get(
+        "/api/v1/roadmap/recommendations",
+        params={"pattern": "arrays-hashing"},
+        headers=headers,
+    ).json()
+    assert body["recommendations"]
+    assert all(
+        item["pattern_key"] == "arrays-hashing"
+        for item in body["recommendations"]
+    )
+
+
+def test_review_due_surfaces_old_friction_solves():
+    headers = make_user_and_token()
+    user_id = uuid.UUID(
+        client.get("/api/v1/auth/me", headers=headers).json()["id"]
+    )
+    with SessionLocal() as db:
+        two_sum = db.query(Problem).filter(Problem.slug == "two-sum").one()
+        anagram = db.query(Problem).filter(Problem.slug == "valid-anagram").one()
+        old = datetime.now(timezone.utc) - timedelta(days=10)
+        # Old solve WITH a hint -> due for review.
+        db.add(
+            Submission(
+                user_id=user_id,
+                problem_id=two_sum.id,
+                code="x",
+                language="python",
+                status=SubmissionStatus.ACCEPTED,
+                submitted_at=old,
+            )
+        )
+        db.add(HintUsage(user_id=user_id, problem_id=two_sum.id, level=1))
+        # Fresh frictionless solve -> not due.
+        db.add(
+            Submission(
+                user_id=user_id,
+                problem_id=anagram.id,
+                code="x",
+                language="python",
+                status=SubmissionStatus.ACCEPTED,
+            )
+        )
+        db.commit()
+
+    due = client.get("/api/v1/roadmap/review-due", headers=headers).json()[
+        "review_due"
+    ]
+    slugs = [d["slug"] for d in due]
+    assert "two-sum" in slugs
+    assert "valid-anagram" not in slugs
+    entry = next(d for d in due if d["slug"] == "two-sum")
+    assert entry["hints_used"] == 1
 
 
 def test_activity_returns_chronological_days():

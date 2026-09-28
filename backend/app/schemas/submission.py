@@ -29,6 +29,24 @@ class RunResultOut(BaseModel):
     test_results: list[VisibleTestResult]
 
 
+class SubmitTestResult(BaseModel):
+    """Per-test submit feedback.
+
+    Visible cases carry the full diff context (input/expected/actual) so the
+    client can show *why* a submission failed. Hidden cases expose only the
+    pass flag plus the judge status key (e.g. TIME_LIMIT_EXCEEDED) — their
+    inputs and expected outputs never leave the server.
+    """
+
+    index: int
+    passed: bool
+    hidden: bool = False
+    status_key: str = ""
+    input: str | None = None
+    expected_output: str | None = None
+    actual_output: str | None = None
+
+
 class SubmissionResultOut(BaseModel):
     submission_id: uuid.UUID
     status: SubmissionStatus
@@ -39,4 +57,15 @@ class SubmissionResultOut(BaseModel):
     user_xp: int
     current_streak: int
     new_badges: list[str] = []
-    test_results: list[TestResultOut]
+    test_results: list[SubmitTestResult]
+
+
+class SubmissionHistoryItem(BaseModel):
+    submission_id: uuid.UUID
+    status: SubmissionStatus
+    language: str
+    code: str
+    runtime_ms: float | None = None
+    memory_kb: float | None = None
+    judge_summary: list[dict] | None = None
+    submitted_at: str

@@ -106,6 +106,7 @@ public class Main {
     {
         "title": "Move Zeroes",
         "slug": "move-zeroes",
+        "pattern_key": "two-pointers",
         "difficulty": "EASY",
         "topic": "ARRAY",
         "description": """# Move Zeroes
@@ -276,6 +277,7 @@ public class Main {
     {
         "title": "Subarray Sum Equals K",
         "slug": "subarray-sum-equals-k",
+        "pattern_key": "arrays-hashing",
         "difficulty": "MEDIUM",
         "topic": "ARRAY",
         "description": """# Subarray Sum Equals K
@@ -455,6 +457,7 @@ public class Main {
     {
         "title": "First Missing Positive",
         "slug": "first-missing-positive",
+        "pattern_key": "arrays-hashing",
         "difficulty": "HARD",
         "topic": "ARRAY",
         "description": """# First Missing Positive

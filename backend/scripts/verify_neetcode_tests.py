@@ -69,14 +69,20 @@ SOLVERS = {
     "longest-consecutive-sequence": solve_lcs,
 }
 
+def tc_get(tc, key):
+    # Seed entries carry plain dicts (normalised in data_neetcode150.py), but
+    # accept TestCase models too so the script is robust to either shape.
+    return tc[key] if isinstance(tc, dict) else getattr(tc, key)
+
+
 fails = 0
 total = 0
 for slug, solver in SOLVERS.items():
     entry = next(p for p in PROBLEMS if p["slug"] == slug and p.get("category"))
     for tc in entry["test_cases"]:
         total += 1
-        got = solver(tc.input)
-        want = tc.expected_output
+        got = solver(tc_get(tc, "input"))
+        want = tc_get(tc, "expected_output")
         if got != want:
             fails += 1
             print(f"[FAIL] {slug}: got={got!r} want={want!r}")

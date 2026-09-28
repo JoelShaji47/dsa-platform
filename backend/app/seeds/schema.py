@@ -32,6 +32,13 @@ class ProblemSeed(BaseModel):
     # Catalog-only problems have no runnable content yet.
     starter_code: dict[Literal["python", "cpp", "java"], str] = Field(default_factory=dict)
     test_cases: list[TestCase] = Field(default_factory=list)
+    # Multi-source provenance (e.g. ["neetcode", "tuf"]). Empty means "backfill
+    # from the roadmap map / default to neetcode" in scripts/seed.py.
+    sources: list[str] = Field(default_factory=list)
+    pattern_key: str | None = None
+    companies: list[str] = Field(default_factory=list)
+    editorial_url: str | None = None
+    video_url: str | None = None
 
     def visible_tests(self) -> list[TestCase]:
         return [t for t in self.test_cases if not t.is_hidden]

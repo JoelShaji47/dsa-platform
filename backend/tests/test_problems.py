@@ -1,10 +1,21 @@
 import uuid
+from collections import Counter
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.seeds import PROBLEMS
 
 client = TestClient(app)
+
+
+def seed_counts():
+    topics: Counter = Counter()
+    difficulties: Counter = Counter()
+    for p in PROBLEMS:
+        topics[p["topic"]] += 1
+        difficulties[p["difficulty"]] += 1
+    return topics, difficulties
 
 
 def make_user_and_token():
@@ -35,7 +46,7 @@ def test_list_returns_all_seeded_problems():
     body = res.json()
     assert len(body) >= 149
     for item in body:
-        assert set(item.keys()) == {"id", "title", "slug", "difficulty", "topic", "solved"}
+        assert set(item.keys()) == {"id", "title", "slug", "difficulty", "topic", "solved", "sources", "pattern_key"}
         assert item["solved"] is False
 
 
@@ -97,16 +108,11 @@ def test_topic_counts_match_seed_plan():
         counts[item["topic"]] = counts.get(item["topic"], 0) + 1
         difficulties[item["difficulty"]] = difficulties.get(item["difficulty"], 0) + 1
 
-    # 149-problem NeetCode catalog (mapped to coarse topics) + 6 authored extras.
-    assert counts == {
-        "ARRAY": 61,
-        "STRING": 6,
-        "LINKED_LIST": 12,
-        "STACK": 8,
-        "QUEUE": 7,
-        "TREE": 18,
-        "GRAPH": 20,
-        "DP": 23,
-    }
-    assert sum(counts.values()) == 155
+    # DB must mirror the seed catalog exactly (counts grow with the catalog:
+    # NeetCode 250 delta, TUF A2Z, ...). Authored sources win on overlap
+    # (deduped by slug in app/seeds/__init__.py).
+    expected_topics, expected_difficulties = seed_counts()
+    assert counts == dict(expected_topics)
+    assert sum(counts.values()) == len(PROBLEMS)
+    assert difficulties == dict(expected_difficulties)
     assert difficulties["HARD"] >= 20
