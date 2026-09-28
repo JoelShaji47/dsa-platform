@@ -33,6 +33,10 @@ class ProblemDetail(BaseModel):
     test_cases: list[TestCaseOut]
     solvable: bool = False
     solved: bool
+    # Languages with LeetCode-style function mode (solve() stub + hidden driver).
+    function_modes: list[str] = []
+    # solve() stubs per language (drivers stay server-side).
+    function_starter: dict[str, Any] = {}
     hidden_test_count: int = 0
     sources: list[str] = []
     pattern_key: str | None = None

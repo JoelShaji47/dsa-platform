@@ -35,6 +35,33 @@ class GradeResult:
         return max((t.memory_kb for t in self.test_results), default=0.0)
 
 
+class ModeError(Exception):
+    pass
+
+
+def function_modes_for(problem) -> list[str]:
+    """Languages with a complete function-mode setup (stub + driver)."""
+    starters = getattr(problem, "function_starter", None) or {}
+    drivers = getattr(problem, "function_driver", None) or {}
+    modes = []
+    for lang, stub in starters.items():
+        driver = drivers.get(lang) if isinstance(drivers, dict) else None
+        if stub and isinstance(driver, dict) and driver.get("prefix") is not None and driver.get("suffix") is not None:
+            modes.append(lang)
+    return modes
+
+
+def build_source(problem, language: str, code: str, mode: str) -> str:
+    """Assemble the Judge0 source. Function mode wraps user code in the
+    hidden driver; main mode passes code through unchanged."""
+    if mode != "function":
+        return code
+    if language not in function_modes_for(problem):
+        raise ModeError(f"Function mode is not available for {language} on this problem")
+    driver = (problem.function_driver or {})[language]
+    return f"{driver['prefix']}{code}\n{driver['suffix']}"
+
+
 def normalize_output(text: str | None) -> str:
     if text is None:
         return ""

@@ -28,6 +28,15 @@ class Problem(Base):
     topic: Mapped[Topic] = mapped_column(Enum(Topic, name="topic", validate_strings=True))
     starter_code: Mapped[dict] = mapped_column(JSONB)
     test_cases: Mapped[list] = mapped_column(JSONB)
+    # Function mode (LeetCode-style): per-language solve() stub shown in the
+    # editor plus hidden driver {prefix, suffix} wrapped around user code at
+    # grade time. Empty dicts = main-mode only.
+    function_starter: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+    function_driver: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     # Multi-source catalog provenance: which sheets list this problem
     # (e.g. ["neetcode", "tuf"]), roadmap pattern key, frequent companies,
     # and editorial/video links.

@@ -18,7 +18,7 @@ from app.schemas.submission import (
 )
 from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, award_xp, update_streak
-from app.services.grader import grade_code
+from app.services.grader import ModeError, build_source, function_modes_for, grade_code
 from app.services.judge0 import Judge0Error
 from app.services.tutor import has_used_hints
 
@@ -111,6 +111,8 @@ def get_problem(
         companies=problem.companies or [],
         editorial_url=problem.editorial_url,
         video_url=problem.video_url,
+        function_modes=function_modes_for(problem),
+        function_starter=problem.function_starter or {},
     )
 
 
@@ -174,8 +176,15 @@ async def run_code(
     ]
 
     try:
+        source = build_source(problem, payload.language.value, payload.source_code, payload.mode)
+    except ModeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+
+    try:
         result = await grade_code(
-            payload.source_code, payload.language.value, visible_cases
+            source, payload.language.value, visible_cases
         )
     except Judge0Error as exc:
         raise HTTPException(
@@ -187,7 +196,7 @@ async def run_code(
         user_id=current_user.id,
         problem_id=problem.id,
         event=RUN,
-        meta={"language": payload.language.value, "status": result.status.value},
+        meta={"language": payload.language.value, "status": result.status.value, "mode": payload.mode},
     )
 
     return RunResultOut(
@@ -222,8 +231,15 @@ async def submit_solution(
     problem = _get_problem_or_404(db, slug)
 
     try:
+        source = build_source(problem, payload.language.value, payload.source_code, payload.mode)
+    except ModeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+
+    try:
         result = await grade_code(
-            payload.source_code, payload.language.value, problem.test_cases
+            source, payload.language.value, problem.test_cases
         )
     except Judge0Error as exc:
         raise HTTPException(
@@ -310,6 +326,7 @@ async def submit_solution(
             "language": payload.language.value,
             "status": result.status.value,
             "passed": result.status == SubmissionStatus.ACCEPTED,
+            "mode": payload.mode,
         },
     )
 

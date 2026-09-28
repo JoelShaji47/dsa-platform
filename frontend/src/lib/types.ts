@@ -51,7 +51,11 @@ export interface ProblemDetail {
   companies: string[];
   editorial_url: string | null;
   video_url: string | null;
+  function_modes: string[];
+  function_starter: Record<string, string>;
 }
+
+export type RunMode = "main" | "function";
 
 export interface VisibleTestResult {
   index: number;

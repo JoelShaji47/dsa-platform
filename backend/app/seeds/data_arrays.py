@@ -102,6 +102,25 @@ public class Main {
             {"input": "5\n-3 4 3 90 0\n0\n", "expected_output": "0 2", "is_hidden": True},
             {"input": "6\n-10 7 19 15 -4 12\n22\n", "expected_output": "1 3", "is_hidden": True},
         ],
+        "function_starter": {
+            "python": 'def solve(nums, target):\n    """Return [i, j] with i < j and nums[i] + nums[j] == target."""\n    # ===== YOUR CODE HERE =====\n    pass\n',
+            "cpp": 'vector<int> solve(vector<int>& nums, long long target) {\n    // ===== YOUR CODE HERE =====\n    return {};\n}\n',
+            "java": '    public int[] solve(int[] nums, long target) {\n        // ===== YOUR CODE HERE =====\n        return new int[0];\n    }\n',
+        },
+        "function_driver": {
+            "python": {
+                "prefix": 'import sys\n\n\ndata = sys.stdin.read().split()\nn = int(data[0])\nnums = [int(x) for x in data[1:n + 1]]\ntarget = int(data[n + 1])\n\n\n',
+                "suffix": '\n\nans = solve(nums, target)\nprint(" ".join(map(str, ans)))\n',
+            },
+            "cpp": {
+                "prefix": '#include <bits/stdc++.h>\nusing namespace std;\n\n',
+                "suffix": '\n\nint main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<int> nums(n);\n    for (auto& x : nums) cin >> x;\n    long long target;\n    cin >> target;\n    vector<int> ans = solve(nums, target);\n    for (size_t i = 0; i < ans.size(); i++) {\n        if (i) cout << " ";\n        cout << ans[i];\n    }\n    return 0;\n}\n',
+            },
+            "java": {
+                "prefix": 'import java.util.*;\n\nclass Solution {\n',
+                "suffix": '\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();\n        long target = sc.nextLong();\n        int[] ans = new Solution().solve(nums, target);\n        for (int i = 0; i < ans.length; i++) {\n            if (i > 0) System.out.print(" ");\n            System.out.print(ans[i]);\n        }\n    }\n}\n',
+            },
+        },
     },
     {
         "title": "Move Zeroes",

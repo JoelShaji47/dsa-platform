@@ -48,6 +48,10 @@ def main() -> None:
                 payload["starter_code"] = seed.starter_code
             if seed.test_cases:
                 payload["test_cases"] = [tc.model_dump() for tc in seed.test_cases]
+            if seed.function_starter:
+                payload["function_starter"] = seed.function_starter
+            if seed.function_driver:
+                payload["function_driver"] = seed.function_driver
             if seed.sources:
                 payload["sources"] = list(seed.sources)
             if seed.pattern_key:
