@@ -11,7 +11,7 @@ import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
 import { java } from "@codemirror/lang-java";
 import client from "@/lib/api";
-import { ThemeToggle } from "@/context/theme-context";
+import { ThemeToggle, useTheme } from "@/context/theme-context";
 import type {
   Difficulty,
   HintMetaOut,
@@ -82,6 +82,8 @@ export default function SolveClient() {
   const [includeCode, setIncludeCode] = useState(true);
 
   const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
+  const dark = useTheme() === "dark";
+  const th = (d: string, l: string) => (dark ? d : l);
 
   useEffect(() => {
     let cancelled = false;
@@ -485,19 +487,19 @@ export default function SolveClient() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#0b0d12]">
+    <div className={th("flex h-screen flex-col bg-[#0b0d12]", "flex h-screen flex-col bg-paper-deep")}>
       {/* ── Top bar ──────────────────────────────────────────── */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#0e1119] px-4">
+      <header className={th("flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#0e1119] px-4", "flex h-12 shrink-0 items-center justify-between border-b border-ink/10 bg-white px-4")}>
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/problems"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-400 transition-colors hover:text-gray-200"
+            className={th("flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-400 transition-colors hover:text-gray-200", "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-ink-soft transition-colors hover:text-ink")}
           >
             <ArrowLeft size={15} />
             Library
           </Link>
-          <span className="h-4 w-px bg-white/10" />
-          <h1 className="truncate text-sm font-semibold text-gray-100">
+          <span className={th("h-4 w-px bg-white/10", "h-4 w-px bg-ink/10")} />
+          <h1 className={th("truncate text-sm font-semibold text-gray-100", "truncate font-display text-sm font-bold tracking-tight text-ink")}>
             {problem.title}
           </h1>
           <span className={`text-xs font-medium ${DIFFICULTY_STYLE[problem.difficulty as Difficulty]}`}>
@@ -510,16 +512,16 @@ export default function SolveClient() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle dark />
-          <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
+          <ThemeToggle dark={dark} />
+          <div className={th("flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5", "flex gap-0.5 rounded-lg border border-ink/10 bg-paper-deep p-0.5")}>
             {LANGS.map((l) => (
               <button
                 key={l.key}
                 onClick={() => handleLangChange(l.key)}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   lang === l.key
-                    ? "bg-white/10 text-gray-100"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? th("bg-white/10 text-gray-100", "bg-ink text-white")
+                    : th("text-gray-500 hover:text-gray-300", "text-ink-faint hover:text-ink")
                 }`}
               >
                 {l.label}
@@ -532,7 +534,7 @@ export default function SolveClient() {
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
               assistantOpen
                 ? "border-violet-400/50 bg-violet-500/15 text-violet-200"
-                : "border-white/10 bg-[#252540] text-gray-300 hover:border-white/20 hover:text-gray-100"
+                : th("border-white/10 bg-[#252540] text-gray-300 hover:border-white/20 hover:text-gray-100", "border-ink/10 bg-paper-deep text-ink-soft hover:border-ink/20 hover:text-ink")
             }`}
           >
             <Brain size={13} />
@@ -541,7 +543,7 @@ export default function SolveClient() {
           <button
             onClick={run}
             disabled={running || submitting}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
+            className={th("flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50", "flex items-center gap-1.5 rounded-lg border border-ink/10 bg-card px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink/20 hover:text-ink disabled:opacity-50")}
           >
             {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
             Run

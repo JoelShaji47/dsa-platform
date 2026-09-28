@@ -64,7 +64,6 @@ const DIFFICULTY_BADGE: Record<Difficulty, string> = {
 };
 
 type StatusFilter = "all" | "solved" | "todo";
-type SourceFilter = "all" | "neetcode" | "tuf";
 type SortKey = "title" | "difficulty";
 type SortDir = "asc" | "desc";
 
@@ -90,9 +89,6 @@ export default function ProblemsClient() {
 
   const [topic, setTopic] = useState(searchParams.get("topic") ?? "all");
   const [difficulty, setDifficulty] = useState(searchParams.get("difficulty") ?? "all");
-  const [source, setSource] = useState<SourceFilter>(
-    (searchParams.get("source") as SourceFilter) || "all"
-  );
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("title");
@@ -106,11 +102,10 @@ export default function ProblemsClient() {
     const params = new URLSearchParams();
     if (topic !== "all") params.set("topic", topic);
     if (difficulty !== "all") params.set("difficulty", difficulty);
-    if (source !== "all") params.set("source", source);
     if (debouncedSearch) params.set("search", debouncedSearch);
     const qs = params.toString();
     router.replace(qs ? `/problems?${qs}` : "/problems", { scroll: false });
-  }, [topic, difficulty, source, debouncedSearch, router]);
+  }, [topic, difficulty, debouncedSearch, router]);
 
   // Filter changes re-arm the loading state from the event handlers below;
   // the fetch effect itself only writes results (async continuations).
@@ -129,7 +124,6 @@ export default function ProblemsClient() {
     const params: Record<string, string> = {};
     if (topic !== "all") params.topic = topic;
     if (difficulty !== "all") params.difficulty = difficulty;
-    if (source !== "all") params.source = source;
     if (debouncedSearch) params.search = debouncedSearch;
     client
       .get<ProblemListItem[]>("/problems", { params })
@@ -148,7 +142,7 @@ export default function ProblemsClient() {
     return () => {
       cancelled = true;
     };
-  }, [topic, difficulty, source, debouncedSearch]);
+  }, [topic, difficulty, debouncedSearch]);
 
   const visible = useMemo(() => {
     const filtered =
@@ -176,7 +170,6 @@ export default function ProblemsClient() {
   const filtersActive =
     topic !== "all" ||
     difficulty !== "all" ||
-    source !== "all" ||
     debouncedSearch !== "" ||
     status !== "all";
 
@@ -184,7 +177,6 @@ export default function ProblemsClient() {
     beginFetch();
     setTopic("all");
     setDifficulty("all");
-    setSource("all");
     setSearch("");
     setStatus("all");
   };
@@ -297,22 +289,6 @@ export default function ProblemsClient() {
                   <SelectItem value="solved">Solved</SelectItem>
                 </SelectContent>
               </Select>
-              <Select
-                value={source}
-                onValueChange={(v) => {
-                  beginFetch();
-                  setSource(v as SourceFilter);
-                }}
-              >
-                <SelectTrigger className="w-[150px] bg-white">
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All sources</SelectItem>
-                  <SelectItem value="neetcode">NeetCode</SelectItem>
-                  <SelectItem value="tuf">TakeUForward</SelectItem>
-                </SelectContent>
-              </Select>
               {filtersActive && (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   <ListFilter size={14} />
@@ -412,23 +388,6 @@ export default function ProblemsClient() {
                           >
                             {p.title}
                           </Link>
-                          {p.sources.includes("tuf") && (
-                            <Badge
-                              variant="outline"
-                              className="ml-2 border-gold/50 bg-gold/10 align-middle text-[10px] text-gold-deep"
-                            >
-                              TUF
-                            </Badge>
-                          )}
-                          {p.sources.includes("neetcode") &&
-                            p.sources.includes("tuf") && (
-                              <Badge
-                                variant="outline"
-                                className="ml-1 border-ink/20 bg-ink/5 align-middle text-[10px] text-ink-soft"
-                              >
-                                NC
-                              </Badge>
-                            )}
                         </TableCell>
                         <TableCell className="eyebrow">
                           {p.topic.replace("_", " ")}

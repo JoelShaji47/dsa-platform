@@ -5,6 +5,7 @@ import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
 import { java } from "@codemirror/lang-java";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { useTheme } from "@/context/theme-context";
 import type { Language, ProblemDetail, RunMode } from "@/lib/types";
 
 const EXTS: Record<Language, () => unknown> = { python, cpp, java };
@@ -26,14 +27,30 @@ export default function EditorCell({
   onCode: (v: string) => void;
   onModeChange: (m: RunMode) => void;
 }) {
+  const theme = useTheme();
+  const dark = theme === "dark";
   return (
     <section className="flex h-full min-h-0 min-w-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-[#1e1e30] px-4 py-1.5">
-        <span className="font-mono text-[11px] text-gray-500">
+      <div
+        className={`flex shrink-0 items-center gap-2 border-b px-4 py-1.5 ${
+          dark ? "border-white/10 bg-[#1e1e30]" : "border-ink/10 bg-white"
+        }`}
+      >
+        <span
+          className={`font-mono text-[11px] ${dark ? "text-gray-500" : "text-ink-faint"}`}
+        >
           In [{runCount + 1}]
         </span>
-        <span className="font-mono text-[11px] text-gray-600">{lang}</span>
-        <span className="ml-auto flex gap-0.5 rounded-md border border-white/10 bg-[#252540] p-0.5">
+        <span
+          className={`font-mono text-[11px] ${dark ? "text-gray-600" : "text-ink-faint"}`}
+        >
+          {lang}
+        </span>
+        <span
+          className={`ml-auto flex gap-0.5 rounded-md border p-0.5 ${
+            dark ? "border-white/10 bg-[#252540]" : "border-ink/10 bg-paper-deep"
+          }`}
+        >
           {(["main", "function"] as RunMode[]).map((m) => {
             const available =
               m === "main" || problem.function_modes?.includes(lang);
@@ -52,10 +69,16 @@ export default function EditorCell({
                 }
                 className={`rounded px-2 py-0.5 font-mono text-[11px] transition-colors ${
                   active
-                    ? "bg-white/10 text-gray-100"
+                    ? dark
+                      ? "bg-white/10 text-gray-100"
+                      : "bg-ink text-white"
                     : available
-                      ? "text-gray-500 hover:text-gray-300"
-                      : "cursor-not-allowed text-gray-700"
+                      ? dark
+                        ? "text-gray-500 hover:text-gray-300"
+                        : "text-ink-faint hover:text-ink"
+                      : dark
+                        ? "cursor-not-allowed text-gray-700"
+                        : "cursor-not-allowed text-ink-faint/40"
                 }`}
               >
                 {m === "main" ? "Main" : "Function"}
@@ -69,7 +92,7 @@ export default function EditorCell({
           value={code}
           height="100%"
           style={{ fontSize: "14px", height: "100%" }}
-          theme={oneDark}
+          theme={dark ? oneDark : "light"}
           extensions={[(EXTS[lang]?.() ?? python()) as never]}
           onChange={(value: string) => onCode(value)}
           basicSetup={{ tabSize: 4 }}

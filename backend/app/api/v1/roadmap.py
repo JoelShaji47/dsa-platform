@@ -56,7 +56,8 @@ def daily_question(
 
 @router.get("/activity")
 def roadmap_activity(
+    days: int = 140,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
-    return get_activity(db, current_user)
+    return get_activity(db, current_user, days=min(max(days, 1), 400))

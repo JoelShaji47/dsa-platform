@@ -408,6 +408,7 @@ def get_roadmap(
                     "hints_used": hints_by_problem.get(slug, 0),
                     "solvable": bool(p.starter_code and p.test_cases),
                     "recommended": slug == top_recommended,
+                    "sources": p.sources or [],
                 }
             )
         pattern_out.append(

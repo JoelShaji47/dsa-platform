@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTheme } from "@/context/theme-context";
 import { useDock } from "./dock-context";
 import AssistantPanel from "./assistant-panel";
 import ConsolePanel from "./console-panel";
@@ -55,10 +56,12 @@ export function CodeTabPanel() {
 
 export function ConsoleTabPanel() {
   const d = useDock();
+  const dark = useTheme() === "dark";
+  const th = (dc: string, l: string) => (dark ? dc : l);
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#16162a]">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-white/10 bg-[#1e1e30] px-4">
-        <span className="font-mono text-xs font-medium text-gray-400">
+    <div className={th("flex h-full min-h-0 flex-col bg-[#16162a]", "flex h-full min-h-0 flex-col bg-card")}>
+      <div className={th("flex h-9 shrink-0 items-center justify-between border-b border-white/10 bg-[#1e1e30] px-4", "flex h-9 shrink-0 items-center justify-between border-b border-ink/10 bg-white px-4")}>
+        <span className={th("font-mono text-xs font-medium text-gray-400", "font-mono text-xs font-medium text-ink-faint")}>
           Out [{d.runCount || "·"}] · Console
         </span>
         {d.shown && d.shownStatus && (

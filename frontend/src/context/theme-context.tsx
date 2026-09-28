@@ -50,6 +50,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+export function useTheme(): Theme {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) return "light";
+  return ctx.theme;
+}
+
 export function ThemeToggle({ dark = false }: { dark?: boolean }) {
   const ctx = useContext(ThemeContext);
   if (!ctx) return null;

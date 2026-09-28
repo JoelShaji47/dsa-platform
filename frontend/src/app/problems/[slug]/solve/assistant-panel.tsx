@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Brain, Loader2, Send, Trash2, X } from "lucide-react";
+import { useTheme } from "@/context/theme-context";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { AssistantHistoryItem } from "@/lib/types";
@@ -40,6 +41,8 @@ export default function AssistantPanel({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState("");
+  const dark = useTheme() === "dark";
+  const th = (d: string, l: string) => (dark ? d : l);
 
   const send = (text: string) => {
     const clean = text.trim();
@@ -49,12 +52,12 @@ export default function AssistantPanel({
   };
 
   return (
-    <aside className="flex h-full w-full flex-col border-l border-white/10 bg-[#1e1e30]">
-      <header className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-2.5">
-        <Brain size={15} className="text-violet-300" />
-        <span className="text-sm font-semibold text-gray-100">Coach</span>
+    <aside className={th("flex h-full w-full flex-col bg-[#1e1e30]", "flex h-full w-full flex-col bg-card")}>
+      <header className={th("flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-2.5", "flex shrink-0 items-center gap-2 border-b border-ink/10 bg-white px-4 py-2.5")}>
+        <Brain size={15} className="text-violet-500" />
+        <span className={th("text-sm font-semibold text-gray-100", "text-sm font-semibold text-ink")}>Coach</span>
         {provider && (
-          <span className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-gray-500">
+          <span className={th("rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-gray-500", "rounded border border-ink/10 bg-paper-deep px-1.5 py-0.5 font-mono text-[10px] text-ink-faint")}>
             {provider}
           </span>
         )}
@@ -62,28 +65,28 @@ export default function AssistantPanel({
           <button
             onClick={onClear}
             title="Clear chat"
-            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
+            className={th("rounded-md p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300", "rounded-md p-1.5 text-ink-faint transition-colors hover:bg-ink/5 hover:text-ink")}
           >
             <Trash2 size={13} />
           </button>
           <button
             onClick={onClose}
             title="Close coach"
-            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
+            className={th("rounded-md p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300", "rounded-md p-1.5 text-ink-faint transition-colors hover:bg-ink/5 hover:text-ink")}
           >
             <X size={14} />
           </button>
         </span>
       </header>
 
-      <p className="shrink-0 border-b border-white/5 px-4 py-1.5 font-mono text-[10px] text-gray-600">
+      <p className={th("shrink-0 border-b border-white/5 px-4 py-1.5 font-mono text-[10px] text-gray-600", "shrink-0 border-b border-ink/10 px-4 py-1.5 font-mono text-[10px] text-ink-faint")}>
         {contextNote}
       </p>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
-          <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-3 text-[13px] leading-relaxed text-gray-400">
-            <p className="mb-1 flex items-center gap-1.5 font-medium text-violet-200">
+          <div className={th("rounded-lg border border-violet-500/20 bg-violet-500/5 p-3 text-[13px] leading-relaxed text-gray-400", "rounded-lg border border-violet-500/30 bg-violet-500/10 p-3 text-[13px] leading-relaxed text-ink-soft")}>
+            <p className={th("mb-1 flex items-center gap-1.5 font-medium text-violet-200", "mb-1 flex items-center gap-1.5 font-medium text-violet-700")}>
               <Brain size={13} />
               Socratic coach — nudges, never answers
             </p>
@@ -95,43 +98,43 @@ export default function AssistantPanel({
           m.role === "user" ? (
             <div
               key={i}
-              className="ml-8 rounded-lg bg-violet-600/20 px-3 py-2 text-[13px] text-gray-100"
+              className={th("ml-8 rounded-lg bg-violet-600/20 px-3 py-2 text-[13px] text-gray-100", "ml-8 rounded-lg bg-violet-600/15 px-3 py-2 text-[13px] text-ink")}
             >
               {m.content}
             </div>
           ) : (
             <div
               key={i}
-              className="mr-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2"
+              className={th("mr-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2", "mr-2 rounded-lg border border-ink/10 bg-paper px-3 py-2")}
             >
-              <article className="prose prose-invert prose-sm max-w-none text-[13px] leading-relaxed prose-code:text-emerald-400">
+              <article className={th("prose prose-invert prose-sm max-w-none text-[13px] leading-relaxed prose-code:text-emerald-400", "prose prose-sm max-w-none text-[13px] leading-relaxed prose-code:text-quest")}>
                 <Markdown remarkPlugins={[remarkGfm]}>{m.content}</Markdown>
               </article>
             </div>
           )
         )}
         {loading && (
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className={th("flex items-center gap-2 text-xs text-gray-500", "flex items-center gap-2 text-xs text-ink-faint")}>
             <Loader2 size={13} className="animate-spin" />
             Coach is thinking…
           </div>
         )}
       </div>
 
-      <div className="shrink-0 border-t border-white/10 p-3">
+      <div className={th("shrink-0 border-t border-white/10 p-3", "shrink-0 border-t border-ink/10 bg-white p-3")}>
         <div className="mb-2 flex flex-wrap gap-1.5">
           {CHIPS.map((c) => (
             <button
               key={c}
               onClick={() => send(c)}
               disabled={loading}
-              className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-gray-400 transition-colors hover:border-violet-400/40 hover:text-violet-200 disabled:opacity-50"
+              className={th("rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-gray-400 transition-colors hover:border-violet-400/40 hover:text-violet-200 disabled:opacity-50", "rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-ink-soft transition-colors hover:border-violet-400/50 hover:text-violet-700 disabled:opacity-50")}
             >
               {c}
             </button>
           ))}
         </div>
-        <label className="mb-2 flex cursor-pointer items-center gap-2 text-[11px] text-gray-500">
+        <label className={th("mb-2 flex cursor-pointer items-center gap-2 text-[11px] text-gray-500", "mb-2 flex cursor-pointer items-center gap-2 text-[11px] text-ink-faint")}>
           <input
             type="checkbox"
             checked={includeCode}
@@ -151,7 +154,7 @@ export default function AssistantPanel({
               }
             }}
             placeholder="Ask for a nudge…"
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#16162a] px-3 py-2 text-[13px] text-gray-100 placeholder:text-gray-600 focus:border-violet-400/50 focus:outline-none"
+            className={th("min-w-0 flex-1 rounded-lg border border-white/10 bg-[#16162a] px-3 py-2 text-[13px] text-gray-100 placeholder:text-gray-600 focus:border-violet-400/50 focus:outline-none", "field !rounded-lg !py-2 text-[13px]")}
           />
           <button
             onClick={() => send(draft)}

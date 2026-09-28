@@ -3,6 +3,7 @@
 import { BookOpen, Play } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTheme } from "@/context/theme-context";
 import type { HintMetaOut, ProblemDetail } from "@/lib/types";
 import { HintsSection } from "./hints-section";
 import TestCasesBlock from "./test-cases-block";
@@ -23,6 +24,7 @@ export default function DescriptionPanel({
   onHintClick: (level: number) => void;
 }) {
   const statement = problem.description.replace(/^#\s+.+\r?\n+/, "");
+  const dark = useTheme() === "dark";
   return (
     <div className="atlas-bg min-h-full px-5 py-5 sm:px-7">
       <div className="mx-auto w-full max-w-3xl">
@@ -33,7 +35,13 @@ export default function DescriptionPanel({
         {problem.title}
       </h2>
 
-      <article className="prose mt-4 max-w-none text-[14px] leading-relaxed text-ink-soft prose-headings:font-display prose-headings:text-ink prose-strong:text-ink prose-code:rounded prose-code:bg-ink/[0.06] prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-[13px] prose-code:text-quest prose-code:before:content-none prose-code:after:content-none prose-pre:bg-arena prose-pre:text-arena-text">
+      <article
+        className={
+          dark
+            ? "prose prose-invert mt-4 max-w-none text-[14px] leading-relaxed prose-headings:font-display prose-headings:text-ink prose-strong:text-ink prose-code:rounded prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-[13px] prose-code:text-emerald-300 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-arena prose-pre:text-arena-text"
+            : "prose mt-4 max-w-none text-[14px] leading-relaxed text-ink-soft prose-headings:font-display prose-headings:text-ink prose-strong:text-ink prose-code:rounded prose-code:bg-ink/[0.06] prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-[13px] prose-code:text-quest prose-code:before:content-none prose-code:after:content-none prose-pre:bg-arena prose-pre:text-arena-text"
+        }
+      >
         <Markdown remarkPlugins={[remarkGfm]}>{statement}</Markdown>
       </article>
 

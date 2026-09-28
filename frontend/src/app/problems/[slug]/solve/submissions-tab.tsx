@@ -7,6 +7,7 @@ import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
 import { java } from "@codemirror/lang-java";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { useTheme } from "@/context/theme-context";
 import type { SubmissionHistoryItem } from "@/lib/types";
 import { STATUS_STYLES } from "./status-utils";
 
@@ -18,6 +19,7 @@ export default function SubmissionsTab({
   loading: boolean;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const dark = useTheme() === "dark";
 
   if (loading) {
     return (
@@ -61,7 +63,7 @@ export default function SubmissionsTab({
             className={`overflow-hidden rounded-lg border transition-colors ${
               passed
                 ? "border-quest/40 bg-quest/5"
-                : "border-ink/10 bg-white"
+                : "border-ink/10 bg-card"
             }`}
           >
             <button
@@ -102,7 +104,7 @@ export default function SubmissionsTab({
               </span>
             </button>
             {isExpanded && (
-              <div className="border-t border-ink/10 bg-arena">
+              <div className={dark ? "border-t border-ink/10 bg-arena" : "border-t border-ink/10 bg-paper-deep"}>
                 <div className="p-3">
                   <CodeMirror
                     value={s.code}
@@ -112,7 +114,7 @@ export default function SubmissionsTab({
                       maxHeight: "350px",
                       overflow: "auto",
                     }}
-                    theme={oneDark}
+                    theme={dark ? oneDark : "light"}
                     extensions={[(langMap[s.language] ?? python)() as never]}
                     readOnly
                     basicSetup={{
