@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAuth } from "@/context/auth-context";
+import { ThemeToggle } from "@/context/theme-context";
 import { cn } from "@/lib/utils";
 import type { Difficulty } from "@/lib/types";
 
@@ -93,6 +94,7 @@ export function TopBar({
           </NavLink>
         </nav>
         <div className="ml-auto flex items-center gap-3">{children}</div>
+        <ThemeToggle />
         <button
           onClick={() => {
             logout();

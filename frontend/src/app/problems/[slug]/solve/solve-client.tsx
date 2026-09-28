@@ -1,29 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowLeftRight,
-  BookOpen,
-  Brain,
-  Code2,
-  Columns2,
-  Loader2,
-  Play,
-  Send,
-} from "lucide-react";
-import {
-  Group,
-  Panel,
-  Separator,
-  usePanelRef,
-} from "react-resizable-panels";
+import { ArrowLeft, Brain, Loader2, Play, Send } from "lucide-react";
+import { DockviewReact } from "dockview-react";
+import type { DockviewApi, DockviewReadyEvent } from "dockview-core";
+import "./dockview-base.css";
 import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
 import { java } from "@codemirror/lang-java";
 import client from "@/lib/api";
+import { ThemeToggle } from "@/context/theme-context";
 import type {
   Difficulty,
   HintMetaOut,
@@ -36,9 +24,15 @@ import type {
   SubmissionResultOut,
   SubmissionStatus,
 } from "@/lib/types";
-import AssistantPanel, { type CoachMessage } from "./assistant-panel";
-import QuestionPane from "./question-pane";
-import WorkPane from "./work-pane";
+import { type CoachMessage } from "./assistant-panel";
+import { DockContext, type DockValue } from "./dock-context";
+import {
+  CoachTabPanel,
+  CodeTabPanel,
+  ConsoleTabPanel,
+  DescriptionTabPanel,
+  SubmissionsTabPanel,
+} from "./dock-panels";
 import { DIFFICULTY_STYLE, errDetail } from "./status-utils";
 
 const LANGS: { key: Language; label: string; ext: () => unknown }[] = [
@@ -46,6 +40,14 @@ const LANGS: { key: Language; label: string; ext: () => unknown }[] = [
   { key: "cpp", label: "C++", ext: cpp },
   { key: "java", label: "Java", ext: java },
 ];
+
+const DOCK_COMPONENTS = {
+  description: DescriptionTabPanel,
+  submissions: SubmissionsTabPanel,
+  code: CodeTabPanel,
+  console: ConsoleTabPanel,
+  coach: CoachTabPanel,
+};
 
 export default function SolveClient() {
   const params = useParams();
@@ -67,11 +69,9 @@ export default function SolveClient() {
   const [loadingHint, setLoadingHint] = useState<number | null>(null);
   const [review, setReview] = useState<ReviewOut | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
-  const [consoleOpen, setConsoleOpen] = useState(true);
   const [consoleTab, setConsoleTab] = useState("testcase");
   const [runCount, setRunCount] = useState(0);
 
-  const [leftTab, setLeftTab] = useState("description");
   const [submissions, setSubmissions] = useState<SubmissionHistoryItem[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
@@ -80,33 +80,8 @@ export default function SolveClient() {
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachProvider, setCoachProvider] = useState<string | null>(null);
   const [includeCode, setIncludeCode] = useState(true);
-  const [hFlip, setHFlip] = useState(false);
 
-  const leftRef = usePanelRef();
-  const rightRef = usePanelRef();
-  const editorRef = usePanelRef();
-  const consoleRef = usePanelRef();
-
-  const layoutDefault = useCallback(() => {
-    leftRef.current?.expand();
-    rightRef.current?.expand();
-    leftRef.current?.resize(42);
-    editorRef.current?.expand();
-    editorRef.current?.resize(62);
-    consoleRef.current?.resize(38);
-  }, []);
-
-  const layoutFocusCode = useCallback(() => {
-    leftRef.current?.collapse();
-    rightRef.current?.expand();
-    editorRef.current?.expand();
-  }, []);
-
-  const layoutFocusText = useCallback(() => {
-    leftRef.current?.expand();
-    leftRef.current?.resize(62);
-    rightRef.current?.collapse();
-  }, []);
+  const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,13 +151,12 @@ export default function SolveClient() {
     }
   }, [slug]);
 
-  const handleLeftTab = useCallback(
-    (tab: string) => {
-      setLeftTab(tab);
-      if (tab === "submissions") fetchSubmissions();
-    },
-    [fetchSubmissions]
-  );
+  const focusConsole = useCallback(() => {
+    try {
+      dockApi?.getPanel("console")?.focus();
+    } catch {
+    }
+  }, [dockApi]);
 
   const run = useCallback(async () => {
     setRunning(true);
@@ -196,16 +170,16 @@ export default function SolveClient() {
       );
       setRunResult(res.data);
       setRunCount((n) => n + 1);
-      setConsoleOpen(true);
       setConsoleTab("result");
+      focusConsole();
     } catch (err) {
       setError(errDetail(err));
-      setConsoleOpen(true);
       setConsoleTab("output");
+      focusConsole();
     } finally {
       setRunning(false);
     }
-  }, [slug, lang, code, mode]);
+  }, [slug, lang, code, mode, focusConsole]);
 
   const submit = useCallback(async () => {
     setSubmitting(true);
@@ -220,17 +194,17 @@ export default function SolveClient() {
       );
       setSubmitResult(res.data);
       setRunCount((n) => n + 1);
-      setConsoleOpen(true);
       setConsoleTab("result");
+      focusConsole();
       fetchSubmissions();
     } catch (err) {
       setError(errDetail(err));
-      setConsoleOpen(true);
       setConsoleTab("output");
+      focusConsole();
     } finally {
       setSubmitting(false);
     }
-  }, [slug, lang, code, mode, fetchSubmissions]);
+  }, [slug, lang, code, mode, focusConsole, fetchSubmissions]);
 
   const revealHint = useCallback(
     async (level: number) => {
@@ -354,6 +328,126 @@ export default function SolveClient() {
     [coachMessages, submitResult, runResult, slug, lang, code, includeCode]
   );
 
+  const closeCoach = useCallback(() => {
+    setAssistantOpen(false);
+    try {
+      dockApi?.getPanel("coach")?.api.close();
+    } catch {
+    }
+  }, [dockApi]);
+
+  const onDockReady = useCallback((event: DockviewReadyEvent) => {
+    const api = event.api;
+    if (api.panels.length > 0) {
+      setDockApi(api);
+      return;
+    }
+    api.addPanel({ id: "description", title: "Description", component: "description" });
+    api.addPanel({ id: "submissions", title: "Submissions", component: "submissions" });
+    api.addPanel({
+      id: "code",
+      title: "Code",
+      component: "code",
+      position: { referencePanel: "description", direction: "right" },
+    });
+    api.addPanel({
+      id: "console",
+      title: "Console",
+      component: "console",
+      position: { referencePanel: "code", direction: "below" },
+    });
+    try {
+      api.getPanel("description")?.focus();
+    } catch {
+    }
+    setDockApi(api);
+  }, []);
+
+  // Keep the dock coach tab in sync with the toggle.
+  useEffect(() => {
+    if (!dockApi) return;
+    const existing = (() => {
+      try {
+        return dockApi.getPanel("coach");
+      } catch {
+        return undefined;
+      }
+    })();
+    if (assistantOpen && !existing) {
+      try {
+        dockApi.addPanel({
+          id: "coach",
+          title: "Coach",
+          component: "coach",
+          position: { referencePanel: "code", direction: "right" },
+        });
+      } catch {
+      }
+    } else if (!assistantOpen && existing) {
+      try {
+        existing.api.close();
+      } catch {
+      }
+    }
+  }, [dockApi, assistantOpen]);
+
+  const contextNote = useMemo(() => {
+    const s = submitResult || runResult;
+    const score = s
+      ? submitResult
+        ? `submit ${s.test_results.filter((t) => t.passed).length}/${s.test_results.length}`
+        : `run ${s.test_results.filter((t) => t.passed).length}/${s.test_results.length}`
+      : "no run yet";
+    return `${lang} · ${mode} · ${score} · code ${includeCode ? "attached" : "off"}`;
+  }, [lang, mode, submitResult, runResult, includeCode]);
+
+  const dockValue: DockValue = {
+    problem: problem as ProblemDetail,
+    slug,
+    lang,
+    mode,
+    code,
+    runCount,
+    onCode: setCode,
+    onModeChange: handleModeChange,
+    onLangChange: handleLangChange,
+    run,
+    submit,
+    running,
+    submitting,
+    submissions,
+    submissionsLoading,
+    refreshSubmissions: fetchSubmissions,
+    hintMeta,
+    revealedHints,
+    armedHint,
+    loadingHint,
+    onHintClick,
+    error,
+    runResult,
+    submitResult,
+    shown: (submitResult || runResult) as DockValue["shown"],
+    shownStatus: (submitResult || runResult)?.status,
+    consoleTab,
+    setConsoleTab,
+    review,
+    reviewLoading,
+    fetchReview,
+    focusConsole,
+    coachMessages,
+    coachLoading,
+    coachProvider,
+    includeCode,
+    onToggleInclude: () => setIncludeCode((v) => !v),
+    onSendCoach: sendCoach,
+    onClearCoach: () => {
+      setCoachMessages([]);
+      setCoachProvider(null);
+    },
+    closeCoach,
+    contextNote,
+  };
+
   if (pageStatus === "loading") {
     return (
       <div className="atlas-bg flex h-screen items-center justify-center gap-2 text-ink-soft">
@@ -390,14 +484,10 @@ export default function SolveClient() {
     );
   }
 
-  const shown: RunResultOut | SubmissionResultOut | null =
-    submitResult || runResult;
-  const shownStatus: SubmissionStatus | undefined = shown?.status;
-
   return (
-    <div className="flex h-screen flex-col bg-[#1a1a2e]">
+    <div className="flex h-screen flex-col bg-[#0b0d12]">
       {/* ── Top bar ──────────────────────────────────────────── */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#1e1e30] px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#0e1119] px-4">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/problems"
@@ -420,38 +510,7 @@ export default function SolveClient() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5 md:flex">
-            <button
-              onClick={layoutDefault}
-              title="Split layout"
-              className="rounded-md p-1.5 text-gray-500 transition-colors hover:text-gray-200"
-            >
-              <Columns2 size={13} />
-            </button>
-            <button
-              onClick={layoutFocusCode}
-              title="Focus code"
-              className="rounded-md p-1.5 text-gray-500 transition-colors hover:text-gray-200"
-            >
-              <Code2 size={13} />
-            </button>
-            <button
-              onClick={layoutFocusText}
-              title="Focus question"
-              className="rounded-md p-1.5 text-gray-500 transition-colors hover:text-gray-200"
-            >
-              <BookOpen size={13} />
-            </button>
-            <button
-              onClick={() => setHFlip((v) => !v)}
-              title="Swap question and code sides"
-              className={`rounded-md p-1.5 transition-colors ${
-                hFlip ? "text-quest" : "text-gray-500 hover:text-gray-200"
-              }`}
-            >
-              <ArrowLeftRight size={13} />
-            </button>
-          </div>
+          <ThemeToggle dark />
           <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
             {LANGS.map((l) => (
               <button
@@ -498,132 +557,21 @@ export default function SolveClient() {
         </div>
       </header>
 
-      {/* ── Resizable workspace (LeetCode-style) ─────────────── */}
-      <div className="min-h-0 flex-1">
-        <Group orientation="horizontal" className="h-full">
-          {!hFlip ? (
-            <>
-              <QuestionPane
-                panelRef={leftRef}
-                problem={problem}
-                leftTab={leftTab}
-                onLeftTab={handleLeftTab}
-                submissions={submissions}
-                submissionsLoading={submissionsLoading}
-                hintMeta={hintMeta}
-                revealedHints={revealedHints}
-                armedHint={armedHint}
-                loadingHint={loadingHint}
-                onHintClick={onHintClick}
-              />
-              <Separator className="group flex w-2 cursor-col-resize items-center justify-center bg-[#1a1a2e] outline-none">
-                <span className="h-10 w-[3px] rounded-full bg-white/10 transition-colors group-hover:bg-quest group-data-[separator-active]:bg-quest" />
-              </Separator>
-              <WorkPane
-                panelRef={rightRef}
-                editorRef={editorRef}
-                consoleRef={consoleRef}
-                lang={lang}
-                mode={mode}
-                problem={problem}
-                code={code}
-                runCount={runCount}
-                onCode={setCode}
-                onModeChange={handleModeChange}
-                consoleOpen={consoleOpen}
-                setConsoleOpen={setConsoleOpen}
-                shown={shown}
-                shownStatus={shownStatus}
-                error={error}
-                runResult={runResult}
-                submitResult={submitResult}
-                consoleTab={consoleTab}
-                setConsoleTab={setConsoleTab}
-                review={review}
-                reviewLoading={reviewLoading}
-                fetchReview={fetchReview}
-              />
-            </>
-          ) : (
-            <>
-              <WorkPane
-                panelRef={rightRef}
-                editorRef={editorRef}
-                consoleRef={consoleRef}
-                lang={lang}
-                mode={mode}
-                problem={problem}
-                code={code}
-                runCount={runCount}
-                onCode={setCode}
-                onModeChange={handleModeChange}
-                consoleOpen={consoleOpen}
-                setConsoleOpen={setConsoleOpen}
-                shown={shown}
-                shownStatus={shownStatus}
-                error={error}
-                runResult={runResult}
-                submitResult={submitResult}
-                consoleTab={consoleTab}
-                setConsoleTab={setConsoleTab}
-                review={review}
-                reviewLoading={reviewLoading}
-                fetchReview={fetchReview}
-              />
-              <Separator className="group flex w-2 cursor-col-resize items-center justify-center bg-[#1a1a2e] outline-none">
-                <span className="h-10 w-[3px] rounded-full bg-white/10 transition-colors group-hover:bg-quest group-data-[separator-active]:bg-quest" />
-              </Separator>
-              <QuestionPane
-                panelRef={leftRef}
-                problem={problem}
-                leftTab={leftTab}
-                onLeftTab={handleLeftTab}
-                submissions={submissions}
-                submissionsLoading={submissionsLoading}
-                hintMeta={hintMeta}
-                revealedHints={revealedHints}
-                armedHint={armedHint}
-                loadingHint={loadingHint}
-                onHintClick={onHintClick}
-              />
-            </>
-          )}
-          {assistantOpen && (
-            <>
-              <Separator className="group flex w-2 cursor-col-resize items-center justify-center bg-[#1a1a2e] outline-none">
-                <span className="h-10 w-[3px] rounded-full bg-white/10 transition-colors group-hover:bg-violet-400 group-data-[separator-active]:bg-violet-400" />
-              </Separator>
-              <Panel
-                key="c"
-                defaultSize={24}
-                minSize={16}
-                collapsible
-                className="min-h-0"
-              >
-                <AssistantPanel
-                  messages={coachMessages}
-                  loading={coachLoading}
-                  provider={coachProvider}
-                  includeCode={includeCode}
-                  contextNote={`${lang} · ${mode} · ${
-                    submitResult
-                      ? `submit ${submitResult.test_results.filter((t) => t.passed).length}/${submitResult.test_results.length}`
-                      : runResult
-                        ? `run ${runResult.test_results.filter((t) => t.passed).length}/${runResult.test_results.length}`
-                        : "no run yet"
-                  } · code ${includeCode ? "attached" : "off"}`}
-                  onToggleInclude={() => setIncludeCode((v) => !v)}
-                  onSend={sendCoach}
-                  onClear={() => {
-                    setCoachMessages([]);
-                    setCoachProvider(null);
-                  }}
-                  onClose={() => setAssistantOpen(false)}
-                />
-              </Panel>
-            </>
-          )}
-        </Group>
+      {/* ── Dock workspace: every tab drags anywhere ─────────── */}
+      <div className="dock-root min-h-0 flex-1">
+        <DockContext.Provider value={dockValue}>
+          <DockviewReact
+            components={DOCK_COMPONENTS}
+            onReady={onDockReady}
+            theme={{
+              name: "codequest",
+              className: "dockview-theme-cq",
+              gap: 10,
+              dndTabIndicator: "line",
+              tabAnimation: "smooth",
+            }}
+          />
+        </DockContext.Provider>
       </div>
     </div>
   );

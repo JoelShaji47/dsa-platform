@@ -86,6 +86,57 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ── Dark mode: flip the paper/ink system + shadcn tokens ────── */
+html[data-theme="dark"] {
+  --color-paper: #0b0d12;
+  --color-paper-deep: #141927;
+  --color-ink: #e6ebf4;
+  --color-ink-soft: #aab6c9;
+  --color-ink-faint: #67748a;
+  --color-gold: #d4af37;
+  --color-gold-deep: #d4af37;
+
+  --background: #0b0d12;
+  --foreground: #e6ebf4;
+  --card: #141927;
+  --card-foreground: #e6ebf4;
+  --popover: #141927;
+  --popover-foreground: #e6ebf4;
+  --primary: #e6ebf4;
+  --primary-foreground: #0b0d12;
+  --secondary: #1d2333;
+  --secondary-foreground: #e6ebf4;
+  --muted: #1d2333;
+  --muted-foreground: #67748a;
+  --accent: #2a2410;
+  --accent-foreground: #d4af37;
+  --border: #232c42;
+  --input: #232c42;
+  --ring: #d4af37;
+}
+
+html[data-theme="dark"] .panel {
+  background-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0) 110px
+  );
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.4),
+    0 8px 24px -12px rgb(0 0 0 / 0.6);
+}
+
+html[data-theme="dark"] .atlas-bg {
+  background-image: radial-gradient(rgb(230 235 244 / 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 12% 0%, rgb(212 175 55 / 0.08), transparent 42%),
+    radial-gradient(circle at 92% 100%, rgb(230 235 244 / 0.05), transparent 46%);
+}
+
+html[data-theme="dark"] .field {
+  background-color: var(--color-card);
+  border-color: rgb(230 235 244 / 0.14);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -311,4 +362,60 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── Dockview workspace theme (solve page) ───────────────────── */
+.dock-root {
+  height: 100%;
+}
+
+.dockview-theme-cq {
+  --dv-background-color: #0b0d12;
+  --dv-group-view-background-color: #131722;
+  --dv-tabs-and-actions-background-color: #131722;
+  --dv-activegroup-visiblepanel-tab-background-color: #1d2333;
+  --dv-activegroup-visiblepanel-tab-color: #f1f5f9;
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-color: #7c8aa0;
+  --dv-inactivegroup-visiblepanel-tab-background-color: #161b28;
+  --dv-inactivegroup-visiblepanel-tab-color: #aab6c9;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-color: #67748a;
+  --dv-tab-divider-color: rgb(255 255 255 / 0.06);
+  --dv-separator-border: transparent;
+  --dv-active-sash-color: #2e7d5b;
+  --dv-active-sash-transition-duration: 0.15s;
+  --dv-drag-over-background-color: rgb(46 125 91 / 0.22);
+  --dv-drag-over-border: 2px solid #2e7d5b;
+  --dv-tabs-container-height: 38px;
+  --dv-tab-font-size: 12px;
+  --dv-icon-hover-background-color: rgb(255 255 255 / 0.07);
+  --dv-floating-box-shadow: 0 24px 64px -16px rgb(0 0 0 / 0.7);
+}
+
+/* Matte-black rounded cards around every dock group */
+.dock-root {
+  background-color: #0b0d12;
+  padding: 10px;
+}
+
+.dockview-theme-cq .dv-groupview {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.07);
+  box-shadow: 0 12px 32px -18px rgb(0 0 0 / 0.8);
+}
+
+.dockview-theme-cq .dv-tabs-and-actions-container {
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+  padding: 0 6px;
+}
+
+.dockview-theme-cq .dv-tab {
+  border-radius: 8px 8px 0 0;
+  font-weight: 500;
+}
+
+.dockview-theme-cq .dv-activegroup-visiblepanel-tab {
+  box-shadow: inset 0 2px 0 #2e7d5b;
 }

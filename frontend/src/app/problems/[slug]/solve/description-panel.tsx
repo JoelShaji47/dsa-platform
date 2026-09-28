@@ -25,6 +25,7 @@ export default function DescriptionPanel({
   const statement = problem.description.replace(/^#\s+.+\r?\n+/, "");
   return (
     <div className="atlas-bg min-h-full px-5 py-5 sm:px-7">
+      <div className="mx-auto w-full max-w-3xl">
       <p className="eyebrow">
         {problem.topic} · {problem.pattern_key ?? "practice"}
       </p>
@@ -71,6 +72,7 @@ export default function DescriptionPanel({
         loadingHint={loadingHint}
         onHintClick={onHintClick}
       />
+      </div>
     </div>
   );
 }
