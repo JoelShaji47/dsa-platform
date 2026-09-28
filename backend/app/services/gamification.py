@@ -102,6 +102,7 @@ def _earned_conditions(db: Session, user: User) -> set[str]:
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .all()
     )

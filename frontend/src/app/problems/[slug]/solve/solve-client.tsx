@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -31,6 +31,8 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import client from "@/lib/api";
+import { CodeEditor } from "@/components/arena/code-editor";
+import { ProblemStatement } from "@/components/arena/problem-statement";
 import type {
   Difficulty,
   HintLevelInfo,
@@ -131,12 +133,7 @@ function TestChip({ passed, index }: { passed: boolean; index: number }) {
 }
 
 function DescriptionTab({ problem }: { problem: ProblemDetail }) {
-  const statement = problem.description.replace(/^#\s+.+\r?\n+/, "");
-  return (
-    <article className="prose prose-invert max-w-none text-[14px] leading-relaxed prose-headings:text-gray-100 prose-p:text-gray-300 prose-strong:text-white prose-code:rounded prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none">
-      <Markdown remarkPlugins={[remarkGfm]}>{statement}</Markdown>
-    </article>
-  );
+  return <ProblemStatement text={problem.description} />;
 }
 
 function SubmissionsTab({
@@ -400,8 +397,6 @@ export default function SolveClient() {
     },
     [fetchSubmissions]
   );
-
-  const activeLang = useMemo(() => LANGS.find((l) => l.key === lang), [lang]);
 
   const run = useCallback(async () => {
     setRunning(true);
@@ -701,15 +696,7 @@ export default function SolveClient() {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Code editor */}
           <div className="min-h-0 flex-1 overflow-hidden">
-            <CodeMirror
-              value={code}
-              height="100%"
-              style={{ fontSize: "14px", height: "100%" }}
-              theme={oneDark}
-              extensions={[(activeLang?.ext() ?? python()) as never]}
-              onChange={(value: string) => setCode(value)}
-              basicSetup={{ tabSize: 4 }}
-            />
+            <CodeEditor value={code} language={lang} onChange={setCode} height="100%" />
           </div>
 
           {/* Console bar */}
@@ -788,7 +775,7 @@ export default function SolveClient() {
               {shown && consoleTab === "result" && (
                 <div className="p-4">
                   {/* Scope banner */}
-                  <p className="mb-3 font-mono text-[11px] text-gray-500">
+                  <p className="mb-3 font-mono text-xs text-gray-500">
                     {runResult
                       ? `Run · ${runResult.test_results.length} visible case${runResult.test_results.length === 1 ? "" : "s"}`
                       : `Submit · all ${(submitResult?.test_results.length ?? 0)} cases (${problem.hidden_test_count} hidden)`}
@@ -821,7 +808,7 @@ export default function SolveClient() {
                   {/* Test chips (submit) */}
                   {submitResult && (
                     <div className="mb-3">
-                      <p className="mb-2 text-xs text-gray-500">
+                      <p className="mb-2 text-[13px] text-gray-500">
                         Tests · {submitResult.test_results.filter((t) => t.passed).length}/
                         {submitResult.test_results.length} passed
                       </p>
@@ -842,7 +829,7 @@ export default function SolveClient() {
                           key={t.index}
                           className="mt-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3"
                         >
-                          <p className="flex items-center gap-1.5 font-mono text-xs font-medium text-gray-400">
+                          <p className="flex items-center gap-1.5 font-mono text-[13px] font-medium text-gray-400">
                             <XCircle size={12} className="text-red-400" />
                             Case {t.index + 1}
                             {t.status_key && (
@@ -854,7 +841,7 @@ export default function SolveClient() {
                               <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
                                 Input
                               </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-gray-300">
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[14px] text-gray-300">
                                 {(t.input || "").trimEnd()}
                               </pre>
                             </div>
@@ -862,7 +849,7 @@ export default function SolveClient() {
                               <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
                                 Expected
                               </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-emerald-400">
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[14px] text-emerald-400">
                                 {t.expected_output}
                               </pre>
                             </div>
@@ -870,7 +857,7 @@ export default function SolveClient() {
                               <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
                                 Your output
                               </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[12px] text-red-300">
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[14px] text-red-300">
                                 {t.actual_output || "(no output)"}
                               </pre>
                             </div>
@@ -888,7 +875,7 @@ export default function SolveClient() {
                           className="mt-2 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3"
                         >
                           <EyeOff size={13} className="shrink-0 text-yellow-400/80" />
-                          <p className="font-mono text-xs text-gray-400">
+                          <p className="font-mono text-[13px] text-gray-400">
                             Hidden test #{t.index + 1} failed
                             {t.status_key && (
                               <span className="text-yellow-300/90">
@@ -901,7 +888,7 @@ export default function SolveClient() {
                       ))}
 
                   {/* Runtime + memory */}
-                  <div className="mb-3 font-mono text-xs text-gray-500">
+                  <div className="mb-3 font-mono text-[13px] text-gray-500">
                     {shown.runtime_ms.toFixed(0)} ms · {(shown.memory_kb / 1024).toFixed(1)} MB
                   </div>
 
@@ -956,7 +943,7 @@ export default function SolveClient() {
                             : "border-red-500/30 bg-red-500/5"
                         }`}
                       >
-                        <p className="flex items-center gap-1.5 font-mono text-xs font-medium text-gray-400">
+                        <p className="flex items-center gap-1.5 font-mono text-[13px] font-medium text-gray-400">
                           {t.passed ? (
                             <CheckCircle2 size={12} className="text-emerald-400" />
                           ) : (
@@ -971,7 +958,7 @@ export default function SolveClient() {
                               <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
                                 Input
                               </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-gray-300">
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[14px] text-gray-300">
                                 {(t.input || "").trimEnd()}
                               </pre>
                             </div>
@@ -979,7 +966,7 @@ export default function SolveClient() {
                               <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
                                 Expected
                               </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-emerald-400">
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[14px] text-emerald-400">
                                 {t.expected_output}
                               </pre>
                             </div>
@@ -987,7 +974,7 @@ export default function SolveClient() {
                               <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500">
                                 Your output
                               </p>
-                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[12px] text-red-300">
+                              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[14px] text-red-300">
                                 {t.actual_output || "(no output)"}
                               </pre>
                             </div>
@@ -1001,11 +988,11 @@ export default function SolveClient() {
               {/* Testcase tab */}
               {shown && consoleTab === "testcase" && runResult && (
                 <div className="p-4">
-                  <p className="mb-2 text-xs text-gray-500">Test case inputs (read-only)</p>
+                  <p className="mb-2 text-[13px] text-gray-500">Test case inputs (read-only)</p>
                   {runResult.test_results.map((t) => (
                     <div key={t.index} className="mb-2 rounded-lg border border-white/10 bg-[#1a1a2e] p-3">
                       <p className="mb-1 font-mono text-xs text-gray-500">Case {t.index + 1}</p>
-                      <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-gray-300">
+                      <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[14px] text-gray-300">
                         {(t.input || "").trimEnd()}
                       </pre>
                     </div>
@@ -1026,18 +1013,18 @@ export default function SolveClient() {
                             : "Runtime Error"}
                         </span>
                       </div>
-                      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-red-500/20 bg-red-500/5 p-4 font-mono text-[12px] leading-relaxed text-red-200">
+                      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-red-500/20 bg-red-500/5 p-4 font-mono text-[14px] leading-relaxed text-red-200">
                         {compileError}
                       </pre>
                     </div>
                   ) : error ? (
-                    <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-red-500/20 bg-red-500/5 p-4 font-mono text-[12px] leading-relaxed text-red-200">
+                    <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-red-500/20 bg-red-500/5 p-4 font-mono text-[14px] leading-relaxed text-red-200">
                       {error}
                     </pre>
                   ) : shown ? (
                     <div>
-                      <p className="mb-2 text-xs text-gray-500">Standard output</p>
-                      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-[#1a1a2e] p-4 font-mono text-[12px] leading-relaxed text-gray-300">
+                      <p className="mb-2 text-[13px] text-gray-500">Standard output</p>
+                      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-[#1a1a2e] p-4 font-mono text-[14px] leading-relaxed text-gray-300">
                         {(shown as RunResultOut).test_results
                           ?.filter((t) => t.actual_output != null)
                           .map((t) => `Case ${t.index + 1}:\n${t.actual_output}`)
@@ -1052,7 +1039,7 @@ export default function SolveClient() {
               {!shown && !error && (
                 <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
                   <p className="text-sm text-gray-500">Run or submit your code to see results here.</p>
-                  <p className="font-mono text-[11px] text-gray-600">
+                  <p className="font-mono text-xs text-gray-600">
                     Run checks {problem.test_cases.length} visible case
                     {problem.test_cases.length === 1 ? "" : "s"} · Submit checks all{" "}
                     {problem.test_cases.length + problem.hidden_test_count} (

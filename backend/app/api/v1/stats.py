@@ -23,6 +23,7 @@ def my_stats(
         .filter(
             Submission.user_id == current_user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .distinct()
         .subquery()
@@ -61,12 +62,18 @@ def my_stats(
                 Submission.status == SubmissionStatus.ACCEPTED, Integer
             )
         ),
-    ).filter(Submission.user_id == current_user.id).one()
+    ).filter(
+        Submission.user_id == current_user.id,
+        Submission.test_session_id.is_(None),
+    ).one()
 
     recent = (
         db.query(Submission, Problem.title, Problem.slug)
         .join(Problem, Problem.id == Submission.problem_id)
-        .filter(Submission.user_id == current_user.id)
+        .filter(
+            Submission.user_id == current_user.id,
+            Submission.test_session_id.is_(None),
+        )
         .order_by(Submission.submitted_at.desc())
         .limit(10)
         .all()

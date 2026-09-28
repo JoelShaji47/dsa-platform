@@ -68,6 +68,7 @@ services:
       ENABLE_WAIT_RESULT: "true"
       NUM_WORKERS: 2
       UNSAFE: "true"
+      MAX_MEMORY_LIMIT: ${JUDGE0_MAX_MEMORY_LIMIT:-4096000}
     volumes:
       - judge0_box:/box
 

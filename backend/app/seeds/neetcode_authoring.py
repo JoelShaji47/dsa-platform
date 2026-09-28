@@ -1337,7 +1337,7 @@ NEETCODE_AUTHORING['hand-of-straights'] = {
         'java': 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt(), W = sc.nextInt();\n        int[] hand = new int[n];\n        for (int i = 0; i < n; i++) hand[i] = sc.nextInt();\n\n        // ===== YOUR CODE HERE =====\n    }\n}\n',
     },
     "test_cases": [
-        TestCase(input='9 3\n1 2 3 6 2 3 4 7 8\n', expected_output='false\n', is_hidden=False),
+        TestCase(input='9 3\n1 2 3 6 2 3 4 7 8\n', expected_output='true\n', is_hidden=False),
         TestCase(input='6 2\n1 2 3 4 5 6\n', expected_output='true\n', is_hidden=False),
         TestCase(input='3 3\n1 2 3\n', expected_output='true\n', is_hidden=True),
     ],

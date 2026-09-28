@@ -24,7 +24,7 @@ The input gives the node values in order — build the list first (done for you 
 - `1 <= n <= 10^4`
 - `-10^3 <= val <= 10^3`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -35,6 +35,22 @@ The input gives the node values in order — build the list first (done for you 
 ```
 5 4 3 2 1
 ```
+
+Explanation: Reversing 1 -> 2 -> 3 -> 4 -> 5 produces 5 -> 4 -> 3 -> 2 -> 1.
+
+## Example 2
+
+**Input**
+```
+1
+42
+```
+**Output**
+```
+42
+```
+
+Explanation: A single-node list still reverses to itself, 42.
 """,
         "starter_code": starters(
             py="""import sys
@@ -126,7 +142,7 @@ public class Main {
         "test_cases": [
             {"input": "5\n1 2 3 4 5\n", "expected_output": "5 4 3 2 1", "is_hidden": False},
             {"input": "1\n42\n", "expected_output": "42", "is_hidden": False},
-            {"input": "2\n7 -7\n", "expected_output": "-7 7", "is_hidden": True},
+            {"input": "2\n7 -7\n", "expected_output": "-7 7", "is_hidden": False},
             {"input": "6\n1 1 2 2 3 3\n", "expected_output": "3 3 2 2 1 1", "is_hidden": True},
         ],
     },
@@ -153,7 +169,21 @@ A single integer — the middle node's value.
 ## Constraints
 - `1 <= n <= 10^4`
 
-## Example
+## Example 1
+
+**Input**
+```
+5
+1 2 3 4 5
+```
+**Output**
+```
+3
+```
+
+Explanation: With five nodes, the middle node is the third one, value 3.
+
+## Example 2
 
 **Input**
 ```
@@ -164,6 +194,8 @@ A single integer — the middle node's value.
 ```
 4
 ```
+
+Explanation: With six nodes, the second middle node is the fourth one, value 4.
 """,
         "starter_code": starters(
             py="""import sys
@@ -247,7 +279,7 @@ public class Main {
         "test_cases": [
             {"input": "5\n1 2 3 4 5\n", "expected_output": "3", "is_hidden": False},
             {"input": "6\n1 2 3 4 5 6\n", "expected_output": "4", "is_hidden": False},
-            {"input": "1\n9\n", "expected_output": "9", "is_hidden": True},
+            {"input": "1\n9\n", "expected_output": "9", "is_hidden": False},
             {"input": "2\n8 9\n", "expected_output": "9", "is_hidden": True},
             {"input": "7\n11 22 33 44 55 66 77\n", "expected_output": "44", "is_hidden": True},
         ],
@@ -276,7 +308,7 @@ The list is described by its values plus `pos`: the index (0-based) that the tai
 - `1 <= n <= 10^4`
 - `-1 <= pos < n`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -290,6 +322,21 @@ true
 ```
 
 Explanation: tail (-4) connects back to node at index 1.
+
+## Example 2
+
+**Input**
+```
+2
+1 2
+0
+```
+**Output**
+```
+true
+```
+
+Explanation: The list 1 -> 2 points back to node 0, so a cycle exists.
 """,
         "starter_code": starters(
             py="""import sys
@@ -380,7 +427,7 @@ public class Main {
         "test_cases": [
             {"input": "4\n3 2 0 -4\n1\n", "expected_output": "true", "is_hidden": False},
             {"input": "2\n1 2\n0\n", "expected_output": "true", "is_hidden": False},
-            {"input": "1\n1\n-1\n", "expected_output": "false", "is_hidden": True},
+            {"input": "1\n1\n-1\n", "expected_output": "false", "is_hidden": False},
             {"input": "5\n10 20 30 40 50\n4\n", "expected_output": "true", "is_hidden": True},
             {"input": "3\n5 6 7\n-1\n", "expected_output": "false", "is_hidden": True},
         ],
@@ -408,7 +455,7 @@ You are given two sorted linked lists in non-decreasing order. Merge them into o
 - `0 <= n, m <= 10^4`
 - Each list is given in non-decreasing order.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -421,6 +468,24 @@ You are given two sorted linked lists in non-decreasing order. Merge them into o
 ```
 1 1 2 3 4 4
 ```
+
+Explanation: Interleaving the two sorted lists gives 1 1 2 3 4 4.
+
+## Example 2
+
+**Input**
+```
+0
+
+2
+1 2
+```
+**Output**
+```
+1 2
+```
+
+Explanation: An empty first list merges to just the remaining list 1 2.
 """,
         "starter_code": starters(
             py="""import sys
@@ -522,7 +587,7 @@ public class Main {
         "test_cases": [
             {"input": "3\n1 2 4\n3\n1 3 4\n", "expected_output": "1 1 2 3 4 4", "is_hidden": False},
             {"input": "0\n\n2\n1 2\n", "expected_output": "1 2", "is_hidden": False},
-            {"input": "2\n5 7\n2\n5 9\n", "expected_output": "5 5 7 9", "is_hidden": True},
+            {"input": "2\n5 7\n2\n5 9\n", "expected_output": "5 5 7 9", "is_hidden": False},
             {"input": "3\n-9 -2 0\n1\n3\n", "expected_output": "-9 -2 0 3", "is_hidden": True},
             {"input": "0\n\n0\n\n", "expected_output": "", "is_hidden": True},
         ],
@@ -549,17 +614,31 @@ Solve with a stack.
 - `1 <= s.length <= 10^4`
 - `s` contains only bracket characters.
 
-## Example
+## Example 1
 
 **Input**
 ```
 ()[]{}
-
 ```
 **Output**
 ```
 true
 ```
+
+Explanation: Each opening bracket is closed by its matching partner in the right order.
+
+## Example 2
+
+**Input**
+```
+([)]
+```
+**Output**
+```
+false
+```
+
+Explanation: The brackets are interlaced (([)]), so the match is invalid.
 """,
         "starter_code": starters(
             py="""import sys
@@ -601,7 +680,7 @@ public class Main {
         "test_cases": [
             {"input": "()[]{}\n", "expected_output": "true", "is_hidden": False},
             {"input": "([)]\n", "expected_output": "false", "is_hidden": False},
-            {"input": "{[]}\n", "expected_output": "true", "is_hidden": True},
+            {"input": "{[]}\n", "expected_output": "true", "is_hidden": False},
             {"input": "(]\n", "expected_output": "false", "is_hidden": True},
             {"input": "((((()))))\n", "expected_output": "true", "is_hidden": True},
             {"input": "(\n", "expected_output": "false", "is_hidden": True},
@@ -629,7 +708,7 @@ For each element in the array, find the first element to its **right** that is s
 - `1 <= n <= 10^5`
 - `-10^4 <= nums[i] <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -640,6 +719,22 @@ For each element in the array, find the first element to its **right** that is s
 ```
 5 25 25 -1
 ```
+
+Explanation: The next larger element to the right: 4->5, 5->25, 2->25, and 25 has none (-1).
+
+## Example 2
+
+**Input**
+```
+4
+13 7 6 12
+```
+**Output**
+```
+-1 12 12 -1
+```
+
+Explanation: 13, 7 and 6 all find 12 to their right; 12 has no larger element after it.
 """,
         "starter_code": starters(
             py="""import sys
@@ -687,7 +782,7 @@ public class Main {
         "test_cases": [
             {"input": "4\n4 5 2 25\n", "expected_output": "5 25 25 -1", "is_hidden": False},
             {"input": "4\n13 7 6 12\n", "expected_output": "-1 12 12 -1", "is_hidden": False},
-            {"input": "1\n3\n", "expected_output": "-1", "is_hidden": True},
+            {"input": "1\n3\n", "expected_output": "-1", "is_hidden": False},
             {"input": "5\n1 2 3 4 5\n", "expected_output": "2 3 4 5 -1", "is_hidden": True},
             {"input": "5\n5 4 3 2 1\n", "expected_output": "-1 -1 -1 -1 -1", "is_hidden": True},
         ],
@@ -715,7 +810,7 @@ Monotonic stack gives an elegant O(n).
 - `1 <= n <= 10^5`
 - `30 <= temps[i] <= 100`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -726,6 +821,22 @@ Monotonic stack gives an elegant O(n).
 ```
 1 1 4 2 1 1 0 0
 ```
+
+Explanation: Each entry records the days until a warmer temperature: 73 waits 1 day, 69 waits 2 (reaches 72), and the last two never see a warmer day.
+
+## Example 2
+
+**Input**
+```
+4
+30 40 50 60
+```
+**Output**
+```
+1 1 1 0
+```
+
+Explanation: Every day is warmer than the previous, so each value waits 1 day except the last, which waits 0.
 """,
         "starter_code": starters(
             py="""import sys
@@ -773,7 +884,7 @@ public class Main {
         "test_cases": [
             {"input": "8\n73 74 75 71 69 72 76 73\n", "expected_output": "1 1 4 2 1 1 0 0", "is_hidden": False},
             {"input": "4\n30 40 50 60\n", "expected_output": "1 1 1 0", "is_hidden": False},
-            {"input": "3\n60 60 60\n", "expected_output": "0 0 0", "is_hidden": True},
+            {"input": "3\n60 60 60\n", "expected_output": "0 0 0", "is_hidden": False},
             {"input": "5\n70 69 68 67 80\n", "expected_output": "4 3 2 1 0", "is_hidden": True},
         ],
     },
@@ -800,7 +911,7 @@ The expected optimal solution uses a monotonic deque for O(n).
 - `1 <= k <= n <= 10^5`
 - `-10^4 <= nums[i] <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -811,6 +922,22 @@ The expected optimal solution uses a monotonic deque for O(n).
 ```
 3 3 5 5 6 7
 ```
+
+Explanation: Sliding a size-3 window across the array yields maxima [3, 3, 5, 5, 6, 7].
+
+## Example 2
+
+**Input**
+```
+1 1
+9
+```
+**Output**
+```
+9
+```
+
+Explanation: A window of size 1 always contains just the single element, 9.
 """,
         "starter_code": starters(
             py="""import sys
@@ -858,7 +985,7 @@ public class Main {
         "test_cases": [
             {"input": "8 3\n1 3 -1 -3 5 3 6 7\n", "expected_output": "3 3 5 5 6 7", "is_hidden": False},
             {"input": "1 1\n9\n", "expected_output": "9", "is_hidden": False},
-            {"input": "5 2\n2 1 5 1 3\n", "expected_output": "2 5 5 3", "is_hidden": True},
+            {"input": "5 2\n2 1 5 1 3\n", "expected_output": "2 5 5 3", "is_hidden": False},
             {"input": "4 4\n1 2 3 4\n", "expected_output": "4", "is_hidden": True},
             {"input": "6 2\n9 8 7 6 5 4\n", "expected_output": "9 8 7 6 5", "is_hidden": True},
         ],

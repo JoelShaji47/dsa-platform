@@ -33,7 +33,7 @@ Two space-separated integers `i j` with `i < j`.
 - `-10^9 <= nums[i], target <= 10^9`
 - Exactly one valid answer exists.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -47,6 +47,21 @@ Two space-separated integers `i j` with `i < j`.
 ```
 
 Explanation: `nums[0] + nums[1] == 9`.
+
+## Example 2
+
+**Input**
+```
+3
+3 2 4
+6
+```
+**Output**
+```
+1 2
+```
+
+Explanation: nums[1] + nums[2] == 3 + 2 == 6, so the indices are 1 2.
 """,
         "starter_code": starters(
             py="""import sys
@@ -98,7 +113,7 @@ public class Main {
         "test_cases": [
             {"input": "4\n2 7 11 15\n9\n", "expected_output": "0 1", "is_hidden": False},
             {"input": "3\n3 2 4\n6\n", "expected_output": "1 2", "is_hidden": False},
-            {"input": "2\n3 3\n6\n", "expected_output": "0 1", "is_hidden": True},
+            {"input": "2\n3 3\n6\n", "expected_output": "0 1", "is_hidden": False},
             {"input": "5\n-3 4 3 90 0\n0\n", "expected_output": "0 2", "is_hidden": True},
             {"input": "6\n-10 7 19 15 -4 12\n22\n", "expected_output": "1 3", "is_hidden": True},
         ],
@@ -125,7 +140,7 @@ The transformed array as `n` space-separated integers.
 - `1 <= n <= 10^4`
 - `-10^9 <= nums[i] <= 10^9`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -136,6 +151,22 @@ The transformed array as `n` space-separated integers.
 ```
 1 3 12 0 0
 ```
+
+Explanation: Moving all zeroes to the end preserves the order [1, 3, 12].
+
+## Example 2
+
+**Input**
+```
+1
+0
+```
+**Output**
+```
+0
+```
+
+Explanation: A single zero stays in place as the whole array.
 """,
         "starter_code": starters(
             py="""import sys
@@ -183,7 +214,7 @@ public class Main {
         "test_cases": [
             {"input": "5\n0 1 0 3 12\n", "expected_output": "1 3 12 0 0", "is_hidden": False},
             {"input": "1\n0\n", "expected_output": "0", "is_hidden": False},
-            {"input": "4\n0 0 0 0\n", "expected_output": "0 0 0 0", "is_hidden": True},
+            {"input": "4\n0 0 0 0\n", "expected_output": "0 0 0 0", "is_hidden": False},
             {"input": "5\n1 2 3 4 5\n", "expected_output": "1 2 3 4 5", "is_hidden": True},
             {"input": "6\n4 0 -1 0 3 0\n", "expected_output": "4 -1 3 0 0 0", "is_hidden": True},
         ],
@@ -209,7 +240,7 @@ A single integer — the maximum subarray sum.
 - `1 <= n <= 10^5`
 - `-10^4 <= nums[i] <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -222,6 +253,20 @@ A single integer — the maximum subarray sum.
 ```
 
 Explanation: subarray `[4, -1, 2, 1]` has the largest sum `6`.
+
+## Example 2
+
+**Input**
+```
+1
+-5
+```
+**Output**
+```
+-5
+```
+
+Explanation: The whole array is a single value, so the best subarray is that value, -5.
 """,
         "starter_code": starters(
             py="""import sys
@@ -269,7 +314,7 @@ public class Main {
         "test_cases": [
             {"input": "9\n-2 1 -3 4 -1 2 1 -5 4\n", "expected_output": "6", "is_hidden": False},
             {"input": "1\n-5\n", "expected_output": "-5", "is_hidden": False},
-            {"input": "5\n5 4 -1 7 8\n", "expected_output": "23", "is_hidden": True},
+            {"input": "5\n5 4 -1 7 8\n", "expected_output": "23", "is_hidden": False},
             {"input": "2\n-1 -2\n", "expected_output": "-1", "is_hidden": True},
             {"input": "8\n-2 -3 4 -1 -2 1 5 -3\n", "expected_output": "7", "is_hidden": True},
         ],
@@ -297,7 +342,7 @@ A single integer — the count of qualifying subarrays.
 - `1 <= n <= 10^5`
 - `-10^4 <= nums[i], k <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -311,6 +356,21 @@ A single integer — the count of qualifying subarrays.
 ```
 
 Explanation: subarrays `[1,1]` (indices 0-1) and `[1,1]` (indices 1-2).
+
+## Example 2
+
+**Input**
+```
+3
+1 2 3
+3
+```
+**Output**
+```
+2
+```
+
+Explanation: Two contiguous windows sum to 3: [3] and [1, 2].
 """,
         "starter_code": starters(
             py="""import sys
@@ -362,7 +422,7 @@ public class Main {
         "test_cases": [
             {"input": "3\n1 1 1\n2\n", "expected_output": "2", "is_hidden": False},
             {"input": "3\n1 2 3\n3\n", "expected_output": "2", "is_hidden": False},
-            {"input": "8\n3 4 7 2 -3 1 4 2\n7\n", "expected_output": "4", "is_hidden": True},
+            {"input": "8\n3 4 7 2 -3 1 4 2\n7\n", "expected_output": "4", "is_hidden": False},
             {"input": "3\n1 -1 0\n0\n", "expected_output": "3", "is_hidden": True},
             {"input": "5\n0 0 0 0 0\n0\n", "expected_output": "15", "is_hidden": True},
         ],
@@ -391,7 +451,7 @@ You must write an algorithm that runs in O(n) time and **without using division*
 - `-30 <= nums[i] <= 30`
 - The product of any prefix or suffix fits in a 32-bit integer.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -402,6 +462,22 @@ You must write an algorithm that runs in O(n) time and **without using division*
 ```
 24 12 8 6
 ```
+
+Explanation: Multiplying the other elements: [2*3*4, 1*3*4, 1*2*4, 1*2*3] = [24, 12, 8, 6].
+
+## Example 2
+
+**Input**
+```
+5
+-1 1 0 -3 3
+```
+**Output**
+```
+0 0 9 0 0
+```
+
+Explanation: Every product touches the zero, so all entries are 0 except position 2, which is 3*3 = 9.
 """,
         "starter_code": starters(
             py="""import sys
@@ -449,7 +525,7 @@ public class Main {
         "test_cases": [
             {"input": "4\n1 2 3 4\n", "expected_output": "24 12 8 6", "is_hidden": False},
             {"input": "5\n-1 1 0 -3 3\n", "expected_output": "0 0 9 0 0", "is_hidden": False},
-            {"input": "3\n0 0 5\n", "expected_output": "0 0 0", "is_hidden": True},
+            {"input": "3\n0 0 5\n", "expected_output": "0 0 0", "is_hidden": False},
             {"input": "2\n7 3\n", "expected_output": "3 7", "is_hidden": True},
             {"input": "4\n2 -2 2 -2\n", "expected_output": "8 -8 8 -8", "is_hidden": True},
         ],
@@ -478,7 +554,7 @@ A single integer — the smallest missing positive.
 - `1 <= n <= 10^5`
 - `-10^9 <= nums[i] <= 10^9`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -487,8 +563,24 @@ A single integer — the smallest missing positive.
 ```
 **Output**
 ```
-1
+2
 ```
+
+Explanation: 1 and 3 appear but 2 is the smallest positive integer missing from [3, 4, -1, 1].
+
+## Example 2
+
+**Input**
+```
+3
+1 2 0
+```
+**Output**
+```
+3
+```
+
+Explanation: [1, 2, 0] already contains all positive numbers up to 2, so 3 is the missing one.
 """,
         "starter_code": starters(
             py="""import sys
@@ -536,7 +628,7 @@ public class Main {
         "test_cases": [
             {"input": "4\n3 4 -1 1\n", "expected_output": "2", "is_hidden": False},
             {"input": "3\n1 2 0\n", "expected_output": "3", "is_hidden": False},
-            {"input": "3\n7 8 9\n", "expected_output": "1", "is_hidden": True},
+            {"input": "3\n7 8 9\n", "expected_output": "1", "is_hidden": False},
             {"input": "5\n1 2 3 4 5\n", "expected_output": "6", "is_hidden": True},
             {"input": "2\n-5 -3\n", "expected_output": "1", "is_hidden": True},
         ],

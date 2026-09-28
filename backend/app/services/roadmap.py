@@ -308,6 +308,7 @@ def _build_user_state(
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .distinct()
         .all()
@@ -318,7 +319,10 @@ def _build_user_state(
 
     attempt_rows = (
         db.query(Submission.problem_id, func.count(Submission.id))
-        .filter(Submission.user_id == user.id)
+        .filter(
+            Submission.user_id == user.id,
+            Submission.test_session_id.is_(None),
+        )
         .group_by(Submission.problem_id)
         .all()
     )
@@ -609,6 +613,7 @@ def get_review_due(db: Session, user: User, older_than_days: int = 7, limit: int
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .order_by(Submission.submitted_at)
         .all()
@@ -678,6 +683,7 @@ def get_activity(db: Session, user: User, days: int = 140) -> dict:
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
             func.date(Submission.submitted_at) >= start,
         )
         .group_by(func.date(Submission.submitted_at))

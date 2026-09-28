@@ -125,7 +125,7 @@ A single integer — the maximum depth.
 - `1 <= number of nodes <= 10^4`
 - `-100 <= Node.val <= 100`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -135,6 +135,21 @@ A single integer — the maximum depth.
 ```
 3
 ```
+
+Explanation: The longest root-to-leaf path is 3 -> 9 -> 20 -> 15 (or 7), which is 3 nodes deep.
+
+## Example 2
+
+**Input**
+```
+1 null 2
+```
+**Output**
+```
+2
+```
+
+Explanation: 1 -> 2 has depth 2: the tree is two nodes tall.
 """,
         "starter_code": starters(
             py=PY_TREE_LIB
@@ -178,7 +193,7 @@ int main() {
         "test_cases": [
             {"input": "3 9 20 null null 15 7\n", "expected_output": "3", "is_hidden": False},
             {"input": "1 null 2\n", "expected_output": "2", "is_hidden": False},
-            {"input": "5\n", "expected_output": "1", "is_hidden": True},
+            {"input": "5\n", "expected_output": "1", "is_hidden": False},
             {"input": "1 2 3 4 5 null null 6\n", "expected_output": "4", "is_hidden": True},
             {"input": "1 2 null 3 null 4\n", "expected_output": "4", "is_hidden": True},
         ],
@@ -202,7 +217,7 @@ Space-separated level-order tokens of the inverted tree.
 ## Constraints
 - `1 <= number of nodes <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -212,6 +227,21 @@ Space-separated level-order tokens of the inverted tree.
 ```
 4 7 2 9 6 3 1
 ```
+
+Explanation: Every node's children are swapped: 4 2 7 becomes 4 7 2, and left-right mirrored all the way down.
+
+## Example 2
+
+**Input**
+```
+2 1 3
+```
+**Output**
+```
+2 3 1
+```
+
+Explanation: Swapping the two children of the root gives 2 3 1.
 """,
         "starter_code": starters(
             py=PY_TREE_LIB
@@ -298,7 +328,7 @@ int main() {
         "test_cases": [
             {"input": "4 2 7 1 3 6 9\n", "expected_output": "4 7 2 9 6 3 1", "is_hidden": False},
             {"input": "2 1 3\n", "expected_output": "2 3 1", "is_hidden": False},
-            {"input": "1\n", "expected_output": "1", "is_hidden": True},
+            {"input": "1\n", "expected_output": "1", "is_hidden": False},
             {"input": "1 2\n", "expected_output": "1 null 2", "is_hidden": True},
             {"input": "1 2 3 4\n", "expected_output": "1 3 2 null null null 4", "is_hidden": True},
         ],
@@ -328,7 +358,7 @@ A single integer — the value of the LCA node.
 - All node values are unique; both `p` and `q` exist in the tree.
 - `-10^9 <= Node.val <= 10^9`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -340,6 +370,23 @@ A single integer — the value of the LCA node.
 ```
 6
 ```
+
+Explanation: 6 sits between 2 and 8 in BST order, so the lowest common ancestor of nodes 2 and 8 is 6.
+
+## Example 2
+
+**Input**
+```
+6 2 8 0 4 7 9 null null 3 5
+2
+4
+```
+**Output**
+```
+2
+```
+
+Explanation: Node 2 is an ancestor of itself and of 4, so the lowest common ancestor is 2.
 """,
         "starter_code": starters(
             py=PY_TREE_LIB
@@ -390,7 +437,7 @@ int main() {
         "test_cases": [
             {"input": "6 2 8 0 4 7 9 null null 3 5\n2\n8\n", "expected_output": "6", "is_hidden": False},
             {"input": "6 2 8 0 4 7 9 null null 3 5\n2\n4\n", "expected_output": "2", "is_hidden": False},
-            {"input": "2 1 3\n2\n3\n", "expected_output": "2", "is_hidden": True},
+            {"input": "2 1 3\n2\n3\n", "expected_output": "2", "is_hidden": False},
             {"input": "5 3 8 1 4 7 9\n7\n9\n", "expected_output": "8", "is_hidden": True},
             {"input": "50 30 70 20 40 60 80\n20\n40\n", "expected_output": "30", "is_hidden": True},
         ],
@@ -415,7 +462,7 @@ Given the `root` of a binary tree, determine whether it is a valid BST. A valid 
 - `1 <= number of nodes <= 10^4`
 - `-2^31 <= Node.val <= 2^31 - 1` (watch out for overflow when using min/max sentinels)
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -427,6 +474,19 @@ false
 ```
 
 Explanation: node 4's right child 6 violates the bound imposed by the root (5).
+
+## Example 2
+
+**Input**
+```
+2 1 3
+```
+**Output**
+```
+true
+```
+
+Explanation: Every node respects the BST invariant: 1 < 2 < 3.
 """,
         "starter_code": starters(
             py=PY_TREE_LIB
@@ -470,7 +530,7 @@ int main() {
         "test_cases": [
             {"input": "5 1 4 null null 3 6\n", "expected_output": "false", "is_hidden": False},
             {"input": "2 1 3\n", "expected_output": "true", "is_hidden": False},
-            {"input": "2 2 2\n", "expected_output": "false", "is_hidden": True},
+            {"input": "2 2 2\n", "expected_output": "false", "is_hidden": False},
             {"input": "10 5 15 2 7 12 20\n", "expected_output": "true", "is_hidden": True},
             {"input": "2147483647\n", "expected_output": "true", "is_hidden": True},
             {"input": "10 5 15 null null 6 20\n", "expected_output": "false", "is_hidden": True},
@@ -495,7 +555,7 @@ One line per level.
 ## Constraints
 - `1 <= number of nodes <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -507,6 +567,21 @@ One line per level.
 9 20
 15 7
 ```
+
+Explanation: Traversed level by level: row "3", row "9 20", then row "15 7".
+
+## Example 2
+
+**Input**
+```
+1
+```
+**Output**
+```
+1
+```
+
+Explanation: A single node forms one level containing just 1.
 """,
         "starter_code": starters(
             py=PY_TREE_LIB
@@ -550,7 +625,7 @@ int main() {
         "test_cases": [
             {"input": "3 9 20 null null 15 7\n", "expected_output": "3\n9 20\n15 7", "is_hidden": False},
             {"input": "1\n", "expected_output": "1", "is_hidden": False},
-            {"input": "1 2 3 4 5 6 7\n", "expected_output": "1\n2 3\n4 5 6 7", "is_hidden": True},
+            {"input": "1 2 3 4 5 6 7\n", "expected_output": "1\n2 3\n4 5 6 7", "is_hidden": False},
             {"input": "1 null 2 null 3\n", "expected_output": "1\n2\n3", "is_hidden": True},
         ],
     },
@@ -574,7 +649,7 @@ A single integer — the diameter in edges.
 - `1 <= number of nodes <= 10^4`
 - `-100 <= Node.val <= 100`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -586,6 +661,19 @@ A single integer — the diameter in edges.
 ```
 
 Explanation: path `4 -> 2 -> 1 -> 3` contains 3 edges.
+
+## Example 2
+
+**Input**
+```
+1 2
+```
+**Output**
+```
+1
+```
+
+Explanation: The tree 1 -> 2 has just two nodes, so the longest path between nodes uses a single edge.
 """,
         "starter_code": starters(
             py=PY_TREE_LIB
@@ -629,7 +717,7 @@ int main() {
         "test_cases": [
             {"input": "1 2 3 4 5\n", "expected_output": "3", "is_hidden": False},
             {"input": "1 2\n", "expected_output": "1", "is_hidden": False},
-            {"input": "1\n", "expected_output": "0", "is_hidden": True},
+            {"input": "1\n", "expected_output": "0", "is_hidden": False},
             {"input": "1 2 null 3 null 4 null 5\n", "expected_output": "4", "is_hidden": True},
             {"input": "1 2 3 4 5 null null 6 7\n", "expected_output": "4", "is_hidden": True},
         ],

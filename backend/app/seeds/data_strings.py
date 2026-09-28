@@ -22,7 +22,7 @@ Given two lowercase strings `s` and `t`, return `true` if `t` is an anagram of `
 - `1 <= s.length == t.length <= 5 * 10^4`
 - Both strings contain only lowercase English letters.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -33,6 +33,22 @@ nagaram
 ```
 true
 ```
+
+Explanation: Both words use the same letters in the same counts, so they are anagrams.
+
+## Example 2
+
+**Input**
+```
+rat
+car
+```
+**Output**
+```
+false
+```
+
+Explanation: "rat" and "car" do not use the same letters in the same counts, so they are not anagrams.
 """,
         "starter_code": starters(
             py="""import sys
@@ -75,7 +91,7 @@ public class Main {
         "test_cases": [
             {"input": "anagram\nnagaram\n", "expected_output": "true", "is_hidden": False},
             {"input": "rat\ncar\n", "expected_output": "false", "is_hidden": False},
-            {"input": "a\nab\n", "expected_output": "false", "is_hidden": True},
+            {"input": "a\nab\n", "expected_output": "false", "is_hidden": False},
             {"input": "aa\naa\n", "expected_output": "true", "is_hidden": True},
             {"input": "abcba\nabcbc\n", "expected_output": "false", "is_hidden": True},
         ],
@@ -101,7 +117,7 @@ Given a line of text `s`, output `true` if it is a palindrome, otherwise `false`
 ## Constraints
 - `1 <= s.length <= 2 * 10^5`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -113,6 +129,19 @@ true
 ```
 
 Explanation: after filtering -> `"amanaplanacanalpanama"`.
+
+## Example 2
+
+**Input**
+```
+race a car
+```
+**Output**
+```
+false
+```
+
+Explanation: After removing punctuation and case, "raceacar" reads backward as "racacecar", so it is not a palindrome.
 """,
         "starter_code": starters(
             py="""import sys
@@ -154,7 +183,7 @@ public class Main {
         "test_cases": [
             {"input": "A man, a plan, a canal: Panama\n", "expected_output": "true", "is_hidden": False},
             {"input": "race a car\n", "expected_output": "false", "is_hidden": False},
-            {"input": " \n", "expected_output": "true", "is_hidden": True},
+            {"input": " \n", "expected_output": "true", "is_hidden": False},
             {"input": "0P\n", "expected_output": "false", "is_hidden": True},
             {"input": "12321\n", "expected_output": "true", "is_hidden": True},
         ],
@@ -179,18 +208,31 @@ A single integer — the length found.
 - `0 <= s.length <= 5 * 10^4`
 - `s` consists of printable ASCII characters.
 
-## Example
+## Example 1
 
 **Input**
 ```
-pwwkew
+abcabcbb
 ```
 **Output**
 ```
 3
 ```
 
-Explanation: `"wke"` has length 3; note `"pwke"` is a subsequence, not a substring.
+Explanation: The longest substring without a repeating character in "abcabcbb" is "abc", length 3.
+
+## Example 2
+
+**Input**
+```
+bbbbb
+```
+**Output**
+```
+1
+```
+
+Explanation: Every character is the same, so the longest window without repeats is a single character.
 """,
         "starter_code": starters(
             py="""import sys
@@ -232,7 +274,7 @@ public class Main {
         "test_cases": [
             {"input": "abcabcbb\n", "expected_output": "3", "is_hidden": False},
             {"input": "bbbbb\n", "expected_output": "1", "is_hidden": False},
-            {"input": "pwwkew\n", "expected_output": "3", "is_hidden": True},
+            {"input": "pwwkew\n", "expected_output": "3", "is_hidden": False},
             {"input": "\n", "expected_output": "0", "is_hidden": True},
             {"input": "dvdf\n", "expected_output": "3", "is_hidden": True},
             {"input": "abba\n", "expected_output": "2", "is_hidden": True},
@@ -265,7 +307,7 @@ One group per line as described above.
 - Each word is 1..100 lowercase letters.
 - Every word belongs to exactly one group.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -278,6 +320,22 @@ ate eat tea
 bat
 nat tan
 ```
+
+Explanation: Words with the same sorted letters group together: the "ate/eat/tea" group, then "bat", then "nat/tan".
+
+## Example 2
+
+**Input**
+```
+1
+solo
+```
+**Output**
+```
+solo
+```
+
+Explanation: A single word forms its own group by itself, "solo".
 """,
         "starter_code": starters(
             py="""import sys
@@ -325,7 +383,7 @@ public class Main {
         "test_cases": [
             {"input": "6\neat tea tan ate nat bat\n", "expected_output": "ate eat tea\nbat\nnat tan", "is_hidden": False},
             {"input": "1\nsolo\n", "expected_output": "solo", "is_hidden": False},
-            {"input": "2\nab ba\n", "expected_output": "ab ba", "is_hidden": True},
+            {"input": "2\nab ba\n", "expected_output": "ab ba", "is_hidden": False},
             {"input": "4\nlisten silent enlist google\n", "expected_output": "enlist listen silent\ngoogle", "is_hidden": True},
             {"input": "3\nabc cab bca\n", "expected_output": "abc bca cab", "is_hidden": True},
         ],
@@ -354,7 +412,7 @@ The minimum window substring (possibly empty).
 - `1 <= t.length <= 10^4`
 - Uppercase/lowercase are distinct characters.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -365,6 +423,22 @@ ABC
 ```
 BANC
 ```
+
+Explanation: The shortest substring of ADOBECODEBANC containing A, B and C is BANC.
+
+## Example 2
+
+**Input**
+```
+a
+a
+```
+**Output**
+```
+a
+```
+
+Explanation: The window is simply "a", the only possible substring.
 """,
         "starter_code": starters(
             py="""import sys
@@ -407,7 +481,7 @@ public class Main {
         "test_cases": [
             {"input": "ADOBECODEBANC\nABC\n", "expected_output": "BANC", "is_hidden": False},
             {"input": "a\na\n", "expected_output": "a", "is_hidden": False},
-            {"input": "a\naa\n", "expected_output": "", "is_hidden": True},
+            {"input": "a\naa\n", "expected_output": "", "is_hidden": False},
             {"input": "aa\naa\n", "expected_output": "aa", "is_hidden": True},
             {"input": "zeusazoth\nsz\n", "expected_output": "saz", "is_hidden": True},
         ],

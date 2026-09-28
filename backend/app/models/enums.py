@@ -26,6 +26,13 @@ class SubmissionStatus(str, enum.Enum):
     COMPILATION_ERROR = "COMPILATION_ERROR"
 
 
+class TestStatus(str, enum.Enum):
+    IN_PROGRESS = "IN_PROGRESS"
+    SUBMITTED = "SUBMITTED"
+    EXPIRED = "EXPIRED"
+    ABANDONED = "ABANDONED"
+
+
 class Language(str, enum.Enum):
     PYTHON = "python"
     CPP = "cpp"

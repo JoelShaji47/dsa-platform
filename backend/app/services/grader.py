@@ -6,6 +6,8 @@ from app.services.judge0 import Judge0Error, submit
 
 MAX_OUTPUT_CHARS = 10_000
 
+RUN_VISIBLE_CASE_LIMIT = 3
+
 
 @dataclass
 class TestOutcome:

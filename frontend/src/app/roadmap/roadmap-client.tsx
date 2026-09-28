@@ -19,6 +19,7 @@ import {
   Settings2,
   Shuffle,
   Sparkles,
+  Timer,
   Trash2,
   Trophy,
 } from "lucide-react";
@@ -689,6 +690,14 @@ export default function RoadmapClient() {
 
           <DailyQuestionChip />
 
+          <Link
+            href="/test"
+            className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[18px] border border-[#d4a72c]/40 bg-[#d4a72c]/15 px-3.5 text-sm font-semibold leading-none text-[#e8c860] transition-colors hover:bg-[#d4a72c]/25"
+          >
+            <Timer size={14} className="shrink-0" />
+            Take a Test
+          </Link>
+
           <div className="flex h-9 items-center gap-1 rounded-[18px] border border-white/10 bg-[#2a2a2a] px-1.5">
             <button type="button" onClick={fitView} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Fit view">
               <RefreshCcw size={13} />
@@ -927,7 +936,7 @@ function DailyQuestionChip() {
   return (
     <Link
       href={daily.solvable ? `/problems/${daily.slug}/solve` : `/problems/${daily.slug}`}
-      className="group flex h-9 items-center gap-2 rounded-[18px] border border-[#d4a72c]/30 bg-[#d4a72c]/10 px-3 transition-colors hover:bg-[#d4a72c]/15"
+      className="group flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[18px] border border-[#d4a72c]/30 bg-[#d4a72c]/10 px-3 transition-colors hover:bg-[#d4a72c]/15"
       title={`Daily question: ${daily.title}`}
     >
       <Flame size={15} className="shrink-0 text-[#FF7A00]" />
@@ -937,7 +946,7 @@ function DailyQuestionChip() {
       <span className="hidden max-w-[140px] truncate text-sm font-medium text-[#f5f5f5] xl:block">
         {daily.title}
       </span>
-      <ChevronRight size={13} className="text-[#9aa1ad] transition-transform group-hover:translate-x-0.5" />
+      <ChevronRight size={13} className="shrink-0 text-[#9aa1ad] transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }

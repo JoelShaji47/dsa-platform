@@ -11,6 +11,7 @@ from app.models.enums import SubmissionStatus
 
 if TYPE_CHECKING:
     from app.models.problem import Problem
+    from app.models.test_session import TestProblem
     from app.models.user import User
 
 
@@ -41,6 +42,19 @@ class Submission(Base):
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    test_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("test_sessions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    test_problem_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("test_problems.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     user: Mapped["User"] = relationship(back_populates="submissions")
     problem: Mapped["Problem"] = relationship(back_populates="submissions")
+    test_problem: Mapped["TestProblem"] = relationship()

@@ -25,7 +25,7 @@ The filled grid — one row per line, values separated by spaces.
 - `0 <= image[i][j], newColor <= 10^5`
 - `0 <= sr < R`, `0 <= sc < C`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -41,6 +41,23 @@ The filled grid — one row per line, values separated by spaces.
 2 2 0
 2 0 1
 ```
+
+Explanation: Starting at (1,1), the connected region of 1s is recolored to 2, stopping at the 0s.
+
+## Example 2
+
+**Input**
+```
+1 1
+0
+0 0 0
+```
+**Output**
+```
+0
+```
+
+Explanation: A single 0 recolored to 0 is an identity fill.
 """,
         "starter_code": starters(
             py="""import sys
@@ -100,7 +117,7 @@ public class Main {
         "test_cases": [
             {"input": "3 3\n1 1 1\n1 1 0\n1 0 1\n1 1 2\n", "expected_output": "2 2 2\n2 2 0\n2 0 1", "is_hidden": False},
             {"input": "1 1\n0\n0 0 0\n", "expected_output": "0", "is_hidden": False},
-            {"input": "2 2\n1 2\n2 1\n0 0 3\n", "expected_output": "3 2\n2 1", "is_hidden": True},
+            {"input": "2 2\n1 2\n2 1\n0 0 3\n", "expected_output": "3 2\n2 1", "is_hidden": False},
             {"input": "3 2\n5 5\n5 7\n7 7\n2 0 9\n", "expected_output": "5 5\n5 9\n9 9", "is_hidden": True},
             {"input": "1 4\n8 8 8 8\n0 3 1\n", "expected_output": "1 1 1 1", "is_hidden": True},
         ],
@@ -125,7 +142,7 @@ A single integer — the number of islands.
 ## Constraints
 - `1 <= R, C <= 300`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -139,6 +156,25 @@ A single integer — the number of islands.
 ```
 1
 ```
+
+Explanation: All four connected 1s form one island.
+
+## Example 2
+
+**Input**
+```
+4 5
+11000
+11000
+00100
+00011
+```
+**Output**
+```
+3
+```
+
+Explanation: Three separate clusters of 1s exist: one of four, one of one (via the diagonal 1), and one of two.
 """,
         "starter_code": starters(
             py="""import sys
@@ -187,7 +223,7 @@ public class Main {
         "test_cases": [
             {"input": "4 5\n11110\n11010\n11000\n00000\n", "expected_output": "1", "is_hidden": False},
             {"input": "4 5\n11000\n11000\n00100\n00011\n", "expected_output": "3", "is_hidden": False},
-            {"input": "1 1\n0\n", "expected_output": "0", "is_hidden": True},
+            {"input": "1 1\n0\n", "expected_output": "0", "is_hidden": False},
             {"input": "1 5\n10101\n", "expected_output": "3", "is_hidden": True},
             {"input": "3 3\n111\n101\n111\n", "expected_output": "1", "is_hidden": True},
         ],
@@ -216,7 +252,7 @@ This is cycle detection on a directed graph (Kahn's BFS by in-degree or DFS colo
 - `0 <= E <= 5000`
 - No duplicate pairs.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -230,6 +266,20 @@ false
 ```
 
 Explanation: courses 0 and 1 require each other.
+
+## Example 2
+
+**Input**
+```
+2 1
+1 0
+```
+**Output**
+```
+true
+```
+
+Explanation: Course 1 depends only on course 0, which has no prerequisites, so every course can be completed.
 """,
         "starter_code": starters(
             py="""import sys
@@ -281,7 +331,7 @@ public class Main {
         "test_cases": [
             {"input": "2 2\n1 0\n0 1\n", "expected_output": "false", "is_hidden": False},
             {"input": "2 1\n1 0\n", "expected_output": "true", "is_hidden": False},
-            {"input": "4 4\n1 0\n2 1\n3 2\n0 3\n", "expected_output": "false", "is_hidden": True},
+            {"input": "4 4\n1 0\n2 1\n3 2\n0 3\n", "expected_output": "false", "is_hidden": False},
             {"input": "3 0\n", "expected_output": "true", "is_hidden": True},
             {"input": "5 4\n1 0\n2 0\n3 1\n4 3\n", "expected_output": "true", "is_hidden": True},
         ],
@@ -305,7 +355,7 @@ A single integer — the number of distinct ways.
 ## Constraints
 - `1 <= n <= 45`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -317,6 +367,19 @@ A single integer — the number of distinct ways.
 ```
 
 Explanation: `1+1+1`, `1+2`, `2+1`.
+
+## Example 2
+
+**Input**
+```
+5
+```
+**Output**
+```
+8
+```
+
+Explanation: There are 8 distinct ways to climb 5 steps using 1- and 2-step moves.
 """,
         "starter_code": starters(
             py="""import sys
@@ -358,7 +421,7 @@ public class Main {
         "test_cases": [
             {"input": "3\n", "expected_output": "3", "is_hidden": False},
             {"input": "5\n", "expected_output": "8", "is_hidden": False},
-            {"input": "1\n", "expected_output": "1", "is_hidden": True},
+            {"input": "1\n", "expected_output": "1", "is_hidden": False},
             {"input": "2\n", "expected_output": "2", "is_hidden": True},
             {"input": "45\n", "expected_output": "1836311903", "is_hidden": True},
         ],
@@ -383,7 +446,7 @@ A single integer — the number of unique paths.
 - `1 <= m, n <= 100`
 - The answer fits in a 32-bit integer... barely for the extremes; a 64-bit intermediate is safer.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -393,6 +456,21 @@ A single integer — the number of unique paths.
 ```
 28
 ```
+
+Explanation: A 3x7 grid has C(8, 2) = 28 distinct downward/rightward routes from top-left to bottom-right.
+
+## Example 2
+
+**Input**
+```
+3 2
+```
+**Output**
+```
+3
+```
+
+Explanation: A 3x2 grid has exactly 3 paths: DDR, DRD, and RDD.
 """,
         "starter_code": starters(
             py="""import sys
@@ -434,7 +512,7 @@ public class Main {
         "test_cases": [
             {"input": "3 7\n", "expected_output": "28", "is_hidden": False},
             {"input": "3 2\n", "expected_output": "3", "is_hidden": False},
-            {"input": "1 1\n", "expected_output": "1", "is_hidden": True},
+            {"input": "1 1\n", "expected_output": "1", "is_hidden": False},
             {"input": "1 10\n", "expected_output": "1", "is_hidden": True},
             {"input": "23 12\n", "expected_output": "193536720", "is_hidden": True},
         ],
@@ -461,7 +539,7 @@ A single integer — minimum coins, or `-1`.
 - `1 <= coin <= 2^31 - 1`
 - `0 <= amount <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -474,6 +552,20 @@ A single integer — minimum coins, or `-1`.
 ```
 
 Explanation: `5 + 5 + 1`.
+
+## Example 2
+
+**Input**
+```
+2
+3
+```
+**Output**
+```
+-1
+```
+
+Explanation: 11 cannot be formed from coin 2 alone, so no combination works and the answer is -1.
 """,
         "starter_code": starters(
             py="""import sys
@@ -526,7 +618,7 @@ public class Main {
         "test_cases": [
             {"input": "1 2 5\n11\n", "expected_output": "3", "is_hidden": False},
             {"input": "2\n3\n", "expected_output": "-1", "is_hidden": False},
-            {"input": "1\n0\n", "expected_output": "0", "is_hidden": True},
+            {"input": "1\n0\n", "expected_output": "0", "is_hidden": False},
             {"input": "1 2147483647\n2\n", "expected_output": "2", "is_hidden": True},
             {"input": "186 419 83 408\n6249\n", "expected_output": "20", "is_hidden": True},
         ],
@@ -552,7 +644,7 @@ A single integer — LIS length.
 - `1 <= n <= 2500`
 - `-10^4 <= nums[i] <= 10^4`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -565,6 +657,20 @@ A single integer — LIS length.
 ```
 
 Explanation: `[2, 3, 7, 101]` (other lengths of 4 exist).
+
+## Example 2
+
+**Input**
+```
+6
+0 1 0 3 2 3
+```
+**Output**
+```
+4
+```
+
+Explanation: Using every other element gives [0, 1, 3] or [0, 1, 2, 3]; the longest strictly increasing subsequence has length 4.
 """,
         "starter_code": starters(
             py="""import sys
@@ -612,7 +718,7 @@ public class Main {
         "test_cases": [
             {"input": "8\n10 9 2 5 3 7 101 18\n", "expected_output": "4", "is_hidden": False},
             {"input": "6\n0 1 0 3 2 3\n", "expected_output": "4", "is_hidden": False},
-            {"input": "1\n7\n", "expected_output": "1", "is_hidden": True},
+            {"input": "1\n7\n", "expected_output": "1", "is_hidden": False},
             {"input": "4\n7 7 7 7\n", "expected_output": "1", "is_hidden": True},
             {"input": "6\n1 3 6 7 9 4\n", "expected_output": "5", "is_hidden": True},
         ],
@@ -640,7 +746,7 @@ Given a string `s` and a dictionary of words, determine whether `s` can be segme
 - `1 <= k <= 20`
 - Dictionary words are 1..20 lowercase letters and unique.
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -654,6 +760,21 @@ true
 ```
 
 Explanation: `"apple pen apple"`.
+
+## Example 2
+
+**Input**
+```
+catsandog
+5
+cats dog sand and cat
+```
+**Output**
+```
+false
+```
+
+Explanation: No segmentation of "catsandog" uses only the dictionary; the "sand"/"dog" split out of order never tiles the word.
 """,
         "starter_code": starters(
             py="""import sys
@@ -704,7 +825,7 @@ public class Main {
         "test_cases": [
             {"input": "applepenapple\n2\napple pen\n", "expected_output": "true", "is_hidden": False},
             {"input": "catsandog\n5\ncats dog sand and cat\n", "expected_output": "false", "is_hidden": False},
-            {"input": "aaaaaaa\n2\naaaa aaa\n", "expected_output": "true", "is_hidden": True},
+            {"input": "aaaaaaa\n2\naaaa aaa\n", "expected_output": "true", "is_hidden": False},
             {"input": "abcd\n3\na abc b\n", "expected_output": "false", "is_hidden": True},
             {"input": "goalspecial\n2\ngoal special\n", "expected_output": "true", "is_hidden": True},
         ],
@@ -729,7 +850,7 @@ A single integer — the minimum edit distance.
 ## Constraints
 - `0 <= word1.length, word2.length <= 500`
 
-## Example
+## Example 1
 
 **Input**
 ```
@@ -742,6 +863,20 @@ ros
 ```
 
 Explanation: horse -> rorse (replace h) -> rose (delete r) -> ros (delete e).
+
+## Example 2
+
+**Input**
+```
+intention
+execution
+```
+**Output**
+```
+5
+```
+
+Explanation: Transforming "intention" into "execution" needs 5 edits (delete i, substitute n/e, etc.).
 """,
         "starter_code": starters(
             py="""import sys
@@ -784,7 +919,7 @@ public class Main {
         "test_cases": [
             {"input": "horse\nros\n", "expected_output": "3", "is_hidden": False},
             {"input": "intention\nexecution\n", "expected_output": "5", "is_hidden": False},
-            {"input": "\n\n", "expected_output": "0", "is_hidden": True},
+            {"input": "\n\n", "expected_output": "0", "is_hidden": False},
             {"input": "abc\nabc\n", "expected_output": "0", "is_hidden": True},
             {"input": "a\n\n", "expected_output": "1", "is_hidden": True},
             {"input": "algorithm\naltruistic\n", "expected_output": "6", "is_hidden": True},

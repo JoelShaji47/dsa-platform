@@ -18,7 +18,7 @@ from app.schemas.submission import (
 )
 from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, award_xp, update_streak
-from app.services.grader import grade_code
+from app.services.grader import RUN_VISIBLE_CASE_LIMIT, grade_code
 from app.services.judge0 import Judge0Error
 from app.services.tutor import has_used_hints
 
@@ -31,6 +31,7 @@ def _solved_problem_ids(db: Session, user_id) -> set:
         .filter(
             Submission.user_id == user_id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .distinct()
         .all()
@@ -68,6 +69,7 @@ def list_problems(
             difficulty=p.difficulty,
             topic=p.topic,
             solved=p.id in solved_ids,
+            solvable=bool(p.starter_code and p.test_cases),
             sources=p.sources or [],
             pattern_key=p.pattern_key,
         )
@@ -170,8 +172,10 @@ async def run_code(
 ) -> RunResultOut:
     problem = _get_problem_or_404(db, slug)
     visible_cases = [
-        case for case in problem.test_cases if not case.get("is_hidden", False)
-    ]
+        case
+        for case in problem.test_cases
+        if not case.get("is_hidden", False)
+    ][:RUN_VISIBLE_CASE_LIMIT]
 
     try:
         result = await grade_code(
@@ -236,6 +240,7 @@ async def submit_solution(
             Submission.user_id == current_user.id,
             Submission.problem_id == problem.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .first()
         is not None

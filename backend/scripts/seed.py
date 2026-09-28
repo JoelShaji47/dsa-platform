@@ -15,6 +15,8 @@ from app.seeds import PROBLEMS
 from app.seeds.schema import ProblemSeed
 from app.services.gamification import ensure_badge_catalog
 from app.services.roadmap import SLUG_TO_PATTERN
+from app.seeds.global_arena_explanations import EXPLANATIONS
+from app.seeds.global_arena_rules import normalize_problem
 
 try:
     from app.seeds.data_tuf_a2z import TUF_A2Z_SLUGS
@@ -32,6 +34,8 @@ def main() -> None:
             raise SystemExit(1)
 
     created = updated = 0
+    normalized = 0
+    global_arena_warnings = []
     with SessionLocal() as db:
         for seed in validated:
             payload: dict = {
@@ -58,6 +62,25 @@ def main() -> None:
                 payload["editorial_url"] = seed.editorial_url
             if seed.video_url:
                 payload["video_url"] = seed.video_url
+
+            # Global arena rules: exactly three visible test cases and exactly
+            # two examples per problem. Applied at seed time so any database
+            # reset produces the formatted catalog automatically.
+            if (
+                seed.slug in EXPLANATIONS
+                and seed.description is not None
+                and "## Example" in seed.description
+                and seed.test_cases
+            ):
+                new_desc, new_cases, _ = normalize_problem(
+                    seed.slug,
+                    seed.description,
+                    [tc.model_dump() for tc in seed.test_cases],
+                    global_arena_warnings,
+                )
+                payload["description"] = new_desc
+                payload["test_cases"] = new_cases
+                normalized += 1
 
             problem = db.query(Problem).filter(Problem.slug == seed.slug).first()
             if problem is None:
@@ -109,6 +132,11 @@ def main() -> None:
         badge_count = db.execute(text("SELECT count(*) FROM badges")).scalar()
     print(f"Badge catalog synced -> {badge_count} badges")
     print(f"Seeded {len(validated)} problems -> created={created} updated={updated}")
+    print(f"Global arena rules applied -> {normalized} problems")
+    if global_arena_warnings:
+        print(f"Global arena warnings ({len(global_arena_warnings)}):")
+        for w in global_arena_warnings:
+            print(f"  - {w}")
 
 
 if __name__ == "__main__":
