@@ -3,6 +3,7 @@ from app.seeds.data_graphs_dp import GRAPHS_DP
 from app.seeds.data_linked_stack import LINKED_STACK
 from app.seeds.data_neetcode150 import NEETCODE_150
 from app.seeds.data_neetcode250 import NEETCODE_250
+from app.seeds.data_sql import SQL_PROBLEMS
 from app.seeds.data_strings import STRINGS
 from app.seeds.data_trees import TREES
 from app.seeds.data_tuf_a2z import TUF_A2Z
@@ -20,6 +21,8 @@ _PROBLEMS_RAW = [
     *NEETCODE_150,
     *NEETCODE_250,
     *TUF_A2Z,
+    # SQL track: own slugs (sql-*) so it can never collide with DSA entries.
+    *SQL_PROBLEMS,
 ]
 
 # Deduplicate by slug, keeping the FIRST occurrence. The authored sources come

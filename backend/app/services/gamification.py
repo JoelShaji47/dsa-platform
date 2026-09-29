@@ -19,6 +19,7 @@ TOPIC_BADGE_META = {
     Topic.TREE: ("Tree Climber", "Solve every Tree problem"),
     Topic.GRAPH: ("Graph Navigator", "Solve every Graph problem"),
     Topic.DP: ("DP Dynamo", "Solve every Dynamic Programming problem"),
+    Topic.SQL: ("Query Quester", "Solve every SQL problem"),
 }
 
 BADGE_DEFINITIONS = [

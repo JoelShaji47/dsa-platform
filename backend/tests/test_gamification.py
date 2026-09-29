@@ -11,6 +11,7 @@ from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
 from app.seeds import PROBLEMS
+from app.services.gamification import BADGE_DEFINITIONS, award_new_badges
 from app.services.grader import GradeResult, TestOutcome as Outcome
 
 client = TestClient(app)
@@ -235,7 +236,7 @@ def test_badges_endpoint_returns_full_catalog(monkeypatch):
     res = client.get("/api/v1/badges/me", headers=headers)
     assert res.status_code == 200
     badges = res.json()
-    assert len(badges) == 12
+    assert len(badges) == len(BADGE_DEFINITIONS)
     assert all(set(b.keys()) == {"criteria", "name", "description", "earned", "earned_at"} for b in badges)
     assert all(b["earned"] is False for b in badges)
 

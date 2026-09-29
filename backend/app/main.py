@@ -10,6 +10,7 @@ from app.api.v1.problems import (
     router as problems_router,
 )
 from app.api.v1.roadmap import router as roadmap_router
+from app.api.v1.sql import router as sql_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.tests import router as tests_router
 from app.api.v1.tutor import router as tutor_router
@@ -44,6 +45,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(problems_router, prefix="/api/v1")
+app.include_router(sql_router, prefix="/api/v1")
 app.include_router(custom_router, prefix="/api/v1")
 app.include_router(stats_router, prefix="/api/v1")
 app.include_router(badges_router, prefix="/api/v1")
