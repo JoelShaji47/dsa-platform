@@ -13,7 +13,6 @@ import {
   Loader2,
   Lock,
   Sparkles,
-  Timer,
   Swords,
   Trophy,
 } from "lucide-react";
@@ -393,40 +392,6 @@ export default function RoadmapClient() {
                     {v}
                   </button>
                 ))}
-          <DailyQuestionChip />
-
-          <Link
-            href="/test"
-            className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[18px] border border-[#d4a72c]/40 bg-[#d4a72c]/15 px-3.5 text-sm font-semibold leading-none text-[#e8c860] transition-colors hover:bg-[#d4a72c]/25"
-          >
-            <Timer size={14} className="shrink-0" />
-            Take a Test
-          </Link>
-
-          <div className="flex h-9 items-center gap-1 rounded-[18px] border border-white/10 bg-[#2a2a2a] px-1.5">
-            <button type="button" onClick={fitView} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Fit view">
-              <RefreshCcw size={13} />
-            </button>
-            <button type="button" onClick={() => clampZoom(zoom - 0.1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Zoom out">
-              <Minus size={13} />
-            </button>
-            <button type="button" onClick={() => clampZoom(zoom + 0.1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[#b8b8b8] hover:bg-white/10 hover:text-[#f5f5f5]" title="Zoom in">
-              <Plus size={13} />
-            </button>
-          </div>
-        </div>
-
-        <aside className="absolute bottom-4 right-4 top-20 z-30 w-[340px] max-w-[92vw] overflow-hidden rounded-[22px] border border-white/10 bg-[#242424] shadow-[0_30px_70px_-30px_rgb(0_0_0/0.8)]">
-          {selectedPattern ? (
-            <div className="flex h-full flex-col">
-              <PanelHeader
-                pattern={selectedPattern}
-                isRoot={!selectedPattern.prerequisites?.length}
-                onClose={() => setSelectedKey(null)}
-              />
-              <div className="flex-1 overflow-y-auto px-5 pb-6">
-                <PatternStats pattern={selectedPattern} />
-                <ProblemList pattern={selectedPattern} />
               </div>
               {view === "graph" ? (
                 <RoadmapGraph patterns={roadmap?.patterns ?? []} unlocked={unlocked} />

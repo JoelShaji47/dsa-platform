@@ -63,8 +63,11 @@ async def submit(source_code: str, language: str, stdin: str = "") -> dict:
         "stdin": stdin,
         "cpu_time_limit": 5,
         "memory_limit": MEMORY_LIMITS_KB.get(language, 256000),
-        "enable_per_process_and_thread_time_limit": True,
-        "enable_per_process_and_thread_memory_limit": True,
+        # macOS/Rosetta host: per-process limits MUST stay False — isolate's
+        # per-process sandboxing mmaps fail under Rosetta (status 12/13).
+        # Only flip to True on a Windows/WSL2 (cgroup v2) host.
+        "enable_per_process_and_thread_time_limit": False,
+        "enable_per_process_and_thread_memory_limit": False,
     }
 
     async with httpx.AsyncClient(timeout=30) as client:

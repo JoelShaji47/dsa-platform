@@ -183,6 +183,13 @@ async def run_code(
     ][:RUN_VISIBLE_CASE_LIMIT]
 
     try:
+        source = build_source(problem, payload.language.value, payload.source_code, payload.mode)
+    except ModeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+
+    try:
         result = await grade_code(
             source, payload.language.value, visible_cases
         )

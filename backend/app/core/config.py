@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEYS: str = ""
     # Groq fallback for chat when all Gemini keys fail.
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
 
     @property
     def cors_origins_list(self) -> list[str]:
