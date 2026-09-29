@@ -10,13 +10,25 @@ import {
   Loader2,
   Lock,
   Play,
+  Shield,
+  ShoppingBag,
+  Swords,
   XCircle,
+  Zap,
 } from "lucide-react";
 import ProtectedRoute from "@/components/protected-route";
 import { TopBar, UserChip } from "@/components/shell";
 import { useAuth } from "@/context/auth-context";
 import client from "@/lib/api";
-import type { BadgeOut, Bucket, ReviewDueItem, StatsOut } from "@/lib/types";
+import type {
+  BadgeOut,
+  Bucket,
+  LeagueInfo,
+  LeagueMember,
+  ReviewDueItem,
+  ShopStatus,
+  StatsOut,
+} from "@/lib/types";
 
 const TOPIC_ORDER = [
   "ARRAY",
@@ -88,6 +100,11 @@ export default function CampaignPage() {
   const [stats, setStats] = useState<StatsOut | null>(null);
   const [badges, setBadges] = useState<BadgeOut[]>([]);
   const [reviewDue, setReviewDue] = useState<ReviewDueItem[] | null>(null);
+  const [league, setLeague] = useState<LeagueInfo | null>(null);
+  const [myZone, setMyZone] = useState<LeagueMember["zone"] | null>(null);
+  const [shop, setShop] = useState<ShopStatus | null>(null);
+  const [buying, setBuying] = useState(false);
+  const [shopMsg, setShopMsg] = useState<string | null>(null);
 
   useEffect(() => {
     client.get<StatsOut>("/stats/me").then((res) => setStats(res.data)).catch(() => {});
@@ -96,7 +113,41 @@ export default function CampaignPage() {
       .get<{ review_due: ReviewDueItem[] }>("/roadmap/review-due")
       .then((res) => setReviewDue(res.data.review_due))
       .catch(() => setReviewDue([]));
+    client
+      .get<{ league: LeagueInfo | null; members: LeagueMember[] }>("/leagues/me")
+      .then((res) => {
+        setLeague(res.data.league);
+        const me = res.data.members.find((m) => m.is_me);
+        setMyZone(me?.zone ?? null);
+      })
+      .catch(() => {});
+    client
+      .get<ShopStatus>("/shop")
+      .then((res) => setShop(res.data))
+      .catch(() => {});
   }, []);
+
+  const buyFreeze = async () => {
+    setBuying(true);
+    setShopMsg(null);
+    try {
+      const res = await client.post<{ freezes: number; xp: number; cost: number }>(
+        "/shop/freeze"
+      );
+      setShop((prev) =>
+        prev ? { ...prev, freezes: res.data.freezes, xp: res.data.xp } : prev
+      );
+      setShopMsg(`Freeze stocked (${res.data.freezes} held)`);
+      client.get<StatsOut>("/stats/me").then((r) => setStats(r.data)).catch(() => {});
+    } catch (err) {
+      const detail = (
+        err as { response?: { data?: { detail?: string }; status?: number } }
+      )?.response?.data?.detail;
+      setShopMsg(detail || "Couldn't buy that right now.");
+    } finally {
+      setBuying(false);
+    }
+  };
 
   const topics = stats
     ? TOPIC_ORDER.filter((t) => stats.solved_by_topic[t]).map((t) => ({
@@ -139,6 +190,73 @@ export default function CampaignPage() {
                 <StatCard eyebrow="Streak" value={stats.current_streak} unit="days" accent="bg-rust" />
                 <StatCard eyebrow="Solved" value={stats.total_solved} accent="bg-quest" />
                 <StatCard eyebrow="Acceptance" value={`${stats.acceptance_rate}%`} accent="bg-ink" />
+              </section>
+
+              <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="panel p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="eyebrow">Ranked play</p>
+                      <h2 className="mt-1 flex items-center gap-2 font-display text-xl font-bold text-ink">
+                        <Swords size={18} className="text-gold-deep" />
+                        {league ? `${league.tier_name} League` : "Leagues"}
+                      </h2>
+                    </div>
+                    <Link href="/leagues" className="btn btn-ink px-4 py-2 text-sm">
+                      Open board
+                    </Link>
+                  </div>
+                  {league ? (
+                    <p className="mt-3 text-sm text-ink-soft">
+                      Rank{" "}
+                      <span className="font-mono font-bold text-ink">
+                        #{league.my_rank ?? "–"}
+                      </span>{" "}
+                      of {league.size}
+                      {myZone === "promote" && (
+                        <span className="ml-2 font-semibold text-quest">· promotion zone</span>
+                      )}
+                      {myZone === "relegate" && (
+                        <span className="ml-2 font-semibold text-rust">· danger zone</span>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-sm text-ink-faint">
+                      Solve to get seeded into this week&apos;s cohort.
+                    </p>
+                  )}
+                </div>
+
+                <div className="panel p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="eyebrow">XP shop</p>
+                      <h2 className="mt-1 flex items-center gap-2 font-display text-xl font-bold text-ink">
+                        <ShoppingBag size={18} className="text-gold-deep" />
+                        Streak freezes
+                      </h2>
+                    </div>
+                    <button
+                      onClick={buyFreeze}
+                      disabled={buying || !shop}
+                      className="btn btn-quest px-4 py-2 text-sm"
+                    >
+                      {buying ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Zap size={14} />
+                      )}
+                      Buy · 100 XP
+                    </button>
+                  </div>
+                  <p className="mt-3 flex items-center gap-2 text-sm text-ink-soft">
+                    <Shield size={14} className="text-quest" />
+                    Holding {shop?.freezes ?? 0}/3 · balance {shop?.xp ?? stats.xp} XP
+                  </p>
+                  {shopMsg && (
+                    <p className="mt-2 text-xs text-ink-faint">{shopMsg}</p>
+                  )}
+                </div>
               </section>
 
               <section className="grid grid-cols-1 gap-8 lg:grid-cols-5">

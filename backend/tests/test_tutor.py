@@ -157,7 +157,7 @@ def test_submit_without_hints_keeps_xp(monkeypatch):
     headers, _ = register_and_login()
     stub_accept(monkeypatch)
     result = submit_accepted(headers)
-    assert result["xp_awarded"] == 10
+    assert result["xp_awarded"] == 16
     assert result["xp_forfeited"] is False
 
 

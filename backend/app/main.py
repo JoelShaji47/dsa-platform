@@ -9,7 +9,9 @@ from app.api.v1.problems import (
     custom_router as custom_router,
     router as problems_router,
 )
+from app.api.v1.leagues import router as leagues_router
 from app.api.v1.roadmap import router as roadmap_router
+from app.api.v1.shop import router as shop_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.tests import router as tests_router
 from app.api.v1.tutor import router as tutor_router
@@ -49,6 +51,8 @@ app.include_router(stats_router, prefix="/api/v1")
 app.include_router(badges_router, prefix="/api/v1")
 app.include_router(tutor_router, prefix="/api/v1")
 app.include_router(roadmap_router, prefix="/api/v1")
+app.include_router(leagues_router, prefix="/api/v1")
+app.include_router(shop_router, prefix="/api/v1")
 app.include_router(tests_router, prefix="/api/v1")
 
 

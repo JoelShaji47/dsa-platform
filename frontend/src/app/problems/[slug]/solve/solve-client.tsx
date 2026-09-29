@@ -509,7 +509,7 @@ export default function SolveClient() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-2">
           <ThemeToggle dark />
           <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
             {LANGS.map((l) => (

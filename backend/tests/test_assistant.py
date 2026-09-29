@@ -71,7 +71,7 @@ def test_llm_rotates_and_cools_down(monkeypatch):
     llm.reset_state()
     calls = []
 
-    def fake_gemini(key, system, prompt):
+    def fake_gemini(key, system, prompt, *args):
         calls.append(key)
         if key == "gemini-key-aaa1" and len(calls) == 1:
             raise Exception("429 quota exceeded")
@@ -97,9 +97,9 @@ def test_llm_falls_back_to_groq(monkeypatch):
     llm.reset_state()
     monkeypatch.setattr(
         llm, "_call_gemini",
-        lambda key, system, prompt: (_ for _ in ()).throw(Exception("503 overloaded")),
+        lambda key, system, prompt, *args: (_ for _ in ()).throw(Exception("503 overloaded")),
     )
-    monkeypatch.setattr(llm, "_call_groq", lambda system, prompt: "groq-reply")
+    monkeypatch.setattr(llm, "_call_groq", lambda system, prompt, *args: "groq-reply")
     text, provider = llm.generate_chat("sys", "hi")
     assert text == "groq-reply" and provider == "groq"
     llm.reset_state()
@@ -115,7 +115,7 @@ def test_llm_raises_when_all_fail(monkeypatch):
     llm.reset_state()
     monkeypatch.setattr(
         llm, "_call_gemini",
-        lambda key, system, prompt: (_ for _ in ()).throw(Exception("boom")),
+        lambda key, system, prompt, *args: (_ for _ in ()).throw(Exception("boom")),
     )
     with pytest.raises(LLMError):
         llm.generate_chat("sys", "hi")

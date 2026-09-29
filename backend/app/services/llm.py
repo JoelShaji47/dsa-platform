@@ -38,15 +38,22 @@ def _chat_keys() -> list[str]:
     return settings.gemini_chat_keys
 
 
-def _call_gemini(key: str, system: str, prompt: str) -> str:
-    client = genai.Client(api_key=key)
+def _call_gemini(key: str, system: str, prompt: str, max_tokens: int = 700) -> str:
+    # No SDK retries (we rotate keys ourselves); hard timeout per attempt.
+    client = genai.Client(
+        api_key=key,
+        http_options={
+            "timeout": 60_000,
+            "retry_options": {"attempts": 1},
+        },
+    )
     response = client.models.generate_content(
         model=settings.GEMINI_MODEL,
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system,
             temperature=0.4,
-            max_output_tokens=700,
+            max_output_tokens=max_tokens,
         ),
     )
     if not response.text:
@@ -54,7 +61,7 @@ def _call_gemini(key: str, system: str, prompt: str) -> str:
     return response.text
 
 
-def _call_groq(system: str, prompt: str) -> str:
+def _call_groq(system: str, prompt: str, max_tokens: int = 700) -> str:
     if not settings.groq_configured:
         raise LLMError("Groq is not configured")
     try:
@@ -68,9 +75,9 @@ def _call_groq(system: str, prompt: str) -> str:
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.4,
-                "max_tokens": 700,
+                "max_tokens": max_tokens,
             },
-            timeout=30.0,
+            timeout=120.0,
         )
     except Exception as exc:
         raise LLMError(f"Groq request failed: {exc}") from exc
@@ -98,15 +105,27 @@ def _is_retryable(exc: Exception) -> bool:
     )
 
 
-def generate_chat(system: str, prompt: str) -> tuple[str, str]:
-    """Return (reply_text, provider_label). Raises LLMError when all fail."""
+def generate_chat(system: str, prompt: str, prefer: str | None = None, max_tokens: int = 700) -> tuple[str, str]:
+    """Return (reply_text, provider_label). Raises LLMError when all fail.
+
+    Default order: Gemini keys round-robin (per-key 60s cooldown on
+    429/5xx/quota) → Groq → error. prefer="groq" flips the order for
+    bulk/background workloads where Groq throughput matters more.
+    """
+    errors: list[str] = []
+    if prefer == "groq":
+        try:
+            return _call_groq(system, prompt, max_tokens), "groq"
+        except Exception as exc:
+            errors.append(f"groq={exc}")
     keys = _chat_keys()
     now = time.monotonic()
     with _lock:
         global _next_index
         start = _next_index % len(keys) if keys else 0
 
-    errors: list[str] = []
+    if prefer != "groq":
+        errors = []
     if keys:
         for i in range(len(keys)):
             key = keys[(start + i) % len(keys)]
@@ -114,7 +133,7 @@ def generate_chat(system: str, prompt: str) -> tuple[str, str]:
                 errors.append(f"gemini:{_mask(key)}=cooldown")
                 continue
             try:
-                text = _call_gemini(key, system, prompt)
+                text = _call_gemini(key, system, prompt, max_tokens)
             except Exception as exc:
                 errors.append(f"gemini:{_mask(key)}={exc}")
                 if _is_retryable(exc if isinstance(exc, Exception) else Exception(str(exc))):
@@ -126,12 +145,13 @@ def generate_chat(system: str, prompt: str) -> tuple[str, str]:
                 _cooldown_until.pop(key, None)
             return text, f"gemini:{_mask(key)}"
 
-    try:
-        return _call_groq(system, prompt), "groq"
-    except LLMError as exc:
-        errors.append(f"groq={exc}")
-    except Exception as exc:
-        errors.append(f"groq={exc}")
+    if prefer != "groq":
+        try:
+            return _call_groq(system, prompt, max_tokens), "groq"
+        except LLMError as exc:
+            errors.append(f"groq={exc}")
+        except Exception as exc:
+            errors.append(f"groq={exc}")
 
     raise LLMError("All chat providers failed: " + "; ".join(errors) if errors else "No chat provider configured")
 

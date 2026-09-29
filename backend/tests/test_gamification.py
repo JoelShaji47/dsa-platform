@@ -126,7 +126,7 @@ def test_first_blood_awarded_once_and_stats_update(monkeypatch):
     assert second["new_badges"] == []
 
     stats = client.get("/api/v1/stats/me", headers=headers).json()
-    assert stats["xp"] == 10
+    assert stats["xp"] == 16
     assert stats["total_solved"] == 1
     assert stats["total_submissions"] == 2
     assert stats["acceptance_rate"] == 100.0
@@ -235,7 +235,7 @@ def test_badges_endpoint_returns_full_catalog(monkeypatch):
     res = client.get("/api/v1/badges/me", headers=headers)
     assert res.status_code == 200
     badges = res.json()
-    assert len(badges) == 12
+    assert len(badges) == 13
     assert all(set(b.keys()) == {"criteria", "name", "description", "earned", "earned_at"} for b in badges)
     assert all(b["earned"] is False for b in badges)
 

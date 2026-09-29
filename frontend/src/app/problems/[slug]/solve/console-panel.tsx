@@ -132,13 +132,24 @@ export default function ConsolePanel({
               : `Submit · all ${(submitResult?.test_results.length ?? 0)} cases (${problem.hidden_test_count} hidden)`}
           </p>
           {submitResult && submitResult.xp_awarded > 0 && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
-              <Zap size={14} />
-              +{submitResult.xp_awarded} XP earned
-              {submitResult.current_streak > 1 && (
-                <span className="ml-auto text-xs text-yellow-400/70">
-                  Streak · {submitResult.current_streak}d
-                </span>
+            <div className="mb-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
+              <p className="flex items-center gap-2">
+                <Zap size={14} />
+                +{submitResult.xp_awarded} XP earned
+                {submitResult.current_streak > 1 && (
+                  <span className="ml-auto text-xs text-yellow-400/70">
+                    Streak · {submitResult.current_streak}d
+                  </span>
+                )}
+              </p>
+              {submitResult.xp_breakdown && (
+                <p className="mt-1 font-mono text-[11px] text-yellow-400/70">
+                  base {submitResult.xp_breakdown.base}
+                  {submitResult.xp_breakdown.streak_mult > 1 &&
+                    ` · streak ×${submitResult.xp_breakdown.streak_mult}`}
+                  {submitResult.xp_breakdown.clean_mult > 1 && " · clean ×1.25"}
+                  {submitResult.xp_breakdown.weak_mult > 1 && " · comeback ×1.25"}
+                </p>
               )}
             </div>
           )}

@@ -19,7 +19,7 @@ from app.schemas.submission import (
     VisibleTestResult,
 )
 from app.services.activity import RUN, SUBMIT, log_event
-from app.services.gamification import award_new_badges, award_xp, update_streak
+from app.services.gamification import award_new_badges, log_xp, score_solve, update_streak
 from app.services.grader import ModeError, build_source, function_modes_for, RUN_VISIBLE_CASE_LIMIT, grade_code, truncate_output
 from app.services.judge0 import Judge0Error, submit
 from app.services.tutor import has_used_hints
@@ -307,13 +307,25 @@ async def submit_solution(
 
     xp_awarded = 0
     xp_forfeited = False
+    xp_breakdown: dict = {}
     if result.status == SubmissionStatus.ACCEPTED:
         if not already_solved:
-            if has_used_hints(db, current_user.id, problem.id):
+            hints_used = has_used_hints(db, current_user.id, problem.id)
+            if hints_used:
                 xp_forfeited = True
             else:
-                xp_awarded = award_xp(current_user, problem.difficulty)
-                current_user.xp += xp_awarded
+                prior_attempts = (
+                    db.query(Submission.id)
+                    .filter(
+                        Submission.user_id == current_user.id,
+                        Submission.problem_id == problem.id,
+                    )
+                    .count()
+                )
+                xp_awarded, xp_breakdown = score_solve(
+                    db, current_user, problem, hints_used, prior_attempts
+                )
+                log_xp(db, current_user, xp_awarded, "solve", problem.id)
         update_streak(current_user)
 
     # Build per-test feedback: visible cases carry the full diff context,
@@ -386,6 +398,7 @@ async def submit_solution(
         memory_kb=submission.memory_kb or 0.0,
         xp_awarded=xp_awarded,
         xp_forfeited=xp_forfeited,
+        xp_breakdown=xp_breakdown,
         user_xp=current_user.xp,
         current_streak=current_user.current_streak,
         new_badges=new_badges,

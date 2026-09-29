@@ -30,6 +30,14 @@ class User(Base):
     current_streak: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
+    # Streak-freeze inventory (bought with XP in the shop, auto-consumed).
+    streak_freezes: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
+    # League tier index into services.leagues.TIERS (default Bronze).
+    league_tier: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
     last_active_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

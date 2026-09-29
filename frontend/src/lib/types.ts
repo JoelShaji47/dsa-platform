@@ -102,6 +102,13 @@ export interface SubmissionResultOut {
   memory_kb: number;
   xp_awarded: number;
   xp_forfeited: boolean;
+  xp_breakdown: {
+    base: number;
+    streak_mult: number;
+    clean_mult: number;
+    weak_mult: number;
+    total: number;
+  } | null;
   user_xp: number;
   current_streak: number;
   new_badges: string[];
@@ -285,4 +292,37 @@ export interface ReviewDueItem {
   solved_at: string;
   hints_used: number;
   attempts: number;
+}
+
+export interface LeagueMember {
+  user_id: string;
+  username: string;
+  xp: number;
+  rank: number;
+  zone: "promote" | "hold" | "relegate";
+  is_me: boolean;
+}
+
+export interface LeagueInfo {
+  id: string;
+  tier: number;
+  tier_name: string;
+  week_start: string;
+  week_end: string;
+  size: number;
+  my_rank: number | null;
+  my_xp: number;
+  last_week_movement: number | null;
+}
+
+export interface ShopStatus {
+  xp: number;
+  freezes: number;
+  items: {
+    id: string;
+    name: string;
+    description: string;
+    cost: number;
+    max_holding: number;
+  }[];
 }

@@ -197,18 +197,18 @@ def test_submit_accepted_awards_xp_and_streak(monkeypatch):
     assert res.status_code == 200
     body = res.json()
     assert body["status"] == "ACCEPTED"
-    assert body["xp_awarded"] == 10
-    assert body["user_xp"] == 10
+    assert body["xp_awarded"] == 16
+    assert body["user_xp"] == 16
     assert body["current_streak"] == 1
 
     user = get_user(user_id)
-    assert user.xp == 10
+    assert user.xp == 16
     assert user.current_streak == 1
     assert user.last_active_date == date.today()
     assert submission_count(user_id) == 1
 
     stored = client.get("/api/v1/auth/me", headers=headers).json()
-    assert stored["xp"] == 10
+    assert stored["xp"] == 16
 
 
 def test_submit_wrong_answer_records_but_rewards_nothing(monkeypatch):
@@ -265,9 +265,9 @@ def test_detail_reports_hidden_test_count():
 @pytest.mark.parametrize(
     "slug,expected_xp",
     [
-        ("two-sum", 10),
-        ("maximum-subarray", 20),
-        ("first-missing-positive", 40),
+        ("two-sum", 16),
+        ("maximum-subarray", 31),
+        ("first-missing-positive", 62),
     ],
 )
 def test_xp_scales_with_difficulty_once_only(monkeypatch, slug, expected_xp):

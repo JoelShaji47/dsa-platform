@@ -1,4 +1,5 @@
 from app.seeds.data_arrays import ARRAY_PROBLEMS
+from app.seeds.data_authored import AUTHORED_PROBLEMS
 from app.seeds.data_graphs_dp import GRAPHS_DP
 from app.seeds.data_linked_stack import LINKED_STACK
 from app.seeds.data_neetcode150 import NEETCODE_150
@@ -12,6 +13,7 @@ from app.seeds.data_tuf_a2z import TUF_A2Z
 # NeetCode 250 delta and the Striver A2Z catalog (both contain only slugs absent
 # from everything before them — overlaps merge via source tags in seed.py).
 _PROBLEMS_RAW = [
+    *AUTHORED_PROBLEMS,
     *ARRAY_PROBLEMS,
     *STRINGS,
     *LINKED_STACK,

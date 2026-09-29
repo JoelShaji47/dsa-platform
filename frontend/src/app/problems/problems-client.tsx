@@ -337,7 +337,7 @@ export default function ProblemsClient() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-12">Status</TableHead>
-                      <TableHead className="w-14">#</TableHead>
+                      <TableHead className="hidden w-14 sm:table-cell">#</TableHead>
                       <TableHead>
                         <button
                           onClick={() => toggleSort("title")}
@@ -350,7 +350,7 @@ export default function ProblemsClient() {
                           />
                         </button>
                       </TableHead>
-                      <TableHead>Topic</TableHead>
+                      <TableHead className="hidden md:table-cell">Topic</TableHead>
                       <TableHead>
                         <button
                           onClick={() => toggleSort("difficulty")}
@@ -378,7 +378,7 @@ export default function ProblemsClient() {
                             <span className="block h-7 w-7 rounded-full border-[1.5px] border-dashed border-ink/20" />
                           )}
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-ink-faint">
+                        <TableCell className="hidden font-mono text-xs text-ink-faint sm:table-cell">
                           {safePage * PAGE_SIZE + i + 1}
                         </TableCell>
                         <TableCell>
@@ -389,7 +389,7 @@ export default function ProblemsClient() {
                             {p.title}
                           </Link>
                         </TableCell>
-                        <TableCell className="eyebrow">
+                        <TableCell className="eyebrow hidden md:table-cell">
                           {p.topic.replace("_", " ")}
                         </TableCell>
                         <TableCell>

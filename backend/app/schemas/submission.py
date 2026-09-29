@@ -77,6 +77,7 @@ class SubmissionResultOut(BaseModel):
     memory_kb: float
     xp_awarded: int
     xp_forfeited: bool = False
+    xp_breakdown: dict = {}
     user_xp: int
     current_streak: int
     new_badges: list[str] = []
