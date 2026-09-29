@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.db.session import SessionLocal
 from app.main import app
-from app.models.enums import Difficulty, Language, SubmissionStatus
+from app.models.enums import Difficulty, Language, SubmissionStatus, Topic
 from app.models.interaction import InteractionEvent
 from app.models.problem import Problem
 from app.models.submission import Submission
@@ -108,11 +108,61 @@ def test_run_uses_visible_tests_only_and_persists_nothing(monkeypatch):
     assert res.status_code == 200
     body = res.json()
     assert body["status"] == "ACCEPTED"
-    assert seen_cases["count"] == 2
+    assert seen_cases["count"] == 3
     assert seen_cases["any_hidden"] is False
-    assert len(body["test_results"]) == 2
+    assert len(body["test_results"]) == 3
     assert body["test_results"][0]["input"] == "4\n2 7 11 15\n9\n"
     assert submission_count(user_id) == 0
+
+
+def test_run_caps_visible_cases_at_three(monkeypatch):
+    seen_cases = {}
+
+    async def spy(source_code, language, test_cases):
+        seen_cases["count"] = len(test_cases)
+        return GradeResult(
+            status=SubmissionStatus.ACCEPTED,
+            test_results=[
+                Outcome(index=i, hidden=False, passed=True, status_key="ACCEPTED")
+                for i in range(len(test_cases))
+            ],
+        )
+
+    monkeypatch.setattr("app.api.v1.problems.grade_code", spy)
+    headers, _ = register_and_login()
+
+    slug = f"cap-{uuid.uuid4().hex[:8]}"
+    with SessionLocal() as db:
+        db.add(
+            Problem(
+                title="Cap",
+                slug=slug,
+                description="# Cap\n\n## Example\n\n**Input**\n```\n1\n```\n",
+                difficulty=Difficulty.EASY,
+                topic=Topic.ARRAY,
+                starter_code={"python": "print(1)"},
+                test_cases=[
+                    {"input": f"{i}\n", "expected_output": str(i), "is_hidden": False}
+                    for i in range(4)
+                ]
+                + [{"input": "9\n", "expected_output": "9", "is_hidden": True}],
+            )
+        )
+        db.commit()
+    try:
+        res = client.post(
+            f"/api/v1/problems/{slug}/run",
+            json={"language": "python", "source_code": "print('x')"},
+            headers=headers,
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert seen_cases["count"] == 3
+        assert len(body["test_results"]) == 3
+    finally:
+        with SessionLocal() as db:
+            db.query(Problem).filter(Problem.slug == slug).delete()
+            db.commit()
 
 
 def test_run_unknown_slug_404():
@@ -194,9 +244,9 @@ def test_submit_masks_hidden_tests(monkeypatch):
     assert len(results) == 5
     visible = [c for c in results if not c["hidden"]]
     hidden = [c for c in results if c["hidden"]]
-    # two-sum seed: 2 visible + 3 hidden
-    assert len(visible) == 2
-    assert len(hidden) == 3
+    # two-sum seed: 3 visible + 2 hidden
+    assert len(visible) == 3
+    assert len(hidden) == 2
     for case in visible:
         assert case["input"] == "4\n2 7 11 15\n9\n" or case["input"]
         assert "expected_output" in case and case["expected_output"]
@@ -208,8 +258,8 @@ def test_submit_masks_hidden_tests(monkeypatch):
 def test_detail_reports_hidden_test_count():
     headers, _ = register_and_login()
     body = client.get("/api/v1/problems/two-sum", headers=headers).json()
-    assert body["hidden_test_count"] == 3
-    assert len(body["test_cases"]) == 2
+    assert body["hidden_test_count"] == 2
+    assert len(body["test_cases"]) == 3
 
 
 @pytest.mark.parametrize(
@@ -342,3 +392,68 @@ def test_language_enum_values_accepted(monkeypatch):
             headers=headers,
         )
         assert res.status_code == 200
+
+
+def test_custom_run_returns_stdout_without_storing(monkeypatch):
+    async def fake_submit(source_code, language, stdin):
+        assert language == Language.PYTHON.value
+        assert stdin == "4 2 6"
+        return {
+            "stdout": "6\n",
+            "stderr": None,
+            "compile_output": None,
+            "status_key": "ACCEPTED",
+            "time": 0.012,
+            "memory": 4096,
+        }
+
+    monkeypatch.setattr("app.api.v1.problems.submit", fake_submit)
+    headers, user_id = register_and_login()
+    res = client.post(
+        "/api/v1/custom-run",
+        json={
+            "language": "python",
+            "source_code": "a = list(map(int, input().split()))\nprint(sum(a))",
+            "stdin": "4 2 6",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "ACCEPTED"
+    assert body["status_key"] == "ACCEPTED"
+    assert body["stdout"] == "6\n"
+    assert body["stderr"] is None
+    assert body["runtime_ms"] == 12
+    with SessionLocal() as db:
+        stored = db.query(Submission).filter(Submission.user_id == user_id).count()
+    assert stored == 0
+
+
+def test_custom_run_maps_runtime_error(monkeypatch):
+    async def fake_submit(source_code, language, stdin):
+        return {
+            "stdout": None,
+            "stderr": "Exception in thread main ...",
+            "compile_output": None,
+            "status_key": "RUNTIME_ERROR_UNKNOWN",
+            "time": 0.01,
+            "memory": 8192,
+        }
+
+    monkeypatch.setattr("app.api.v1.problems.submit", fake_submit)
+    headers, _ = register_and_login()
+    res = client.post(
+        "/api/v1/custom-run",
+        json={
+            "language": "java",
+            "source_code": "class Main { public static void main(String[] a) { int x = 1/0; } }",
+            "stdin": "",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "RUNTIME_ERROR"
+    assert body["stdout"] is None
+    assert "Exception" in (body["stderr"] or "")

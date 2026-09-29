@@ -83,6 +83,15 @@ The `judge0` service runs the `judge0/judge0:latest` (linux/amd64) image. On App
 
 3. **No per-process limits** — `isolate`'s per-process time/memory isolation fails under Rosetta (`rosetta error: mmap_anonymous_rw mmap failed`). The backend therefore sends `enable_per_process_and_thread_time_limit` and `enable_per_process_and_thread_memory_limit` as `false` (top-level `memory_limit` alone works fine). Java's memory limit is capped at 512 MB (`512000` KB, Judge0's max).
 
+### Windows / WSL2 hosts (cgroup v2)
+
+The three items above are macOS-specific. On Windows the situation is inverted: Docker Desktop uses cgroup v2, where `/sys/fs/cgroup/memory` and `/sys/fs/cgroup/cpu` do not exist, so `isolate`'s `--cg` path fails every submission with `status_id 13` (`Failed to create control group /sys/fs/cgroup/memory/box-N/`).
+
+- **Fix**: the backend sends `enable_per_process_and_thread_time_limit` and `enable_per_process_and_thread_memory_limit` as `true`. That makes `isolate` use `-m`/`-t` instead of `--cg`, so no cgroup hierarchy is needed. Python and C++ execute normally.
+- **Cgroup v1 cannot be forced.** Docker Desktop 29.x mounts only `cgroup2` (read-only) in the WSL2 backend. Setting `"DeprecatedCgroupv1": true` in `C:\Users\joels\AppData\Roaming\Docker\settings-store.json` is accepted by the file but ignored by the engine.
+- **Java needs a larger memory limit.** Without `--cg`, `-m` is enforced as `RLIMIT_AS` (virtual address space). The JVM reserves far more address space than its actual heap, so it fails to start at 512 MB with `Could not reserve enough space for 256000KB object heap`. `MEMORY_LIMITS_KB["java"]` is set to `4096000`, and Judge0's `MAX_MEMORY_LIMIT` in `docker-compose.yml` is raised to match (the default 512000 ceiling otherwise rejects higher values with HTTP 422). The trade-off is that Java's real memory use is bounded only loosely; typical DSA submissions use ~40 MB.
+- The flag values are therefore **host-dependent**. Confirm with `docker info` → `Cgroup Version:` before changing them.
+
 If Judge0 ever stops executing, re-verify these three, then test directly:
 
 ```bash

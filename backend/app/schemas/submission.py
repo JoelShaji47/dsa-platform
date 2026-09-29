@@ -13,6 +13,24 @@ class SubmitPayload(BaseModel):
     mode: Literal["main", "function"] = "main"
 
 
+class CustomRunPayload(BaseModel):
+    """User-supplied stdin for an exploratory run (never graded or stored)."""
+
+    language: Language
+    source_code: str = Field(min_length=1)
+    stdin: str = ""
+
+
+class CustomRunOut(BaseModel):
+    status_key: str
+    status: SubmissionStatus | None = None
+    stdout: str | None = None
+    stderr: str | None = None
+    compile_output: str | None = None
+    runtime_ms: float
+    memory_kb: float
+
+
 class TestResultOut(BaseModel):
     index: int
     passed: bool
@@ -22,6 +40,7 @@ class VisibleTestResult(TestResultOut):
     input: str
     expected_output: str
     actual_output: str | None
+    stderr: str | None = None
     status_key: str
 
 
@@ -48,6 +67,7 @@ class SubmitTestResult(BaseModel):
     input: str | None = None
     expected_output: str | None = None
     actual_output: str | None = None
+    stderr: str | None = None
 
 
 class SubmissionResultOut(BaseModel):

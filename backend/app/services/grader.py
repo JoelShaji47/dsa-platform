@@ -6,6 +6,8 @@ from app.services.judge0 import Judge0Error, submit
 
 MAX_OUTPUT_CHARS = 10_000
 
+RUN_VISIBLE_CASE_LIMIT = 3
+
 
 @dataclass
 class TestOutcome:
@@ -19,6 +21,7 @@ class TestOutcome:
     input: str = ""
     expected_output: str = ""
     actual_output: str | None = None
+    stderr: str | None = None
 
 
 @dataclass
@@ -105,10 +108,12 @@ async def _run_test(source_code: str, language: str, index: int, case: dict) -> 
     if execution_status is not None:
         outcome.status = execution_status
         if execution_status == SubmissionStatus.COMPILATION_ERROR:
-            outcome.actual_output = truncate_output(result.get("compile_output"))
+            outcome.stderr = truncate_output(result.get("compile_output"))
         else:
-            stderr_excerpt = result.get("stderr") or result.get("compile_output")
-            outcome.actual_output = truncate_output(stderr_excerpt)
+            outcome.stderr = truncate_output(
+                result.get("stderr") or result.get("compile_output")
+            )
+        outcome.actual_output = truncate_output(result.get("stdout"))
         return outcome
 
     outcome.actual_output = truncate_output(result.get("stdout"))

@@ -16,8 +16,8 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <p className="text-slate-400">Loading...</p>
+      <div className="atlas-bg flex min-h-screen items-center justify-center">
+        <p className="text-ink-faint">Loading...</p>
       </div>
     );
   }

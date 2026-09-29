@@ -308,6 +308,7 @@ def _build_user_state(
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .distinct()
         .all()
@@ -318,7 +319,10 @@ def _build_user_state(
 
     attempt_rows = (
         db.query(Submission.problem_id, func.count(Submission.id))
-        .filter(Submission.user_id == user.id)
+        .filter(
+            Submission.user_id == user.id,
+            Submission.test_session_id.is_(None),
+        )
         .group_by(Submission.problem_id)
         .all()
     )
@@ -610,6 +614,7 @@ def get_review_due(db: Session, user: User, older_than_days: int = 7, limit: int
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .order_by(Submission.submitted_at)
         .all()
@@ -667,21 +672,20 @@ def get_activity(db: Session, user: User, days: int = 140) -> dict:
     the trailing `days` days (oldest to newest) so the frontend can render a
     submission calendar where each day the user solved shows up as a tile.
     """
-    from datetime import date, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    start = date.today() - timedelta(days=days - 1)
+    start = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+    day_expr = func.date(func.timezone("UTC", Submission.submitted_at))
 
     rows = (
-        db.query(
-            func.date(Submission.submitted_at).label("day"),
-            func.count(Submission.id).label("n"),
-        )
+        db.query(day_expr.label("day"), func.count(Submission.id).label("n"))
         .filter(
             Submission.user_id == user.id,
             Submission.status == SubmissionStatus.ACCEPTED,
-            func.date(Submission.submitted_at) >= start,
+            Submission.test_session_id.is_(None),
+            day_expr >= start,
         )
-        .group_by(func.date(Submission.submitted_at))
+        .group_by(day_expr)
         .all()
     )
     counts = {str(day): int(n) for day, n in rows}

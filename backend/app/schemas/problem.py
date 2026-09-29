@@ -13,6 +13,7 @@ class ProblemListItem(BaseModel):
     difficulty: Difficulty
     topic: Topic
     solved: bool
+    solvable: bool = False
     sources: list[str] = []
     pattern_key: str | None = None
 

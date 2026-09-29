@@ -11,7 +11,7 @@ LANGUAGE_IDS = {
 MEMORY_LIMITS_KB = {
     "python": 256000,
     "cpp": 256000,
-    "java": 512000,
+    "java": 4096000,
 }
 
 STATUS_CODES = {
@@ -63,8 +63,8 @@ async def submit(source_code: str, language: str, stdin: str = "") -> dict:
         "stdin": stdin,
         "cpu_time_limit": 5,
         "memory_limit": MEMORY_LIMITS_KB.get(language, 256000),
-        "enable_per_process_and_thread_time_limit": False,
-        "enable_per_process_and_thread_memory_limit": False,
+        "enable_per_process_and_thread_time_limit": True,
+        "enable_per_process_and_thread_memory_limit": True,
     }
 
     async with httpx.AsyncClient(timeout=30) as client:

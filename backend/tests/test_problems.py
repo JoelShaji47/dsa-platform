@@ -46,8 +46,20 @@ def test_list_returns_all_seeded_problems():
     body = res.json()
     assert len(body) >= 149
     for item in body:
-        assert set(item.keys()) == {"id", "title", "slug", "difficulty", "topic", "solved", "sources", "pattern_key"}
+        assert set(item.keys()) == {"id", "title", "slug", "difficulty", "topic", "solved", "solvable", "sources", "pattern_key"}
         assert item["solved"] is False
+        assert isinstance(item["solvable"], bool)
+
+
+def test_list_solvable_matches_detail():
+    headers = make_user_and_token()
+    items = client.get("/api/v1/problems", headers=headers).json()
+    assert any(item["solvable"] for item in items)
+    assert any(not item["solvable"] for item in items)
+
+    for item in items[::37]:
+        detail = client.get(f"/api/v1/problems/{item['slug']}", headers=headers).json()
+        assert item["solvable"] == detail["solvable"], item["slug"]
 
 
 def test_filters_by_topic_difficulty_and_search():
@@ -86,7 +98,7 @@ def test_detail_strips_hidden_tests():
     assert body["title"] == "Two Sum"
     assert body["starter_code"]["python"].startswith("import sys")
     visible = body["test_cases"]
-    assert len(visible) == 2
+    assert len(visible) == 3
     assert visible[0]["input"] == "4\n2 7 11 15\n9\n"
     assert visible[0]["expected_output"] == "0 1"
     for case in visible:

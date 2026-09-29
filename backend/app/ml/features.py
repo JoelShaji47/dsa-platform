@@ -74,7 +74,12 @@ def build_training_frame(db: Session) -> pd.DataFrame:
 
     users: dict = {u.id: u for u in db.query(User).all()}
 
-    submissions = db.query(Submission).order_by(Submission.submitted_at).all()
+    submissions = (
+        db.query(Submission)
+        .filter(Submission.test_session_id.is_(None))
+        .order_by(Submission.submitted_at)
+        .all()
+    )
     hint_rows = db.query(HintUsage).all()
     events = db.query(InteractionEvent).all()
 

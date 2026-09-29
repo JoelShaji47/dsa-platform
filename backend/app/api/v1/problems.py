@@ -9,6 +9,8 @@ from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.problem import ProblemDetail, ProblemListItem
 from app.schemas.submission import (
+    CustomRunOut,
+    CustomRunPayload,
     RunResultOut,
     SubmissionHistoryItem,
     SubmissionResultOut,
@@ -18,11 +20,12 @@ from app.schemas.submission import (
 )
 from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, award_xp, update_streak
-from app.services.grader import ModeError, build_source, function_modes_for, grade_code
-from app.services.judge0 import Judge0Error
+from app.services.grader import ModeError, build_source, function_modes_for, RUN_VISIBLE_CASE_LIMIT, grade_code, truncate_output
+from app.services.judge0 import Judge0Error, submit
 from app.services.tutor import has_used_hints
 
 router = APIRouter(prefix="/problems", tags=["problems"])
+custom_router = APIRouter(prefix="/custom-run", tags=["custom-run"])
 
 
 def _solved_problem_ids(db: Session, user_id) -> set:
@@ -31,6 +34,7 @@ def _solved_problem_ids(db: Session, user_id) -> set:
         .filter(
             Submission.user_id == user_id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .distinct()
         .all()
@@ -68,6 +72,7 @@ def list_problems(
             difficulty=p.difficulty,
             topic=p.topic,
             solved=p.id in solved_ids,
+            solvable=bool(p.starter_code and p.test_cases),
             sources=p.sources or [],
             pattern_key=p.pattern_key,
         )
@@ -172,15 +177,10 @@ async def run_code(
 ) -> RunResultOut:
     problem = _get_problem_or_404(db, slug)
     visible_cases = [
-        case for case in problem.test_cases if not case.get("is_hidden", False)
-    ]
-
-    try:
-        source = build_source(problem, payload.language.value, payload.source_code, payload.mode)
-    except ModeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-        )
+        case
+        for case in problem.test_cases
+        if not case.get("is_hidden", False)
+    ][:RUN_VISIBLE_CASE_LIMIT]
 
     try:
         result = await grade_code(
@@ -210,10 +210,50 @@ async def run_code(
                 input=case["input"],
                 expected_output=case["expected_output"],
                 actual_output=outcome.actual_output,
+                stderr=outcome.stderr,
                 status_key=outcome.status_key,
             )
             for outcome, case in zip(result.test_results, visible_cases)
         ],
+    )
+
+
+def _custom_status(status_key: str) -> SubmissionStatus | None:
+    if status_key == "ACCEPTED":
+        return SubmissionStatus.ACCEPTED
+    if status_key == "COMPILATION_ERROR":
+        return SubmissionStatus.COMPILATION_ERROR
+    if status_key == "TIME_LIMIT_EXCEEDED":
+        return SubmissionStatus.TLE
+    return SubmissionStatus.RUNTIME_ERROR
+
+
+@custom_router.post("", response_model=CustomRunOut)
+async def custom_run(
+    payload: CustomRunPayload,
+    current_user: User = Depends(get_current_user),
+) -> CustomRunOut:
+    """Run the user's code against their own stdin. Exploratory only — not
+    graded, stored, or scored."""
+    try:
+        result = await submit(
+            payload.source_code, payload.language.value, payload.stdin
+        )
+    except Judge0Error as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+
+    status_key = result.get("status_key", "UNKNOWN")
+    stderr = result.get("stderr") or result.get("compile_output")
+    return CustomRunOut(
+        status_key=status_key,
+        status=_custom_status(status_key),
+        stdout=truncate_output(result.get("stdout")),
+        stderr=truncate_output(stderr) if stderr else None,
+        compile_output=truncate_output(result.get("compile_output")),
+        runtime_ms=float(result.get("time") or 0) * 1000,
+        memory_kb=float(result.get("memory") or 0),
     )
 
 
@@ -252,6 +292,7 @@ async def submit_solution(
             Submission.user_id == current_user.id,
             Submission.problem_id == problem.id,
             Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
         )
         .first()
         is not None
@@ -294,6 +335,7 @@ async def submit_solution(
                     input=case.get("input"),
                     expected_output=case.get("expected_output"),
                     actual_output=outcome.actual_output,
+                    stderr=outcome.stderr,
                 )
             )
 
