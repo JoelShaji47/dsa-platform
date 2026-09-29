@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, Integer, String, func, text
+from sqlalchemy import Boolean, Date, DateTime, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +37,14 @@ class User(Base):
     # League tier index into services.leagues.TIERS (default Bronze).
     league_tier: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
+    )
+    # Admin panel access (managed via scripts/make_admin.py).
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+    # League opt-out: left the current week (or removed by an admin).
+    league_opt_out: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
     )
     last_active_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

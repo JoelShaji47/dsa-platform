@@ -21,6 +21,7 @@ import type {
   VisibleTestResult,
 } from "@/lib/types";
 import { useTheme } from "@/context/theme-context";
+import { Coin } from "@/components/coin";
 import { STATUS_STYLES, statusKeyLabel } from "./status-utils";
 
 function TestChip({ passed, index }: { passed: boolean; index: number }) {
@@ -134,7 +135,7 @@ export default function ConsolePanel({
           {submitResult && submitResult.xp_awarded > 0 && (
             <div className="mb-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
               <p className="flex items-center gap-2">
-                <Zap size={14} />
+                <Coin size={15} />
                 +{submitResult.xp_awarded} XP earned
                 {submitResult.current_streak > 1 && (
                   <span className="ml-auto text-xs text-yellow-400/70">

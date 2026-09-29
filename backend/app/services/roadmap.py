@@ -294,7 +294,7 @@ class PatternProgress:
 
 
 def _load_problems(db: Session) -> dict[str, Problem]:
-    return {p.slug: p for p in db.query(Problem).all()}
+    return {p.slug: p for p in db.query(Problem).filter(Problem.is_published.is_(True)).all()}
 
 
 def _build_user_state(
@@ -608,7 +608,7 @@ def get_review_due(db: Session, user: User, older_than_days: int = 7, limit: int
     """
     from datetime import datetime, timedelta, timezone
 
-    problems = {p.id: p for p in db.query(Problem).all()}
+    problems = {p.id: p for p in db.query(Problem).filter(Problem.is_published.is_(True)).all()}
     subs = (
         db.query(Submission)
         .filter(

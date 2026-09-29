@@ -37,6 +37,7 @@ def my_stats(
             func.count(accepted_pairs.c.problem_id).label("solved"),
         )
         .outerjoin(accepted_pairs, accepted_pairs.c.problem_id == Problem.id)
+        .filter(Problem.is_published.is_(True))
         .group_by(Problem.difficulty, Problem.topic)
         .all()
     )

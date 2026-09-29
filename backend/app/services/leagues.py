@@ -87,7 +87,12 @@ def _finalize_league(db: Session, league: League, start: datetime, end: datetime
 
 def _seed_week(db: Session, monday: date) -> None:
     prev_start = monday - timedelta(days=7)
-    users = db.query(User).order_by(User.league_tier, User.created_at).all()
+    users = (
+        db.query(User)
+        .filter(User.league_opt_out.is_(False))
+        .order_by(User.league_tier, User.created_at)
+        .all()
+    )
     if not users:
         return
     # Order cohorts by tier, then by last week's XP (similar activity together).
@@ -137,9 +142,11 @@ def ensure_current_season(db: Session, today: date | None = None) -> date:
     return monday
 
 
-def join_week(db: Session, user: User, monday: date) -> League:
+def join_week(db: Session, user: User, monday: date) -> League | None:
     """Place a mid-week joiner into the smallest fitting cohort (same tier
-    preferred), creating one if every cohort is full."""
+    preferred), creating one if every cohort is full. Opted-out users stay out."""
+    if user.league_opt_out:
+        return None
     tier = user.league_tier or 0
     counts = (
         db.query(League.id, func.count(LeagueMember.id).label("n"))
@@ -163,6 +170,24 @@ def join_week(db: Session, user: User, monday: date) -> League:
     return league
 
 
+def leave_week(db: Session, user: User, today: date | None = None) -> None:
+    """Opt out: removed from this week's board, skipped by future seedings."""
+    user.league_opt_out = True
+    monday = week_start(today)
+    db.query(LeagueMember).filter(
+        LeagueMember.user_id == user.id,
+        LeagueMember.league_id.in_(
+            db.query(League.id).filter(League.week_start == monday)
+        ),
+    ).delete(synchronize_session=False)
+    db.commit()
+
+
+def rejoin_week(db: Session, user: User) -> None:
+    user.league_opt_out = False
+    db.commit()
+
+
 def my_league(db: Session, user: User, today: date | None = None) -> League | None:
     monday = ensure_current_season(db, today)
     member = (
@@ -180,7 +205,12 @@ def board(db: Session, user: User, today: date | None = None) -> dict:
     monday = ensure_current_season(db, today)
     league = my_league(db, user, today)
     if league is None:
-        return {"league": None, "members": []}
+        return {
+            "league": None,
+            "members": [],
+            "opted_out": bool(user.league_opt_out),
+            "tier_name": tier_name(user.league_tier or 0),
+        }
     start, end = week_bounds(monday)
     members = db.query(LeagueMember).filter(LeagueMember.league_id == league.id).all()
     rows = []
@@ -233,7 +263,11 @@ def board(db: Session, user: User, today: date | None = None) -> dict:
 
 def global_board(db: Session, limit: int = 50) -> list[dict]:
     rows = (
-        db.query(User).order_by(User.xp.desc(), User.created_at).limit(limit).all()
+        db.query(User)
+        .filter(User.league_opt_out.is_(False))
+        .order_by(User.xp.desc(), User.created_at)
+        .limit(limit)
+        .all()
     )
     return [
         {
@@ -251,7 +285,7 @@ def monthly_board(db: Session, today: date | None = None, limit: int = 50) -> li
     day = today or date.today()
     start = datetime(day.year, day.month, 1, tzinfo=timezone.utc)
     end = datetime(day.year + (day.month == 12), (day.month % 12) + 1, 1, tzinfo=timezone.utc)
-    users = db.query(User).all()
+    users = db.query(User).filter(User.league_opt_out.is_(False)).all()
     rows = [
         {"username": u.username, "xp": _week_xp(db, u.id, start, end)}
         for u in users
@@ -278,6 +312,7 @@ def pattern_board(db: Session, pattern_key: str, limit: int = 50) -> list[dict]:
         .join(Submission, Submission.user_id == User.id)
         .join(Problem, Problem.id == Submission.problem_id)
         .filter(
+            User.league_opt_out.is_(False),
             Submission.status == SubmissionStatus.ACCEPTED,
             Submission.test_session_id.is_(None),
             Problem.pattern_key == pattern_key,

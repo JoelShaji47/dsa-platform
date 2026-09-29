@@ -141,3 +141,37 @@ def test_global_and_monthly_boards():
     with SessionLocal() as db:
         wide = leagues.monthly_board(db, limit=10000)
     assert any(r["username"] == username and r["xp"] >= 25 for r in wide)
+
+
+def test_leave_rejoin_and_admin_remove():
+    headers, user_id = register()
+    body = client.get("/api/v1/leagues/me", headers=headers).json()
+    assert body["league"] is not None
+
+    left = client.delete("/api/v1/leagues/me", headers=headers).json()
+    assert left["opted_out"] is True
+    gone = client.get("/api/v1/leagues/me", headers=headers).json()
+    assert gone["league"] is None
+    assert gone["opted_out"] is True
+
+    back = client.post("/api/v1/leagues/rejoin", headers=headers).json()
+    assert back["league"] is not None
+
+    admin_h, admin_id = register()
+    with SessionLocal() as db:
+        from app.models.user import User as _U
+
+        db.query(_U).filter(_U.id == admin_id).one().is_admin = True
+        db.commit()
+    removed = client.delete(
+        f"/api/v1/admin/league-members/{user_id}", headers=admin_h
+    ).json()
+    assert removed["opted_out"] is True
+    assert client.get("/api/v1/leagues/me", headers=headers).json()["league"] is None
+
+    # non-admin cannot remove
+    other_h, _ = register()
+    assert (
+        client.delete(f"/api/v1/admin/league-members/{user_id}", headers=other_h).status_code
+        == 403
+    )

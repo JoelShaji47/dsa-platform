@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import ProtectedRoute from "@/components/protected-route";
 import { TopBar, UserChip } from "@/components/shell";
+import { Coin } from "@/components/coin";
 import { useAuth } from "@/context/auth-context";
 import client from "@/lib/api";
 import type {
@@ -186,7 +187,7 @@ export default function CampaignPage() {
               </section>
 
               <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <StatCard eyebrow="Total XP" value={stats.xp} accent="bg-gold" />
+                <StatCard eyebrow="Total XP" value={<span className="inline-flex items-center gap-2"><Coin size={26} />{stats.xp}</span>} accent="bg-gold" />
                 <StatCard eyebrow="Streak" value={stats.current_streak} unit="days" accent="bg-rust" />
                 <StatCard eyebrow="Solved" value={stats.total_solved} accent="bg-quest" />
                 <StatCard eyebrow="Acceptance" value={`${stats.acceptance_rate}%`} accent="bg-ink" />
@@ -246,12 +247,17 @@ export default function CampaignPage() {
                       ) : (
                         <Zap size={14} />
                       )}
-                      Buy · 100 XP
+                      <Coin size={14} />
+                      Buy · 100
                     </button>
                   </div>
                   <p className="mt-3 flex items-center gap-2 text-sm text-ink-soft">
                     <Shield size={14} className="text-quest" />
-                    Holding {shop?.freezes ?? 0}/3 · balance {shop?.xp ?? stats.xp} XP
+                    Holding {shop?.freezes ?? 0}/3
+                    <span className="ml-auto inline-flex items-center gap-1.5 font-mono font-bold text-ink">
+                      <Coin size={14} />
+                      {shop?.xp ?? stats.xp}
+                    </span>
                   </p>
                   {shopMsg && (
                     <p className="mt-2 text-xs text-ink-faint">{shopMsg}</p>

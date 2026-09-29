@@ -92,6 +92,9 @@ def main() -> None:
                 payload.setdefault("description", f"Practice: {seed.title}")
                 payload.setdefault("starter_code", {})
                 payload.setdefault("test_cases", [])
+                # New rows publish immediately; admin unpublishes on existing
+                # rows are never clobbered by re-seeds.
+                payload["is_published"] = True
                 problem = Problem(slug=seed.slug, **payload)
                 db.add(problem)
                 # The session runs with autoflush=False, so flush explicitly:

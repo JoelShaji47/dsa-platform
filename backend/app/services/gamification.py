@@ -261,7 +261,10 @@ def _earned_conditions(db: Session, user: User) -> set[str]:
         conditions.add("STREAK_WEEK")
 
     topic_totals = dict(
-        db.query(Problem.topic, func.count(Problem.id)).group_by(Problem.topic).all()
+        db.query(Problem.topic, func.count(Problem.id))
+        .filter(Problem.is_published.is_(True))
+        .group_by(Problem.topic)
+        .all()
     )
     topic_solved: dict = defaultdict(set)
     for problem_id, topic in topics_by_problem.items():

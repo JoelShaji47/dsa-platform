@@ -51,7 +51,7 @@ def list_problems(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ProblemListItem]:
-    query = db.query(Problem)
+    query = db.query(Problem).filter(Problem.is_published.is_(True))
     if topic is not None:
         query = query.filter(Problem.topic == topic)
     if difficulty is not None:
@@ -86,7 +86,7 @@ def get_problem(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProblemDetail:
-    problem = db.query(Problem).filter(Problem.slug == slug).first()
+    problem = db.query(Problem).filter(Problem.slug == slug, Problem.is_published.is_(True)).first()
     if problem is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -127,7 +127,7 @@ def get_problem_submissions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[SubmissionHistoryItem]:
-    problem = db.query(Problem).filter(Problem.slug == slug).first()
+    problem = db.query(Problem).filter(Problem.slug == slug, Problem.is_published.is_(True)).first()
     if problem is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -159,7 +159,7 @@ def get_problem_submissions(
 
 
 def _get_problem_or_404(db: Session, slug: str) -> Problem:
-    problem = db.query(Problem).filter(Problem.slug == slug).first()
+    problem = db.query(Problem).filter(Problem.slug == slug, Problem.is_published.is_(True)).first()
     if problem is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

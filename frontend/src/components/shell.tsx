@@ -117,8 +117,8 @@ export function TopBar({
 
 export function UserChip({ username }: { username: string }) {
   return (
-    <span className="hidden items-center gap-1.5 rounded-full border border-ink/10 bg-white px-3 py-1 text-sm font-medium text-ink shadow-card sm:flex">
-      <span className="h-1.5 w-1.5 rounded-full bg-quest" />
+    <span className="hidden items-center gap-1.5 rounded-full border border-gold/50 bg-gold/15 px-3 py-1 text-sm font-medium text-ink shadow-card sm:flex">
+      <span className="h-1.5 w-1.5 rounded-full bg-gold-deep" />
       {username}
     </span>
   );

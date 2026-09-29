@@ -46,7 +46,7 @@ def _check_assist_rate(user_id) -> None:
 
 
 def _get_problem_or_404(db: Session, slug: str) -> Problem:
-    problem = db.query(Problem).filter(Problem.slug == slug).first()
+    problem = db.query(Problem).filter(Problem.slug == slug, Problem.is_published.is_(True)).first()
     if problem is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

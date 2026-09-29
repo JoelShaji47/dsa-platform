@@ -17,6 +17,24 @@ def my_league(
     return leagues.board(db, current_user)
 
 
+@router.delete("/me")
+def leave_league(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    leagues.leave_week(db, current_user)
+    return {"opted_out": True}
+
+
+@router.post("/rejoin")
+def rejoin_league(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    leagues.rejoin_week(db, current_user)
+    return leagues.board(db, current_user)
+
+
 @router.get("/global")
 def global_board(
     db: Session = Depends(get_db),

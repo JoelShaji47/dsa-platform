@@ -437,6 +437,53 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   }
 }
 
+/* ── League motion (CSS-only Aceternity-style effects) ────── */
+.beam {
+  position: absolute;
+  top: -12%;
+  width: 2px;
+  border-radius: 999px;
+  opacity: 0.35;
+  filter: blur(1px);
+  animation-name: beam-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes beam-drift {
+  from {
+    transform: translateY(-6%) skewX(-8deg);
+    opacity: 0.14;
+  }
+  to {
+    transform: translateY(10%) skewX(8deg);
+    opacity: 0.4;
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.5s ease-out both;
+}
+
+@keyframes rise-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam,
+  .rise-in {
+    animation: none;
+  }
+}
+
 /* ── Dockview workspace theme (solve page) ───────────────────── */
 .dock-root {
   height: 100%;

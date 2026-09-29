@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, String, Text, func, text
+from sqlalchemy import Boolean, DateTime, Enum, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,6 +51,11 @@ class Problem(Base):
     )
     editorial_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Publishing gate: unpublished problems are invisible in library/roadmap/
+    # solve (admin preview only). Seeds always write True.
+    is_published: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("true")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
