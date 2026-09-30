@@ -52,7 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .catch(() => {
           localStorage.removeItem("token");
-          void supabase.auth.signOut();
+          // Only end a Supabase session if one exists — signing out with a
+          // stale/absent token just 403s noise into the console.
+          supabase.auth.getSession().then(({ data }) => {
+            if (data.session) void supabase.auth.signOut().catch(() => {});
+          });
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -116,7 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     setUser(null);
-    void createClient().auth.signOut();
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) void supabase.auth.signOut().catch(() => {});
+    });
   }, []);
 
   return (
