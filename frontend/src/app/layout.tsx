@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
+import ServerWakeGate from "@/components/server-wake-gate";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,7 +26,9 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <ServerWakeGate>
+            <AuthProvider>{children}</AuthProvider>
+          </ServerWakeGate>
         </ThemeProvider>
       </body>
     </html>
