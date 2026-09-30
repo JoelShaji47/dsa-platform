@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.db.session import SessionLocal
 from app.main import app
+from tests.conftest import make_test_user
 from app.models.enums import SubmissionStatus
 from app.models.user import User
 from app.models.xp_event import XpEvent
@@ -18,20 +19,7 @@ client = TestClient(app)
 
 def register_and_login():
     suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": f"shop_{suffix}",
-        "email": f"shop_{suffix}@test.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
-    )
-    token = login.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    user_id = uuid.UUID(client.get("/api/v1/auth/me", headers=headers).json()["id"])
-    return headers, user_id
+    return make_test_user(username=f"shop_{suffix}")
 
 
 def stub_accept(monkeypatch):

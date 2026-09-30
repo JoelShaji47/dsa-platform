@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.db.session import SessionLocal
 from app.main import app
+from tests.conftest import make_test_user
 from app.models.enums import SubmissionStatus
 from app.models.problem import Problem
 from app.models.submission import Submission
@@ -32,21 +33,7 @@ EXPECTED_DIFFICULTY_TOTALS, EXPECTED_TOPIC_TOTALS = _seed_totals()
 
 
 def register_and_login():
-    suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": f"user_{suffix}",
-        "email": f"{suffix}@test.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
-    )
-    token = login.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    user_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
-    return headers, uuid.UUID(user_id)
+    return make_test_user()
 
 
 def stub_accept(monkeypatch):

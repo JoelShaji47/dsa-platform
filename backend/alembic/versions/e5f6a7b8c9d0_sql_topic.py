@@ -1,7 +1,7 @@
 """add SQL to the topic enum
 
-Revision ID: e5f6a7b8c9d0
-Revises: d4e5f6a7b8c9
+Revision ID: e5f6a7b8c9d1
+Revises: b8c9d0e1f2a3
 Create Date: 2026-09-29
 
 Adds the 'SQL' label to the ``topic`` Postgres enum for the standalone SQL
@@ -15,8 +15,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = 'e5f6a7b8c9d0'
-down_revision: Union[str, Sequence[str], None] = 'd4e5f6a7b8c9'
+revision: str = 'e5f6a7b8c9d1'
+down_revision: Union[str, Sequence[str], None] = 'b8c9d0e1f2a3'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

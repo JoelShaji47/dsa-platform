@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import make_test_user
 from app.models.enums import SubmissionStatus
 from app.services.grader import (
     GradeResult,
@@ -50,17 +51,8 @@ def test_function_mode_missing_driver_raises():
 
 def register_and_login():
     suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": f"mode_{suffix}",
-        "email": f"mode_{suffix}@test.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
-    )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    headers, _ = make_test_user(username=f"mode_{suffix}")
+    return headers
 
 
 def stub_grade(monkeypatch):

@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import make_test_user
 from app.services import llm
 from app.services import tutor as tutor_svc
 from app.services.llm import LLMError
@@ -13,17 +14,8 @@ client = TestClient(app)
 
 def register_and_login():
     suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": f"coach_{suffix}",
-        "email": f"coach_{suffix}@test.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
-    )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    headers, _ = make_test_user(username=f"coach_{suffix}")
+    return headers
 
 
 def test_coach_prompt_wraps_untrusted_and_hard_rules():

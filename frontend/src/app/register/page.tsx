@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
   const update = (field: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement>
@@ -21,14 +22,19 @@ export default function RegisterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setVerifyEmail(null);
     setSubmitting(true);
     try {
-      await register(form);
-      router.push("/login");
+      const result = await register(form);
+      if (result.needsVerification) {
+        setVerifyEmail(form.email);
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError(
         (axios.isAxiosError(err) && err.response?.data?.detail) ||
-          "Registration failed."
+          (err instanceof Error ? err.message : "Registration failed.")
       );
     } finally {
       setSubmitting(false);
@@ -108,6 +114,21 @@ export default function RegisterPage() {
               autoComplete="new-password"
             />
           </div>
+          {verifyEmail && (
+            <div className="rounded-xl border border-quest/30 bg-quest/8 px-4 py-3 text-[0.95rem] text-ink">
+              <p className="font-semibold">Check your inbox</p>
+              <p className="mt-0.5 text-ink-soft">
+                We sent a confirmation link to {verifyEmail}. Click it, then{" "}
+                <Link
+                  href="/login"
+                  className="font-semibold text-gold-deep hover:underline"
+                >
+                  log in
+                </Link>
+                .
+              </p>
+            </div>
+          )}
           {error && (
             <p className="rounded-xl border border-rust/30 bg-rust/8 px-4 py-3 text-[0.95rem] text-rust">
               {error}

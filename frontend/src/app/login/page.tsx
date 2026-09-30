@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import axios from "axios";
 import { Brand } from "@/components/shell";
 import { useAuth } from "@/context/auth-context";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -20,16 +19,11 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(identifier, password);
+      await login(email, password);
       router.push("/");
     } catch (err) {
-      const detail = axios.isAxiosError(err)
-        ? err.response?.data?.detail
-        : null;
       setError(
-        detail === "Incorrect email/username or password"
-          ? "That email/username and password combination does not match."
-          : detail || "Cannot reach the server. Try again."
+        err instanceof Error ? err.message : "Cannot reach the server. Try again."
       );
     } finally {
       setSubmitting(false);
@@ -52,20 +46,20 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="mt-7 space-y-5">
           <div>
             <label
-              htmlFor="identifier"
+              htmlFor="email"
               className="mb-1.5 block text-base font-medium text-ink"
             >
-              Email or username
+              Email
             </label>
             <input
-              id="identifier"
-              type="text"
+              id="email"
+              type="email"
               required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="field"
               placeholder="you@example.com"
-              autoComplete="username"
+              autoComplete="email"
             />
           </div>
           <div>

@@ -7,26 +7,16 @@ from fastapi.testclient import TestClient
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.user import User
+from tests.conftest import make_test_user
 
 client = TestClient(app)
 
 
 def register_and_login(username=None):
     suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": username or f"adm_{suffix}",
-        "email": f"{suffix}@admintest.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
+    return make_test_user(
+        username=username or f"adm_{suffix}", domain="admintest.com"
     )
-    token = login.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    user_id = uuid.UUID(client.get("/api/v1/auth/me", headers=headers).json()["id"])
-    return headers, user_id
 
 
 def make_admin(user_id):

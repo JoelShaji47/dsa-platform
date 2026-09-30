@@ -1,33 +1,28 @@
-"""Supabase dual-mode auth: valid Supabase JWT auto-provisions, legacy still works."""
+"""Supabase-only auth: verified tokens auto-provision/link, rest rejected."""
 
 import uuid
 
 from fastapi.testclient import TestClient
 
+from app.api.deps import get_current_user
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.user import User
+from tests.conftest import make_test_user
 
 client = TestClient(app)
 
 
-def register_and_login():
-    suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": f"sb_{suffix}",
-        "email": f"sb_{suffix}@test.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
-    )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+def use_real_auth(monkeypatch):
+    """Drop the suite's test-token override so the real Supabase path runs."""
+    from app.api import deps as deps_module
+
+    monkeypatch.delitem(app.dependency_overrides, get_current_user)
+    return deps_module
 
 
 def test_supabase_token_auto_provisions(monkeypatch):
-    from app.api import deps as deps_module
+    deps_module = use_real_auth(monkeypatch)
 
     sub = f"supabase-uid-{uuid.uuid4().hex[:8]}"
     seen = {}
@@ -57,10 +52,10 @@ def test_supabase_token_auto_provisions(monkeypatch):
 
 
 def test_supabase_token_links_existing_email(monkeypatch):
-    from app.api import deps as deps_module
-
-    headers = register_and_login()
+    headers, _ = make_test_user()
     me = client.get("/api/v1/auth/me", headers=headers).json()
+
+    deps_module = use_real_auth(monkeypatch)
     sub = f"supabase-uid-{uuid.uuid4().hex[:8]}"
 
     def fake_verify(token: str):
@@ -78,14 +73,8 @@ def test_supabase_token_links_existing_email(monkeypatch):
         assert user.supabase_id == sub
 
 
-def test_legacy_login_still_works():
-    headers = register_and_login()
-    r = client.get("/api/v1/auth/me", headers=headers)
-    assert r.status_code == 200
-
-
 def test_garbage_token_rejected(monkeypatch):
-    from app.api import deps as deps_module
+    deps_module = use_real_auth(monkeypatch)
 
     monkeypatch.setattr(deps_module, "verify_supabase_token", lambda token: None)
     r = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer nope"})

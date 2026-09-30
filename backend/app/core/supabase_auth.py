@@ -1,8 +1,7 @@
 """Supabase JWT verification (new sb_* keys are ES256 → JWKS, not HS256).
 
-Dual-mode: valid Supabase tokens resolve to the linked local user
-(auto-provisioned on first sight); legacy local JWTs still work via
-``core.security.decode_access_token`` so existing flows/tests keep passing.
+The sole auth path: valid Supabase tokens resolve to the linked local user
+(auto-provisioned on first sight). No local passwords, no backend JWTs.
 """
 
 import logging

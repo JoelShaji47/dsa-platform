@@ -4,6 +4,7 @@ from collections import Counter
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import make_test_user
 from app.seeds import PROBLEMS
 
 client = TestClient(app)
@@ -19,18 +20,8 @@ def seed_counts():
 
 
 def make_user_and_token():
-    suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": f"user_{suffix}",
-        "email": f"{suffix}@test.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
-    )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    headers, _ = make_test_user()
+    return headers
 
 
 def test_problems_require_auth():

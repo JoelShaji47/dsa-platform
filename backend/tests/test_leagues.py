@@ -7,29 +7,19 @@ from fastapi.testclient import TestClient
 
 from app.db.session import SessionLocal
 from app.main import app
+from tests.conftest import make_test_user
 from app.models.user import User
 from app.services import leagues
-from app.services.gamification import log_xp
+from app.services.gamification import BADGE_DEFINITIONS, log_xp
 
 client = TestClient(app)
 
 
 def register(username=None):
     suffix = uuid.uuid4().hex[:8]
-    data = {
-        "username": username or f"lg_{suffix}",
-        "email": f"{suffix}@leaguetest.com",
-        "password": "supersecret1",
-    }
-    client.post("/api/v1/auth/register", json=data)
-    login = client.post(
-        "/api/v1/auth/login",
-        data={"username": data["email"], "password": data["password"]},
+    return make_test_user(
+        username=username or f"lg_{suffix}", domain="leaguetest.com"
     )
-    token = login.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    user_id = uuid.UUID(client.get("/api/v1/auth/me", headers=headers).json()["id"])
-    return headers, user_id
 
 
 def monday(n_weeks_ago=0):
@@ -66,8 +56,10 @@ def test_rollover_promotes_relegates_and_crowns_champion():
     users = [register() for _ in range(12)]
     last_monday = monday(1)
     with SessionLocal() as db:
-        # Hermetic week: drop newer leagues so forward-rollover finalizes ours.
-        db.query(League).filter(League.week_start > last_monday).delete()
+        # Hermetic week: drop this-week-and-newer leagues so seeding starts
+        # from our 12 users (stale same-week shells from earlier runs would
+        # otherwise swallow the join and shrink the cohort).
+        db.query(League).filter(League.week_start >= last_monday).delete()
         db.commit()
     now = datetime.now(timezone.utc)
     with SessionLocal() as db:
@@ -123,7 +115,7 @@ def test_rollover_promotes_relegates_and_crowns_champion():
             is not None
         )
         badges = client.get("/api/v1/badges/me", headers=users[0][0]).json()
-        assert len(badges) == 13
+        assert len(badges) == len(BADGE_DEFINITIONS)
 
 
 def test_global_and_monthly_boards():
