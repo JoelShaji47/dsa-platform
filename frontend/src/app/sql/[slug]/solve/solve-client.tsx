@@ -64,7 +64,6 @@ export default function SqlSolveClient() {
   const [submissions, setSubmissions] = useState<SubmissionHistoryItem[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachProvider, setCoachProvider] = useState<string | null>(null);
@@ -344,8 +343,28 @@ export default function SqlSolveClient() {
     [coachMessages, submitResult, runResult, slug, code, includeCode]
   );
 
+  const openCoach = useCallback(() => {
+    if (!dockApi) return;
+    try {
+      const existing = dockApi.getPanel("coach");
+      if (existing) {
+        existing.focus();
+        return;
+      }
+    } catch {
+    }
+    try {
+      dockApi.addPanel({
+        id: "coach",
+        title: "Coach",
+        component: "coach",
+        position: { referencePanel: "code", direction: "right" },
+      });
+    } catch {
+    }
+  }, [dockApi]);
+
   const closeCoach = useCallback(() => {
-    setAssistantOpen(false);
     try {
       dockApi?.getPanel("coach")?.api.close();
     } catch {
@@ -372,40 +391,18 @@ export default function SqlSolveClient() {
       component: "console",
       position: { referencePanel: "code", direction: "below" },
     });
+    api.addPanel({
+      id: "coach",
+      title: "Coach",
+      component: "coach",
+      position: { referencePanel: "code", direction: "right" },
+    });
     try {
       api.getPanel("description")?.focus();
     } catch {
     }
     setDockApi(api);
   }, []);
-
-  // Keep the dock coach tab in sync with the toggle.
-  useEffect(() => {
-    if (!dockApi) return;
-    const existing = (() => {
-      try {
-        return dockApi.getPanel("coach");
-      } catch {
-        return undefined;
-      }
-    })();
-    if (assistantOpen && !existing) {
-      try {
-        dockApi.addPanel({
-          id: "coach",
-          title: "Coach",
-          component: "coach",
-          position: { referencePanel: "code", direction: "right" },
-        });
-      } catch {
-      }
-    } else if (!assistantOpen && existing) {
-      try {
-        existing.api.close();
-      } catch {
-      }
-    }
-  }, [dockApi, assistantOpen]);
 
   const contextNote = useMemo(() => {
     const s = submitResult || runResult;
@@ -529,13 +526,9 @@ export default function SqlSolveClient() {
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-2">
           <ThemeToggle dark />
           <button
-            onClick={() => setAssistantOpen((o) => !o)}
-            title="Toggle coach"
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-              assistantOpen
-                ? "border-violet-400/50 bg-violet-500/15 text-violet-200"
-                : "border-white/10 bg-[#252540] text-gray-300 hover:border-white/20 hover:text-gray-100"
-            }`}
+            onClick={openCoach}
+            title="Open coach"
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100"
           >
             <Brain size={13} />
             Coach

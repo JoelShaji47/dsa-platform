@@ -13,6 +13,7 @@ import type {
   SubmissionStatus,
 } from "@/lib/types";
 import type { CoachMessage } from "./assistant-panel";
+import type { EditableCase } from "./console-panel";
 
 export interface DockValue {
   problem: ProblemDetail;
@@ -43,6 +44,11 @@ export interface DockValue {
   shownStatus: SubmissionStatus | undefined;
   consoleTab: string;
   setConsoleTab: (t: string) => void;
+  editableCases: EditableCase[];
+  onEditCase: (index: number, field: "input" | "expected_output", value: string) => void;
+  onRunEditableCases: () => void;
+  editableRunning: boolean;
+  onResetEditableCases: () => void;
   review: ReviewOut | null;
   reviewLoading: boolean;
   fetchReview: () => void;

@@ -1,9 +1,12 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.enums import Difficulty, SubmissionStatus, Topic
+from app.models.enums import Difficulty, Language, SubmissionStatus, Topic
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
@@ -18,6 +21,7 @@ from app.schemas.submission import (
     SubmitTestResult,
     VisibleTestResult,
 )
+from app.schemas.test import CustomCaseIn
 from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, log_xp, score_solve, update_streak
 from app.services.grader import ModeError, build_source, function_modes_for, RUN_VISIBLE_CASE_LIMIT, grade_code, truncate_output
@@ -221,6 +225,62 @@ async def run_code(
                 status_key=outcome.status_key,
             )
             for outcome, case in zip(result.test_results, visible_cases)
+        ],
+    )
+
+
+class CustomCasesPayload(BaseModel):
+    """Grade code against the user's edited sample cases (plus current
+    language/mode). Exploratory only — never stored, never scored."""
+
+    language: Language
+    source_code: str = Field(min_length=1)
+    mode: Literal["main", "function"] = "main"
+    test_cases: list[CustomCaseIn] = Field(min_length=1, max_length=10)
+
+
+@router.post("/{slug}/run-cases", response_model=RunResultOut)
+async def run_custom_cases(
+    slug: str,
+    payload: CustomCasesPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResultOut:
+    problem = _get_problem_or_404(db, slug)
+
+    try:
+        source = build_source(problem, payload.language.value, payload.source_code, payload.mode)
+    except ModeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+
+    cases = [
+        {"input": case.input, "expected_output": case.expected_output}
+        for case in payload.test_cases
+    ]
+    try:
+        result = await grade_code(source, payload.language.value, cases)
+    except Judge0Error as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+
+    return RunResultOut(
+        status=result.status,
+        runtime_ms=result.runtime_ms,
+        memory_kb=result.memory_kb,
+        test_results=[
+            VisibleTestResult(
+                index=outcome.index,
+                passed=outcome.passed,
+                input=case["input"],
+                expected_output=case["expected_output"],
+                actual_output=outcome.actual_output,
+                stderr=outcome.stderr,
+                status_key=outcome.status_key,
+            )
+            for outcome, case in zip(result.test_results, cases)
         ],
     )
 

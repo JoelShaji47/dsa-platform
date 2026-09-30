@@ -69,6 +69,53 @@ def test_run_and_submit_require_auth():
     payload = {"language": "python", "source_code": "print(1)"}
     assert client.post("/api/v1/problems/two-sum/run", json=payload).status_code == 401
     assert client.post("/api/v1/problems/two-sum/submit", json=payload).status_code == 401
+    assert (
+        client.post("/api/v1/problems/two-sum/run-cases", json={
+            "language": "python",
+            "source_code": "print(1)",
+            "test_cases": [{"input": "1", "expected_output": "1"}],
+        }).status_code
+        == 401
+    )
+
+
+def test_run_cases_grades_edited_cases_and_stores_nothing(monkeypatch):
+    seen = {}
+
+    async def spy(source_code, language, test_cases):
+        seen["cases"] = [dict(c) for c in test_cases]
+        seen["language"] = language
+        return GradeResult(
+            status=SubmissionStatus.ACCEPTED,
+            test_results=[
+                Outcome(index=i, hidden=False, passed=True, status_key="ACCEPTED")
+                for i in range(len(test_cases))
+            ],
+        )
+
+    monkeypatch.setattr("app.api.v1.problems.grade_code", spy)
+    headers, user_id = register_and_login()
+    before = submission_count(user_id)
+    res = client.post(
+        "/api/v1/problems/two-sum/run-cases",
+        json={
+            "language": "python",
+            "source_code": "print(1)",
+            "mode": "main",
+            "test_cases": [
+                {"input": "9\n", "expected_output": "9"},
+                {"input": "8\n", "expected_output": "8"},
+            ],
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "ACCEPTED"
+    assert [t["input"] for t in body["test_results"]] == ["9\n", "8\n"]
+    assert [t["expected_output"] for t in body["test_results"]] == ["9", "8"]
+    assert seen["language"] == "python"
+    assert submission_count(user_id) == before
 
 
 def test_run_uses_visible_tests_only_and_persists_nothing(monkeypatch):

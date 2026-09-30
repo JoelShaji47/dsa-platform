@@ -25,6 +25,7 @@ import type {
   SubmissionStatus,
 } from "@/lib/types";
 import { type CoachMessage } from "./assistant-panel";
+import type { EditableCase } from "./console-panel";
 import { DockContext, type DockValue } from "./dock-context";
 import {
   CoachTabPanel,
@@ -71,11 +72,12 @@ export default function SolveClient() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [consoleTab, setConsoleTab] = useState("testcase");
   const [runCount, setRunCount] = useState(0);
+  const [caseEdits, setCaseEdits] = useState<EditableCase[] | null>(null);
+  const [editableRunning, setEditableRunning] = useState(false);
 
   const [submissions, setSubmissions] = useState<SubmissionHistoryItem[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachProvider, setCoachProvider] = useState<string | null>(null);
@@ -157,6 +159,58 @@ export default function SolveClient() {
     } catch {
     }
   }, [dockApi]);
+
+  const editableCases: EditableCase[] = useMemo(
+    () =>
+      caseEdits ??
+      (problem?.test_cases ?? []).map((c) => ({
+        input: c.input,
+        expected_output: c.expected_output,
+      })),
+    [caseEdits, problem]
+  );
+
+  const onEditCase = useCallback(
+    (index: number, field: "input" | "expected_output", value: string) => {
+      const base =
+        caseEdits ??
+        (problem?.test_cases ?? []).map((c) => ({
+          input: c.input,
+          expected_output: c.expected_output,
+        }));
+      setCaseEdits(base.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+    },
+    [caseEdits, problem]
+  );
+
+  const onResetEditableCases = useCallback(() => {
+    setCaseEdits(null);
+  }, []);
+
+  const runEditedCases = useCallback(async () => {
+    if (running || submitting || editableRunning || !code.trim()) return;
+    if (editableCases.length === 0) return;
+    setEditableRunning(true);
+    setError(null);
+    setSubmitResult(null);
+    try {
+      const res = await client.post<RunResultOut>(
+        `/problems/${slug}/run-cases`,
+        { language: lang, source_code: code, mode, test_cases: editableCases },
+        { timeout: 120000 }
+      );
+      setRunResult(res.data);
+      setRunCount((n) => n + 1);
+      setConsoleTab("result");
+      focusConsole();
+    } catch (err) {
+      setError(errDetail(err));
+      setConsoleTab("output");
+      focusConsole();
+    } finally {
+      setEditableRunning(false);
+    }
+  }, [slug, lang, code, mode, editableCases, running, submitting, editableRunning, focusConsole]);
 
   const run = useCallback(async () => {
     setRunning(true);
@@ -328,8 +382,28 @@ export default function SolveClient() {
     [coachMessages, submitResult, runResult, slug, lang, code, includeCode]
   );
 
+  const openCoach = useCallback(() => {
+    if (!dockApi) return;
+    try {
+      const existing = dockApi.getPanel("coach");
+      if (existing) {
+        existing.focus();
+        return;
+      }
+    } catch {
+    }
+    try {
+      dockApi.addPanel({
+        id: "coach",
+        title: "Coach",
+        component: "coach",
+        position: { referencePanel: "code", direction: "right" },
+      });
+    } catch {
+    }
+  }, [dockApi]);
+
   const closeCoach = useCallback(() => {
-    setAssistantOpen(false);
     try {
       dockApi?.getPanel("coach")?.api.close();
     } catch {
@@ -356,40 +430,18 @@ export default function SolveClient() {
       component: "console",
       position: { referencePanel: "code", direction: "below" },
     });
+    api.addPanel({
+      id: "coach",
+      title: "Coach",
+      component: "coach",
+      position: { referencePanel: "code", direction: "right" },
+    });
     try {
       api.getPanel("description")?.focus();
     } catch {
     }
     setDockApi(api);
   }, []);
-
-  // Keep the dock coach tab in sync with the toggle.
-  useEffect(() => {
-    if (!dockApi) return;
-    const existing = (() => {
-      try {
-        return dockApi.getPanel("coach");
-      } catch {
-        return undefined;
-      }
-    })();
-    if (assistantOpen && !existing) {
-      try {
-        dockApi.addPanel({
-          id: "coach",
-          title: "Coach",
-          component: "coach",
-          position: { referencePanel: "code", direction: "right" },
-        });
-      } catch {
-      }
-    } else if (!assistantOpen && existing) {
-      try {
-        existing.api.close();
-      } catch {
-      }
-    }
-  }, [dockApi, assistantOpen]);
 
   const contextNote = useMemo(() => {
     const s = submitResult || runResult;
@@ -430,6 +482,11 @@ export default function SolveClient() {
     shownStatus: (submitResult || runResult)?.status,
     consoleTab,
     setConsoleTab,
+    editableCases,
+    onEditCase,
+    onRunEditableCases: runEditedCases,
+    editableRunning,
+    onResetEditableCases,
     review,
     reviewLoading,
     fetchReview,
@@ -527,13 +584,9 @@ export default function SolveClient() {
             ))}
           </div>
           <button
-            onClick={() => setAssistantOpen((o) => !o)}
-            title="Toggle coach"
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-              assistantOpen
-                ? "border-violet-400/50 bg-violet-500/15 text-violet-200"
-                : "border-white/10 bg-[#252540] text-gray-300 hover:border-white/20 hover:text-gray-100"
-            }`}
+            onClick={openCoach}
+            title="Open coach"
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100"
           >
             <Brain size={13} />
             Coach
