@@ -397,7 +397,7 @@ export default function SolveClient() {
         id: "coach",
         title: "Coach",
         component: "coach",
-        position: { referencePanel: "code", direction: "right" },
+        position: { referencePanel: "code", direction: "within" },
       });
     } catch {
     }
@@ -434,9 +434,11 @@ export default function SolveClient() {
       id: "coach",
       title: "Coach",
       component: "coach",
-      position: { referencePanel: "code", direction: "right" },
+      position: { referencePanel: "code", direction: "within" },
     });
     try {
+      // Coach lands selected — put Code back on top, keep focus on description.
+      api.getPanel("code")?.api.setActive();
       api.getPanel("description")?.focus();
     } catch {
     }
