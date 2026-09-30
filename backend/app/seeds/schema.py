@@ -22,6 +22,7 @@ class ProblemSeed(BaseModel):
         "TREE",
         "GRAPH",
         "DP",
+        "SQL",
     ]
     # Optional roadmap category (NeetCode pattern key/name). Only present in the
     # NeetCode 150 catalog seed; coarse `topic` remains the DB-level classification.
@@ -30,11 +31,11 @@ class ProblemSeed(BaseModel):
     # entries may omit it (seed keeps any existing authored description).
     description: str | None = Field(default=None, min_length=50)
     # Catalog-only problems have no runnable content yet.
-    starter_code: dict[Literal["python", "cpp", "java"], str] = Field(default_factory=dict)
+    starter_code: dict[Literal["python", "cpp", "java", "sql"], str] = Field(default_factory=dict)
     test_cases: list[TestCase] = Field(default_factory=list)
     # Function mode (LeetCode-style): solve() stub per language + hidden driver
     # {"prefix": ..., "suffix": ...} wrapped around user code at grade time.
-    function_starter: dict[Literal["python", "cpp", "java"], str] = Field(default_factory=dict)
+    function_starter: dict[Literal["python", "cpp", "java", "sql"], str] = Field(default_factory=dict)
     function_driver: dict = Field(default_factory=dict)
     # Multi-source provenance (e.g. ["neetcode", "tuf"]). Empty means "backfill
     # from the roadmap map / default to neetcode" in scripts/seed.py.

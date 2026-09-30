@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.enums import Difficulty, SubmissionStatus, TestStatus, Topic
+from app.models.enums import Difficulty, Language, SubmissionStatus, TestStatus, Topic
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.test_session import TestProblem, TestSession
@@ -26,6 +26,7 @@ from app.schemas.test import (
 )
 from app.services.grader import RUN_VISIBLE_CASE_LIMIT, grade_code
 from app.services.judge0 import Judge0Error
+from app.services.sql_grader import SQLValidationError, grade_sql
 from app.services.test_generator import (
     SLOTS,
     TopicPoolEmptyError,
@@ -40,6 +41,21 @@ DEFAULT_DURATION_SECONDS = 3600
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+async def _grade_for_problem(
+    problem: Problem, source_code: str, language: str, cases: list[dict]
+):
+    """Grade a timed-test attempt. SQL problems run through the SQLite
+    harness; every other topic uses the Judge0 path unchanged."""
+    if problem.topic == Topic.SQL and language == Language.SQL.value:
+        try:
+            return await grade_sql(source_code, cases)
+        except SQLValidationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            )
+    return await grade_code(source_code, language, cases)
 
 
 def _remaining(session: TestSession) -> int:
@@ -298,7 +314,9 @@ async def run_question(
         if not case.get("is_hidden", False)
     ][:RUN_VISIBLE_CASE_LIMIT]
     try:
-        result = await grade_code(payload.source_code, payload.language.value, visible)
+        result = await _grade_for_problem(
+            problem, payload.source_code, payload.language.value, visible
+        )
     except Judge0Error as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
@@ -387,8 +405,8 @@ async def submit_question(
     problem = question.problem
 
     try:
-        result = await grade_code(
-            payload.source_code, payload.language.value, problem.test_cases
+        result = await _grade_for_problem(
+            problem, payload.source_code, payload.language.value, problem.test_cases
         )
     except Judge0Error as exc:
         raise HTTPException(

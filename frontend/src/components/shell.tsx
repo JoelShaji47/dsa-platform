@@ -1,9 +1,9 @@
 "use client";
 
-import { Compass, LogOut } from "lucide-react";
+import { Compass, LogOut, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/context/auth-context";
 import { ThemeToggle } from "@/context/theme-context";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,76 @@ function NavLink({
   );
 }
 
+function ProblemsDropdown({ active }: { active: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const isProblems = active || pathname.startsWith("/problems") || pathname.startsWith("/sql");
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150",
+          isProblems ? "text-ink" : "text-ink-soft hover:text-ink"
+        )}
+      >
+        <span
+          className={cn(
+            "absolute -left-0.5 h-1.5 w-1.5 rotate-45 transition-opacity duration-150",
+            isProblems ? "bg-gold opacity-100" : "opacity-0"
+          )}
+        />
+        Problems
+        <ChevronDown
+          size={14}
+          className={cn("transition-transform duration-150", open && "rotate-180")}
+        />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[160px] rounded-lg border border-ink/10 bg-paper shadow-card">
+          <Link
+            href="/problems"
+            onClick={() => setOpen(false)}
+            className={cn(
+              "flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-ink/5",
+              pathname.startsWith("/problems")
+                ? "bg-ink/5 text-ink"
+                : "text-ink-soft"
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+            DSA Problems
+          </Link>
+          <Link
+            href="/sql"
+            onClick={() => setOpen(false)}
+            className={cn(
+              "flex items-center gap-2 rounded-b-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-ink/5",
+              pathname.startsWith("/sql")
+                ? "bg-ink/5 text-ink"
+                : "text-ink-soft"
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-quest" />
+            SQL Problems
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TopBar({
   active,
   children,
@@ -93,9 +163,7 @@ export function TopBar({
           <NavLink href="/roadmap" active={current === "roadmap"}>
             Roadmap
           </NavLink>
-          <NavLink href="/problems" active={current === "problems"}>
-            Problems
-          </NavLink>
+          <ProblemsDropdown active={current === "problems"} />
           <NavLink href="/leagues" active={current === "leagues"}>
             Leagues
           </NavLink>

@@ -16,6 +16,7 @@ class Topic(str, enum.Enum):
     TREE = "TREE"
     GRAPH = "GRAPH"
     DP = "DP"
+    SQL = "SQL"
 
 
 class SubmissionStatus(str, enum.Enum):
@@ -37,3 +38,4 @@ class Language(str, enum.Enum):
     PYTHON = "python"
     CPP = "cpp"
     JAVA = "java"
+    SQL = "sql"
