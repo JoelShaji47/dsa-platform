@@ -193,6 +193,27 @@ export default function CampaignPage() {
                 <StatCard eyebrow="Acceptance" value={`${stats.acceptance_rate}%`} accent="bg-ink" />
               </section>
 
+              <Link
+                href="/test"
+                className="panel panel-hover flex flex-wrap items-center gap-x-4 gap-y-2 p-5"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rust/10">
+                  <Swords size={18} className="text-rust" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-base font-bold text-ink">
+                    Test yourself under pressure
+                  </span>
+                  <span className="block text-sm text-ink-soft">
+                    Proctored mock test · camera + fullscreen · editable sample cases
+                  </span>
+                </span>
+                <span className="btn btn-ink px-4 py-2 text-sm">
+                  <Play size={15} />
+                  Take a test
+                </span>
+              </Link>
+
               <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="panel p-6">
                   <div className="flex items-center justify-between gap-3">

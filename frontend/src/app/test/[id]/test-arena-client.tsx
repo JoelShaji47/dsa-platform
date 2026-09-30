@@ -12,9 +12,11 @@ import {
   ChevronRight,
   ChevronUp,
   Circle,
+  FlaskConical,
   Loader2,
   LogOut,
   Play,
+  RotateCcw,
   Send,
   Square,
   SquareTerminal,
@@ -71,6 +73,11 @@ function TestArenaScreen() {
   const [customInput, setCustomInput] = useState("");
   const [customResult, setCustomResult] = useState<CustomRunOut | null>(null);
   const [customRunning, setCustomRunning] = useState(false);
+  const [casesOpen, setCasesOpen] = useState(false);
+  const [caseEdits, setCaseEdits] = useState<
+    Record<string, { input: string; expected_output: string }[]>
+  >({});
+  const [customCasesRunning, setCustomCasesRunning] = useState(false);
 
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leavingRef = useRef(false);
@@ -245,6 +252,59 @@ function TestArenaScreen() {
       setError(errDetail(err));
     } finally {
       setBusy(null);
+    }
+  };
+
+  const editsFor = (
+    qid: string,
+    fallback: { input: string; expected_output: string }[]
+  ) =>
+    caseEdits[qid] ??
+    fallback.map((c) => ({
+      input: c.input ?? "",
+      expected_output: c.expected_output ?? "",
+    }));
+
+  const setCaseEdit = (
+    qid: string,
+    idx: number,
+    field: "input" | "expected_output",
+    value: string,
+    fallback: { input: string; expected_output: string }[]
+  ) => {
+    const base = editsFor(qid, fallback);
+    const next = base.map((c, i) => (i === idx ? { ...c, [field]: value } : c));
+    setCaseEdits((prev) => ({ ...prev, [qid]: next }));
+  };
+
+  const resetCases = (qid: string) => {
+    setCaseEdits((prev) => {
+      if (!(qid in prev)) return prev;
+      const next = { ...prev };
+      delete next[qid];
+      return next;
+    });
+  };
+
+  const runEditedCases = async () => {
+    if (!current || !draft || busy || customCasesRunning) return;
+    const cases = editsFor(current.id, current.test_cases);
+    if (cases.length === 0) return;
+    setCustomCasesRunning(true);
+    setError(null);
+    try {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      const res = await client.post<RunResultOut>(
+        `/tests/${sessionId}/questions/${current.id}/run-cases`,
+        { language: draft.language, source_code: draft.code, test_cases: cases }
+      );
+      setVerdict({ kind: "run", data: res.data, visibleCount: cases.length });
+      setTermTab("result");
+      setTerminalOpen(true);
+    } catch (err) {
+      setError(errDetail(err));
+    } finally {
+      setCustomCasesRunning(false);
     }
   };
 
@@ -524,12 +584,103 @@ function TestArenaScreen() {
               <ProblemStatement text={current.description} />
             </div>
 
-            <div className="border-t border-white/10 px-5 py-3">
-              <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-[#93a1bd]">
-                {current.test_cases.length} sample case
-                {current.test_cases.length === 1 ? "" : "s"} ·{" "}
-                {current.hidden_test_count} hidden
-              </p>
+            <div className="border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setCasesOpen((v) => !v)}
+                aria-expanded={casesOpen}
+                className="flex w-full items-center justify-between px-5 py-3 text-left transition-colors hover:bg-white/5"
+              >
+                <span className="flex items-center gap-2 font-mono text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#93a1bd]">
+                  <FlaskConical size={13} />
+                  Sample cases — editable
+                  {current.id in caseEdits && (
+                    <span className="rounded-full bg-[#d4a72c]/15 px-2 py-px font-bold text-[#d4a72c]">
+                      edited
+                    </span>
+                  )}
+                </span>
+                <span className="flex items-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-[#93a1bd]">
+                  {current.test_cases.length} sample · {current.hidden_test_count} hidden
+                  {casesOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </span>
+              </button>
+              {casesOpen && (
+                <div className="max-h-80 space-y-3 overflow-y-auto border-t border-white/10 px-5 py-3">
+                  {editsFor(current.id, current.test_cases).map((c, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-white/10 bg-[#16162a] p-3"
+                    >
+                      <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#dce3f2]">
+                        Case {i + 1}
+                      </p>
+                      <label
+                        htmlFor={`case-${current.id}-${i}-input`}
+                        className="mb-1 block font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]"
+                      >
+                        Input (stdin)
+                      </label>
+                      <textarea
+                        id={`case-${current.id}-${i}-input`}
+                        value={c.input}
+                        onChange={(e) =>
+                          setCaseEdit(current.id, i, "input", e.target.value, current.test_cases)
+                        }
+                        rows={2}
+                        spellCheck={false}
+                        className="w-full resize-y rounded-lg border border-white/10 bg-[#12121f] p-2 font-mono text-[13px] text-[#dce3f2] outline-none focus:border-[#d4a72c]/50"
+                      />
+                      <label
+                        htmlFor={`case-${current.id}-${i}-expected`}
+                        className="mb-1 mt-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-[#93a1bd]"
+                      >
+                        Expected output
+                      </label>
+                      <textarea
+                        id={`case-${current.id}-${i}-expected`}
+                        value={c.expected_output}
+                        onChange={(e) =>
+                          setCaseEdit(current.id, i, "expected_output", e.target.value, current.test_cases)
+                        }
+                        rows={2}
+                        spellCheck={false}
+                        className="w-full resize-y rounded-lg border border-white/10 bg-[#12121f] p-2 font-mono text-[13px] text-[#dce3f2] outline-none focus:border-[#d4a72c]/50"
+                      />
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={runEditedCases}
+                      disabled={
+                        customCasesRunning || busy !== null || !draft?.code.trim()
+                      }
+                      className="flex items-center gap-1.5 rounded-lg bg-[#d4a72c] px-3 py-1.5 text-xs font-bold text-[#1a1a2e] transition-colors hover:bg-[#e0b53c] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {customCasesRunning ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Play size={13} />
+                      )}
+                      Run my cases
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => resetCases(current.id)}
+                      disabled={!(current.id in caseEdits)}
+                      className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-[#93a1bd] transition-colors hover:border-white/25 hover:text-[#dce3f2] disabled:opacity-30"
+                    >
+                      <RotateCcw size={13} />
+                      Reset
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-[#93a1bd]">
+                    Edited cases run here only — attempts untouched. Grading on
+                    Submit still uses the original samples plus hidden cases.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

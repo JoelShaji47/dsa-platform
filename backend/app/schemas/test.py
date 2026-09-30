@@ -7,6 +7,8 @@ from app.schemas.submission import RunResultOut, SubmitTestResult
 
 __all__ = [
     "CreateTestPayload",
+    "CustomCaseIn",
+    "CustomCasesPayload",
     "DraftPayload",
     "RunResultOut",
     "TestConfigOut",
@@ -40,6 +42,22 @@ class CreateTestPayload(BaseModel):
 class DraftPayload(BaseModel):
     language: Language
     source_code: str = Field(min_length=1)
+
+
+class CustomCaseIn(BaseModel):
+    """One user-edited sample case (input stdin + expected stdout)."""
+
+    input: str = ""
+    expected_output: str = ""
+
+
+class CustomCasesPayload(BaseModel):
+    """Grade code against the user's own edited cases. Exploratory only —
+    never stored, never scored, attempts untouched."""
+
+    language: Language
+    source_code: str = Field(min_length=1)
+    test_cases: list[CustomCaseIn] = Field(min_length=1, max_length=10)
 
 
 class TestProblemOut(BaseModel):

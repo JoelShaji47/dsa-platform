@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-  ArrowLeft,
   Camera,
   Check,
   Loader2,
@@ -13,7 +11,8 @@ import {
   Timer,
 } from "lucide-react";
 import ProtectedRoute from "@/components/protected-route";
-import { Brand } from "@/components/shell";
+import { TopBar, UserChip } from "@/components/shell";
+import { useAuth } from "@/context/auth-context";
 import {
   acquireCamera,
   getCameraStream,
@@ -39,6 +38,7 @@ export default function TestSetupClient() {
 
 function TestSetupScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [config, setConfig] = useState<TestConfigOut | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -147,18 +147,9 @@ function TestSetupScreen() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="border-b border-ink/10 bg-card/70 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-4">
-          <Link
-            href="/roadmap"
-            className="flex shrink-0 items-center gap-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            <ArrowLeft size={16} />
-            Roadmap
-          </Link>
-          <Brand />
-        </div>
-      </header>
+      <TopBar active="test">
+        {user && <UserChip username={user.username} />}
+      </TopBar>
 
       <main className="mx-auto max-w-5xl px-5 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">

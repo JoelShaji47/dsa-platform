@@ -64,7 +64,7 @@ export function TopBar({
   active,
   children,
 }: {
-  active: "dashboard" | "roadmap" | "problems" | "leagues";
+  active: "dashboard" | "roadmap" | "problems" | "leagues" | "test";
   children?: ReactNode;
 }) {
   const { logout } = useAuth();
@@ -78,7 +78,9 @@ export function TopBar({
         ? "roadmap"
         : pathname.startsWith("/leagues")
           ? "leagues"
-          : "problems");
+          : pathname.startsWith("/test")
+            ? "test"
+            : "problems");
 
   return (
     <header className="sticky top-0 z-20 border-b border-ink/8 bg-paper/85 backdrop-blur-md">
@@ -96,6 +98,9 @@ export function TopBar({
           </NavLink>
           <NavLink href="/leagues" active={current === "leagues"}>
             Leagues
+          </NavLink>
+          <NavLink href="/test" active={current === "test"}>
+            Test
           </NavLink>
         </nav>
         <div className="ml-auto flex items-center gap-3">{children}</div>

@@ -14,6 +14,7 @@ from app.models.user import User
 from app.schemas.submission import RunResultOut, SubmitTestResult
 from app.schemas.test import (
     CreateTestPayload,
+    CustomCasesPayload,
     DraftPayload,
     TestConfigOut,
     TestProblemOut,
@@ -318,6 +319,55 @@ async def run_question(
                 "status_key": outcome.status_key,
             }
             for outcome, case in zip(result.test_results, visible)
+        ],
+    )
+
+
+@router.post(
+    "/{session_id}/questions/{question_id}/run-cases", response_model=RunResultOut
+)
+async def run_custom_cases(
+    session_id: uuid.UUID,
+    question_id: uuid.UUID,
+    payload: CustomCasesPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResultOut:
+    """Grade code against the user's edited sample cases. Exploratory only:
+    the draft is saved but attempts, status and scoring are untouched."""
+    session = _require_active(db, _get_session(db, session_id, current_user.id))
+    question = _get_question(db, session.id, question_id)
+
+    question.code = payload.source_code
+    question.language = payload.language.value
+    db.commit()
+
+    cases = [
+        {"input": case.input, "expected_output": case.expected_output}
+        for case in payload.test_cases
+    ]
+    try:
+        result = await grade_code(payload.source_code, payload.language.value, cases)
+    except Judge0Error as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+
+    return RunResultOut(
+        status=result.status,
+        runtime_ms=result.runtime_ms,
+        memory_kb=result.memory_kb,
+        test_results=[
+            {
+                "index": outcome.index,
+                "passed": outcome.passed,
+                "input": case.get("input", ""),
+                "expected_output": case.get("expected_output", ""),
+                "actual_output": outcome.actual_output,
+                "stderr": outcome.stderr,
+                "status_key": outcome.status_key,
+            }
+            for outcome, case in zip(result.test_results, cases)
         ],
     )
 
