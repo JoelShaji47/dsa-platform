@@ -9,6 +9,7 @@ solves; the DSA endpoints never see these problems.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -25,6 +26,7 @@ from app.schemas.submission import (
     SubmitTestResult,
     VisibleTestResult,
 )
+from app.schemas.test import CustomCaseIn
 from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, award_xp, update_streak
 from app.services.grader import RUN_VISIBLE_CASE_LIMIT
@@ -63,6 +65,14 @@ def _visible_cases(problem: Problem) -> list[dict]:
         for case in problem.test_cases
         if not case.get("is_hidden", False)
     ][:RUN_VISIBLE_CASE_LIMIT]
+
+
+class SqlCustomCasesPayload(BaseModel):
+    """Grade a query against the user's edited sample cases. Exploratory
+    only — never stored, never scored."""
+
+    source_code: str = Field(min_length=1)
+    test_cases: list[CustomCaseIn] = Field(min_length=1, max_length=10)
 
 
 def _solved_problem_ids(db: Session, user_id) -> set:
@@ -192,6 +202,51 @@ async def run_sql(
                 status_key=outcome.status_key,
             )
             for outcome, case in zip(result.test_results, visible_cases)
+        ],
+    )
+
+
+@router.post("/{slug}/run-cases", response_model=RunResultOut)
+async def run_sql_custom_cases(
+    slug: str,
+    payload: SqlCustomCasesPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResultOut:
+    _sql_problem_or_404(db, slug)
+    try:
+        build_sql_source(payload.source_code)
+    except SQLValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+
+    cases = [
+        {"input": case.input, "expected_output": case.expected_output}
+        for case in payload.test_cases
+    ]
+    try:
+        result = await grade_sql(payload.source_code, cases)
+    except Judge0Error as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+
+    return RunResultOut(
+        status=result.status,
+        runtime_ms=result.runtime_ms,
+        memory_kb=result.memory_kb,
+        test_results=[
+            VisibleTestResult(
+                index=outcome.index,
+                passed=outcome.passed,
+                input=case["input"],
+                expected_output=case["expected_output"],
+                actual_output=outcome.actual_output,
+                stderr=outcome.stderr,
+                status_key=outcome.status_key,
+            )
+            for outcome, case in zip(result.test_results, cases)
         ],
     )
 

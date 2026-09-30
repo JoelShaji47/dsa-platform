@@ -11,6 +11,7 @@ import type {
   SubmissionStatus,
 } from "@/lib/types";
 import type { CoachMessage } from "../../../problems/[slug]/solve/assistant-panel";
+import type { EditableCase } from "../../../problems/[slug]/solve/console-panel";
 
 export interface SqlDockValue {
   problem: ProblemDetail;
@@ -37,6 +38,11 @@ export interface SqlDockValue {
   shownStatus: SubmissionStatus | undefined;
   consoleTab: string;
   setConsoleTab: (t: string) => void;
+  editableCases: EditableCase[];
+  onEditCase: (index: number, field: "input" | "expected_output", value: string) => void;
+  onRunEditableCases: () => void;
+  editableRunning: boolean;
+  onResetEditableCases: () => void;
   review: ReviewOut | null;
   reviewLoading: boolean;
   fetchReview: () => void;

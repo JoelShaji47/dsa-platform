@@ -76,6 +76,11 @@ export function SqlConsoleTabPanel() {
           review={d.review}
           reviewLoading={d.reviewLoading}
           fetchReview={d.fetchReview}
+          editableCases={d.editableCases}
+          onEditCase={d.onEditCase}
+          onRunEditableCases={d.onRunEditableCases}
+          editableRunning={d.editableRunning}
+          onResetEditableCases={d.onResetEditableCases}
         />
       </div>
     </div>

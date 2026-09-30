@@ -19,6 +19,7 @@ import type {
   SubmissionResultOut,
 } from "@/lib/types";
 import { type CoachMessage } from "../../../problems/[slug]/solve/assistant-panel";
+import type { EditableCase } from "../../../problems/[slug]/solve/console-panel";
 import { SqlDockContext, type SqlDockValue } from "./sql-dock-context";
 import {
   SqlCoachTabPanel,
@@ -57,6 +58,8 @@ export default function SqlSolveClient() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [consoleTab, setConsoleTab] = useState("testcase");
   const [runCount, setRunCount] = useState(0);
+  const [caseEdits, setCaseEdits] = useState<EditableCase[] | null>(null);
+  const [editableRunning, setEditableRunning] = useState(false);
 
   const [submissions, setSubmissions] = useState<SubmissionHistoryItem[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
@@ -112,6 +115,64 @@ export default function SqlSolveClient() {
     } catch {
     }
   }, [dockApi]);
+
+  const editableCases: EditableCase[] = useMemo(
+    () =>
+      caseEdits ??
+      (problem?.test_cases ?? []).map((c) => ({
+        input: c.input,
+        expected_output: c.expected_output,
+      })),
+    [caseEdits, problem]
+  );
+
+  const onEditCase = useCallback(
+    (index: number, field: "input" | "expected_output", value: string) => {
+      const base =
+        caseEdits ??
+        (problem?.test_cases ?? []).map((c) => ({
+          input: c.input,
+          expected_output: c.expected_output,
+        }));
+      setCaseEdits(base.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+    },
+    [caseEdits, problem]
+  );
+
+  const onResetEditableCases = useCallback(() => {
+    setCaseEdits(null);
+  }, []);
+
+  const runEditedCases = useCallback(async () => {
+    if (running || submitting || editableRunning || !code.trim()) return;
+    if (editableCases.length === 0) return;
+    setEditableRunning(true);
+    setError(null);
+    setSubmitResult(null);
+    try {
+      const res = await client.post<RunResultOut>(
+        `/sql/${slug}/run-cases`,
+        { source_code: code, test_cases: editableCases },
+        { timeout: 120000 }
+      );
+      setRunResult(res.data);
+      setRunCount((n) => n + 1);
+      setConsoleTab("result");
+      try {
+        dockApi?.getPanel("console")?.focus();
+      } catch {
+      }
+    } catch (err) {
+      setError(errDetail(err));
+      setConsoleTab("output");
+      try {
+        dockApi?.getPanel("console")?.focus();
+      } catch {
+      }
+    } finally {
+      setEditableRunning(false);
+    }
+  }, [slug, code, editableCases, running, submitting, editableRunning, dockApi]);
 
   const run = useCallback(async () => {
     setRunning(true);
@@ -381,6 +442,11 @@ export default function SqlSolveClient() {
     shownStatus: (submitResult || runResult)?.status,
     consoleTab,
     setConsoleTab,
+    editableCases,
+    onEditCase,
+    onRunEditableCases: runEditedCases,
+    editableRunning,
+    onResetEditableCases,
     review,
     reviewLoading,
     fetchReview,

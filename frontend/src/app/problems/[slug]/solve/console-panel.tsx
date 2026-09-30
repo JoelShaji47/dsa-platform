@@ -39,6 +39,11 @@ function TestChip({ passed, index }: { passed: boolean; index: number }) {
   );
 }
 
+export interface EditableCase {
+  input: string;
+  expected_output: string;
+}
+
 export default function ConsolePanel({
   problem,
   error,
@@ -49,6 +54,11 @@ export default function ConsolePanel({
   review,
   reviewLoading,
   fetchReview,
+  editableCases,
+  onEditCase,
+  onRunEditableCases,
+  editableRunning,
+  onResetEditableCases,
 }: {
   problem: ProblemDetail;
   error: string | null;
@@ -59,6 +69,11 @@ export default function ConsolePanel({
   review: ReviewOut | null;
   reviewLoading: boolean;
   fetchReview: () => void;
+  editableCases?: EditableCase[] | null;
+  onEditCase?: (index: number, field: "input" | "expected_output", value: string) => void;
+  onRunEditableCases?: () => void;
+  editableRunning?: boolean;
+  onResetEditableCases?: () => void;
 }) {
   const dark = useTheme() === "dark";
   // th() picks the dark class or the light class — keeps every surface themed.
@@ -346,26 +361,96 @@ export default function ConsolePanel({
       {consoleTab === "testcase" && (
         <div className="p-4">
           <p className={th("mb-2 text-xs text-gray-500", "mb-2 text-xs text-ink-faint")}>
-            {runResult
-              ? "Test case inputs (read-only)"
-              : "Visible test cases (read-only)"}
+            {editableCases
+              ? "Edit the input or expected output, then run your cases"
+              : runResult
+                ? "Test case inputs (read-only)"
+                : "Visible test cases (read-only)"}
           </p>
-          {(runResult
-            ? runResult.test_results
-            : problem.test_cases.map((c, i) => ({ index: i, input: c.input }))
-          ).map((t) => (
-            <div
-              key={t.index}
-              className={th("mb-2 rounded-lg border border-white/10 bg-[#1a1a2e] p-3", "mb-2 rounded-lg border border-ink/10 bg-card p-3")}
-            >
-              <p className={th("mb-1 font-mono text-xs text-gray-500", "mb-1 font-mono text-xs text-ink-faint")}>
-                Case {t.index + 1}
+          {editableCases ? (
+            <>
+              {editableCases.map((c, i) => (
+                <div
+                  key={i}
+                  className={th("mb-2 rounded-lg border border-white/10 bg-[#1a1a2e] p-3", "mb-2 rounded-lg border border-ink/10 bg-card p-3")}
+                >
+                  <p className={th("mb-2 font-mono text-xs text-gray-500", "mb-2 font-mono text-xs text-ink-faint")}>
+                    Case {i + 1}
+                  </p>
+                  <label
+                    htmlFor={`editable-case-${i}-input`}
+                    className={th("mb-1 block text-[11px] font-medium uppercase tracking-wider text-gray-500", "mb-1 block text-[11px] font-medium uppercase tracking-wider text-ink-faint")}
+                  >
+                    Input
+                  </label>
+                  <textarea
+                    id={`editable-case-${i}-input`}
+                    value={c.input}
+                    onChange={(e) => onEditCase?.(i, "input", e.target.value)}
+                    rows={3}
+                    spellCheck={false}
+                    className={th("w-full resize-y rounded-md border border-white/10 bg-[#12121f] p-2 font-mono text-[12px] text-gray-300 outline-none focus:border-emerald-400/50", "w-full resize-y rounded-md border border-ink/10 bg-ink/[0.04] p-2 font-mono text-[12px] text-ink-soft outline-none focus:border-quest/50")}
+                  />
+                  <label
+                    htmlFor={`editable-case-${i}-expected`}
+                    className={th("mb-1 mt-2 block text-[11px] font-medium uppercase tracking-wider text-gray-500", "mb-1 mt-2 block text-[11px] font-medium uppercase tracking-wider text-ink-faint")}
+                  >
+                    Expected output
+                  </label>
+                  <textarea
+                    id={`editable-case-${i}-expected`}
+                    value={c.expected_output}
+                    onChange={(e) => onEditCase?.(i, "expected_output", e.target.value)}
+                    rows={2}
+                    spellCheck={false}
+                    className={th("w-full resize-y rounded-md border border-white/10 bg-[#12121f] p-2 font-mono text-[12px] text-emerald-400 outline-none focus:border-emerald-400/50", "w-full resize-y rounded-md border border-ink/10 bg-quest/10 p-2 font-mono text-[12px] text-quest outline-none focus:border-quest/50")}
+                  />
+                </div>
+              ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onRunEditableCases}
+                  disabled={editableRunning}
+                  className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {editableRunning ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Zap size={13} />
+                  )}
+                  Run my cases
+                </button>
+                <button
+                  type="button"
+                  onClick={onResetEditableCases}
+                  className={th("rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-gray-400 transition-colors hover:border-white/25 hover:text-gray-200", "rounded-lg border border-ink/10 px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink/25 hover:text-ink")}
+                >
+                  Reset
+                </button>
+              </div>
+              <p className={th("mt-2 font-mono text-[11px] text-gray-600", "mt-2 font-mono text-[11px] text-ink-faint")}>
+                Edited cases run here only — Submit still grades the originals + hidden cases.
               </p>
-              <pre className={th("overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-gray-300", "overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-ink-soft")}>
-                {((t as { input?: string }).input || "").trimEnd()}
-              </pre>
-            </div>
-          ))}
+            </>
+          ) : (
+            (runResult
+              ? runResult.test_results
+              : problem.test_cases.map((c, i) => ({ index: i, input: c.input }))
+            ).map((t) => (
+              <div
+                key={t.index}
+                className={th("mb-2 rounded-lg border border-white/10 bg-[#1a1a2e] p-3", "mb-2 rounded-lg border border-ink/10 bg-card p-3")}
+              >
+                <p className={th("mb-1 font-mono text-xs text-gray-500", "mb-1 font-mono text-xs text-ink-faint")}>
+                  Case {t.index + 1}
+                </p>
+                <pre className={th("overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-gray-300", "overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-ink-soft")}>
+                  {((t as { input?: string }).input || "").trimEnd()}
+                </pre>
+              </div>
+            ))
+          )}
         </div>
       )}
 

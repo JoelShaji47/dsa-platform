@@ -263,6 +263,47 @@ def test_sql_run_and_submit_flow(monkeypatch):
     assert history.json()[0]["language"] == "sql"
 
 
+def test_sql_run_cases_grades_edited_cases(monkeypatch):
+    stub_sql_grader(monkeypatch, status=SubmissionStatus.ACCEPTED)
+    headers = make_user_and_token()
+    res = client.post(
+        "/api/v1/sql/sql-select-names/run-cases",
+        json={
+            "source_code": "SELECT name FROM employees;",
+            "test_cases": [
+                {"input": "SELECT 1;", "expected_output": "row1"},
+                {"input": "SELECT 2;", "expected_output": "row2"},
+            ],
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "ACCEPTED"
+    assert [t["input"] for t in body["test_results"]] == ["SELECT 1;", "SELECT 2;"]
+    assert [t["expected_output"] for t in body["test_results"]] == ["row1", "row2"]
+
+
+def test_sql_run_cases_rejects_empty_and_writes(monkeypatch):
+    stub_sql_grader(monkeypatch, status=SubmissionStatus.ACCEPTED)
+    headers = make_user_and_token()
+    empty = client.post(
+        "/api/v1/sql/sql-select-names/run-cases",
+        json={"source_code": "SELECT 1;", "test_cases": []},
+        headers=headers,
+    )
+    assert empty.status_code == 422
+    write = client.post(
+        "/api/v1/sql/sql-select-names/run-cases",
+        json={
+            "source_code": "DROP TABLE employees;",
+            "test_cases": [{"input": "x", "expected_output": "y"}],
+        },
+        headers=headers,
+    )
+    assert write.status_code == 400
+
+
 def test_sql_problem_in_timed_test_uses_harness(monkeypatch):
     seen = {}
 
