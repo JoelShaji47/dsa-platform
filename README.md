@@ -17,7 +17,7 @@ Solve problems in Python, C++, or Java against a real judge, earn XP and badges,
 
 ## Features
 
-- **Problem library** — **587 problems** (NeetCode 150 + NeetCode 250 delta + Striver A2Z + authored extras, deduplicated; 124 shared rows carry both source tags) across **20 roadmap patterns**. Difficulty split: 185 Easy / 274 Medium / 128 Hard. Fully searchable and filterable by topic, difficulty, status, and source (NeetCode / TakeUForward).
+- **Problem library** — **600 problems** (587 deduplicated DSA: NeetCode 150 + NeetCode 250 delta + Striver A2Z + authored extras, 124 shared rows carry both source tags; plus a 13-problem SQL track) across roadmap patterns. Difficulty split: 189 Easy / 282 Medium / 129 Hard. Fully searchable and filterable by topic, difficulty, status, and source (NeetCode / TakeUForward / SQL).
 - **Real judging** — Run (visible cases with input/expected/your-output diff) and Submit (all cases, runtime + memory per attempt) via self-hosted Judge0 for **Python, C++, Java** (183 authored entries, each with 3-language starter scaffolds).
 - **Parse-only starter code** — every language scaffold parses input and marks where your solution goes; no stub answers to delete (validated by `backend/scripts/check_starters.py`).
 - **Hidden test cases** — each problem carries extra hidden cases used only on Submit; they are never returned to the client or exposed to the AI tutor.

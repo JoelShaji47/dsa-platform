@@ -38,7 +38,8 @@ The Judge0 CE amd64 image runs under Rosetta 2. Standard `isolate` per-process s
 - **Typecheck**: `npx tsc --noEmit` — **Build**: `npm run build`
 
 ## Problem Catalog
-- **Count**: 587 problems (deduplicated NeetCode 150 + NeetCode 250 delta + Striver A2Z + custom).
+- **Count**: 600 problems, all published (587 deduplicated DSA: NeetCode 150 + NeetCode 250 delta + Striver A2Z + custom, plus 13 SQL). Source of truth is Supabase — local mirrors it.
+- **Database**: Supabase Postgres is the main database. Local `db` container is test-only (suite runs + seed verification against it, never app data).
 - **Authorship**: Problems are defined in `backend/app/seeds/`. `data_*.py` authored sources win on overlap (deduped by slug in `seeds/__init__.py`); `neetcode_authoring.py` enriches catalog entries. New catalog-only entries land in `data_neetcode250.py` / `data_tuf_a2z.py` with `sources` + `pattern_key`; shared rows carry both source tags (merged in `scripts/seed.py`).
 - **Provenance columns**: `sources`, `pattern_key`, `companies`, `editorial_url`, `video_url` (migration `9d4e5f6a7b8c`).
 - **Languages**: Python (71), C++ (54), Java (62).

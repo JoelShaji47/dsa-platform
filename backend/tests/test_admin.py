@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.problem import Problem
 from app.models.user import User
 from tests.conftest import make_test_user
 
@@ -90,6 +91,11 @@ def test_problem_crud_and_publish_flow():
     # soft-delete hides it again
     assert client.delete(f"/api/v1/admin/problems/{slug}", headers=admin_h).status_code == 200
     assert client.get(f"/api/v1/problems/{slug}", headers=headers).status_code == 404
+
+    # hard-remove the probe so repeated runs don't accumulate drafts
+    with SessionLocal() as db:
+        db.query(Problem).filter(Problem.slug == slug).delete()
+        db.commit()
 
     # dup slug + bad slug
     dup = client.post(
