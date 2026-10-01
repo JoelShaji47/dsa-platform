@@ -134,7 +134,7 @@ export function TopBar({
   active,
   children,
 }: {
-  active: "dashboard" | "roadmap" | "problems" | "leagues" | "test";
+  active: "dashboard" | "roadmap" | "problems" | "leagues" | "test" | "profile";
   children?: ReactNode;
 }) {
   const { logout } = useAuth();
@@ -190,10 +190,14 @@ export function TopBar({
 
 export function UserChip({ username }: { username: string }) {
   return (
-    <span className="hidden items-center gap-1.5 rounded-full border border-gold/50 bg-gold/15 px-3 py-1 text-sm font-medium text-ink shadow-card sm:flex">
+    <Link
+      href="/profile"
+      title="Your profile"
+      className="hidden items-center gap-1.5 rounded-full border border-gold/50 bg-gold/15 px-3 py-1 text-sm font-medium text-ink shadow-card transition-colors hover:border-gold-deep hover:bg-gold/25 sm:flex"
+    >
       <span className="h-1.5 w-1.5 rounded-full bg-gold-deep" />
       {username}
-    </span>
+    </Link>
   );
 }
 

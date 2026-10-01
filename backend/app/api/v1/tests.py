@@ -539,6 +539,7 @@ def get_results(
         passed_count=session.passed_count or 0,
         total=len(rows),
         time_taken_seconds=session.time_taken_seconds or 0,
+        violations=session.violations or 0,
         topics=session.topics or [],
         assigned_topics=session.assigned_topics or [],
         started_at=session.started_at.isoformat(),

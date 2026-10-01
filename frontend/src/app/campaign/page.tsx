@@ -48,31 +48,6 @@ const DIFF_COLORS: Record<string, string> = {
   HARD: "bg-rust",
 };
 
-function StatCard({
-  eyebrow,
-  value,
-  unit,
-  accent,
-}: {
-  eyebrow: string;
-  value: React.ReactNode;
-  unit?: string;
-  accent: string;
-}) {
-  return (
-    <div className="panel panel-hover p-5">
-      <p className="eyebrow">{eyebrow}</p>
-      <p className="mt-2 font-display text-[2.1rem] font-bold leading-none text-ink">
-        {value}
-        {unit && (
-          <span className="ml-1 text-base font-semibold text-ink-faint">{unit}</span>
-        )}
-      </p>
-      <div className={`mt-3 h-1 w-10 rounded-full ${accent}`} />
-    </div>
-  );
-}
-
 function TrailNode({ pct }: { pct: number }) {
   const r = 13;
   const c = 2 * Math.PI * r;
@@ -185,34 +160,6 @@ export default function CampaignPage() {
                   Continue the quest
                 </Link>
               </section>
-
-              <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <StatCard eyebrow="Total XP" value={<span className="inline-flex items-center gap-2"><Coin size={26} />{stats.xp}</span>} accent="bg-gold" />
-                <StatCard eyebrow="Streak" value={stats.current_streak} unit="days" accent="bg-rust" />
-                <StatCard eyebrow="Solved" value={stats.total_solved} accent="bg-quest" />
-                <StatCard eyebrow="Acceptance" value={`${stats.acceptance_rate}%`} accent="bg-ink" />
-              </section>
-
-              <Link
-                href="/test"
-                className="panel panel-hover flex flex-wrap items-center gap-x-4 gap-y-2 p-5"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rust/10">
-                  <Swords size={18} className="text-rust" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-display text-base font-bold text-ink">
-                    Test yourself under pressure
-                  </span>
-                  <span className="block text-sm text-ink-soft">
-                    Proctored mock test · camera + fullscreen · editable sample cases
-                  </span>
-                </span>
-                <span className="btn btn-ink px-4 py-2 text-sm">
-                  <Play size={15} />
-                  Take a test
-                </span>
-              </Link>
 
               <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="panel p-6">
