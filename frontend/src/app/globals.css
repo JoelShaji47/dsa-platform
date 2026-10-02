@@ -524,6 +524,42 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   }
 }
 
+/* ── Wake gate: indeterminate bar + entrance rise ──────────── */
+.wake-bar {
+  animation: wake-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes wake-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.wake-rise {
+  animation: wake-rise 0.35s ease-out both;
+}
+
+@keyframes wake-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wake-bar,
+  .wake-rise {
+    animation: none;
+  }
+}
+
 /* ── Dockview workspace theme (solve page) ───────────────────── */
 .dock-root {
   height: 100%;
