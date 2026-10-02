@@ -12,6 +12,8 @@ from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.tutor import (
+    AnalyzeOut,
+    AnalyzeRequest,
     AssistantRequest,
     AssistantResponse,
     HintLevelInfo,
@@ -30,6 +32,13 @@ _ASSIST_WINDOW = 60.0
 _assist_hits: dict = {}
 _assist_lock = threading.Lock()
 
+# Analyze is one LLM call per click and grants nothing, so it gets a tighter
+# per-user cap than the coach chat to bound cost.
+_ANALYZE_LIMIT = 6
+_ANALYZE_WINDOW = 60.0
+_analyze_hits: dict = {}
+_analyze_lock = threading.Lock()
+
 
 def _check_assist_rate(user_id) -> None:
     now = time.monotonic()
@@ -43,6 +52,20 @@ def _check_assist_rate(user_id) -> None:
             )
         hits.append(now)
         _assist_hits[key] = hits
+
+
+def _check_analyze_rate(user_id) -> None:
+    now = time.monotonic()
+    key = str(user_id)
+    with _analyze_lock:
+        hits = [t for t in _analyze_hits.get(key, []) if now - t < _ANALYZE_WINDOW]
+        if len(hits) >= _ANALYZE_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Analyze rate limit: 6 per minute. Give it a moment.",
+            )
+        hits.append(now)
+        _analyze_hits[key] = hits
 
 
 def _get_problem_or_404(db: Session, slug: str) -> Problem:
@@ -219,3 +242,36 @@ def chat_assistant(
         meta={"language": payload.language},
     )
     return AssistantResponse(reply=reply, provider=provider)
+
+
+@router.post("/problems/{slug}/analyze", response_model=AnalyzeOut)
+def analyze_solution(
+    slug: str,
+    payload: AnalyzeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AnalyzeOut:
+    """Celebratory complexity debrief for an accepted solution.
+
+    Deliberately grants NO xp and logs NO activity event: the reward is the
+    explanation itself, so the button cannot be farmed for gamification.
+    """
+    problem = _get_problem_or_404(db, slug)
+    _check_analyze_rate(current_user.id)
+
+    code = payload.source_code.replace("\x00", "")
+
+    try:
+        analysis, provider = tutor.analyze_code(
+            problem, code=code, language=payload.language
+        )
+    except LLMError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Analyzer returned an unreadable response: {exc}",
+        )
+    return AnalyzeOut(**analysis, provider=provider)

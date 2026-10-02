@@ -13,6 +13,7 @@ import { java } from "@codemirror/lang-java";
 import client from "@/lib/api";
 import { ThemeToggle } from "@/context/theme-context";
 import type {
+  AnalyzeOut,
   Difficulty,
   HintMetaOut,
   Language,
@@ -25,6 +26,7 @@ import type {
   SubmissionStatus,
 } from "@/lib/types";
 import { type CoachMessage } from "./assistant-panel";
+import AnalysisView from "./analysis-view";
 import type { EditableCase } from "./console-panel";
 import { DockContext, type DockValue } from "./dock-context";
 import {
@@ -84,6 +86,10 @@ export default function SolveClient() {
   const [includeCode, setIncludeCode] = useState(true);
 
   const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalyzeOut | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -323,6 +329,32 @@ export default function SolveClient() {
     }
   }, [submitResult]);
 
+  const runAnalyze = useCallback(async () => {
+    setIsAnalyzing(true);
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    setAnalysis(null);
+    try {
+      const res = await client.post<AnalyzeOut>(`/problems/${slug}/analyze`, {
+        source_code: code,
+        language: lang,
+      });
+      setAnalysis(res.data);
+    } catch (err) {
+      setAnalyzeError(
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail || "Could not analyze your solution. Try again."
+      );
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [slug, code, lang]);
+
+  const closeAnalyze = useCallback(() => {
+    setIsAnalyzing(false);
+    setAnalyzing(false);
+  }, []);
+
   const sendCoach = useCallback(
     async (text: string) => {
       const history = coachMessages.slice(-8).map((m) => ({
@@ -492,6 +524,7 @@ export default function SolveClient() {
     review,
     reviewLoading,
     fetchReview,
+    runAnalyze,
     focusConsole,
     coachMessages,
     coachLoading,
@@ -613,21 +646,32 @@ export default function SolveClient() {
       </header>
 
       {/* ── Dock workspace: every tab drags anywhere ─────────── */}
-      <div className="dock-root min-h-0 flex-1">
-        <DockContext.Provider value={dockValue}>
-          <DockviewReact
-            components={DOCK_COMPONENTS}
-            onReady={onDockReady}
-            theme={{
-              name: "codequest",
-              className: "dockview-theme-cq",
-              gap: 10,
-              dndTabIndicator: "line",
-              tabAnimation: "smooth",
-            }}
+      {isAnalyzing ? (
+        <div className="dock-root min-h-0 flex-1 overflow-hidden">
+          <AnalysisView
+            analysis={analysis}
+            loading={analyzing}
+            error={analyzeError}
+            onClose={closeAnalyze}
           />
-        </DockContext.Provider>
-      </div>
+        </div>
+      ) : (
+        <div className="dock-root min-h-0 flex-1">
+          <DockContext.Provider value={dockValue}>
+            <DockviewReact
+              components={DOCK_COMPONENTS}
+              onReady={onDockReady}
+              theme={{
+                name: "codequest",
+                className: "dockview-theme-cq",
+                gap: 10,
+                dndTabIndicator: "line",
+                tabAnimation: "smooth",
+              }}
+            />
+          </DockContext.Provider>
+        </div>
+      )}
     </div>
   );
 }

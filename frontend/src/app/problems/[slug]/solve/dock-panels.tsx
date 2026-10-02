@@ -84,6 +84,7 @@ export function ConsoleTabPanel() {
           review={d.review}
           reviewLoading={d.reviewLoading}
           fetchReview={d.fetchReview}
+          runAnalyze={d.runAnalyze}
           editableCases={d.editableCases}
           onEditCase={d.onEditCase}
           onRunEditableCases={d.onRunEditableCases}

@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type {
+  AnalyzeOut,
   HintMetaOut,
   Language,
   ProblemDetail,
@@ -52,6 +53,7 @@ export interface DockValue {
   review: ReviewOut | null;
   reviewLoading: boolean;
   fetchReview: () => void;
+  runAnalyze: () => void;
   focusConsole: () => void;
   coachMessages: CoachMessage[];
   coachLoading: boolean;

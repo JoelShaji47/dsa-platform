@@ -126,6 +126,12 @@ html[data-theme="dark"] .field {
   border-color: rgb(230 235 244 / 0.14);
 }
 
+/* .btn-ink is near-white in dark mode, so hover must brighten rather than
+   darken — the light-mode #1e3050 would leave near-black text on navy. */
+html[data-theme="dark"] .btn-ink:hover:not(:disabled) {
+  background-color: #ffffff;
+}
+
 /* Roadmap graph follows the theme (dark canvas is the default) */
 html[data-theme="light"] .roadmap-canvas {
   background-color: #e9edf4;
@@ -303,7 +309,10 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
 
   .btn-ink {
     background-color: var(--color-ink);
-    color: #fff;
+    /* Inverts with --color-ink: near-white text on navy in light mode,
+       near-black on the near-white pill in dark mode. A hardcoded #fff here
+       renders white-on-white and makes the label unreadable. */
+    color: var(--color-paper);
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), var(--shadow-card);
   }
 

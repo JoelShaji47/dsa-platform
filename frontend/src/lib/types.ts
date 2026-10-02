@@ -145,6 +145,15 @@ export interface ReviewOut {
   fix_hint: string;
 }
 
+export interface AnalyzeOut {
+  time_complexity: string;
+  time_why: string;
+  space_complexity: string;
+  space_why: string;
+  explanation: string;
+  provider: string;
+}
+
 export interface AssistantHistoryItem {
   role: "user" | "assistant";
   content: string;

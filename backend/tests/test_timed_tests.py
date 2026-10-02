@@ -588,6 +588,7 @@ def test_third_violation_finalizes_the_test():
     results = client.get(f"/api/v1/tests/{body['id']}/results", headers=headers).json()
     assert results["status"] == TestStatus.SUBMITTED.value
     assert results["total"] == 3
+    assert results["violations"] == 3
 
 
 def test_violations_are_per_session():

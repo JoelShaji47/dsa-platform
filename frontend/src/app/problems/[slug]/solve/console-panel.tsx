@@ -54,6 +54,7 @@ export default function ConsolePanel({
   review,
   reviewLoading,
   fetchReview,
+  runAnalyze,
   editableCases,
   onEditCase,
   onRunEditableCases,
@@ -69,6 +70,8 @@ export default function ConsolePanel({
   review: ReviewOut | null;
   reviewLoading: boolean;
   fetchReview: () => void;
+  /** Optional: only the DSA solve page wires the Analyze feature. */
+  runAnalyze?: () => void;
   editableCases?: EditableCase[] | null;
   onEditCase?: (index: number, field: "input" | "expected_output", value: string) => void;
   onRunEditableCases?: () => void;
@@ -262,6 +265,19 @@ export default function ConsolePanel({
           <div className={th("mb-3 font-mono text-xs text-gray-500", "mb-3 font-mono text-xs text-ink-faint")}>
             {shown.runtime_ms.toFixed(0)} ms · {(shown.memory_kb / 1024).toFixed(1)} MB
           </div>
+
+          {runAnalyze && submitResult && submitResult.status === "ACCEPTED" && (
+            <button
+              onClick={runAnalyze}
+              className={th(
+                "mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-400/40 bg-gradient-to-r from-emerald-500/15 to-sky-500/15 px-4 py-3 text-sm font-semibold text-emerald-300 transition-all hover:from-emerald-500/25 hover:to-sky-500/25 hover:shadow-[0_0_20px_-4px_rgba(52,211,153,0.5)]",
+                "mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-quest/40 bg-gradient-to-r from-quest/10 to-sky-500/10 px-4 py-3 text-sm font-semibold text-quest transition-all hover:from-quest/20 hover:to-sky-500/20 hover:shadow-[0_0_20px_-4px_rgba(52,211,153,0.45)]"
+              )}
+            >
+              <Sparkles size={15} className="animate-pulse" />
+              Analyze Code
+            </button>
+          )}
 
           {submitResult && submitResult.status !== "ACCEPTED" && (
             <div className="mt-3">

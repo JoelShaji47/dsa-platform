@@ -50,3 +50,17 @@ class AssistantRequest(BaseModel):
 class AssistantResponse(BaseModel):
     reply: str
     provider: str
+
+
+class AnalyzeRequest(BaseModel):
+    source_code: str = Field(min_length=1, max_length=12000)
+    language: str = Field(max_length=20, default="python")
+
+
+class AnalyzeOut(BaseModel):
+    time_complexity: str
+    time_why: str
+    space_complexity: str
+    space_why: str
+    explanation: str
+    provider: str

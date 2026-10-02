@@ -11,6 +11,7 @@ from app.api.v1.problems import (
     router as problems_router,
 )
 from app.api.v1.leagues import router as leagues_router
+from app.api.v1.profile import router as profile_router
 from app.api.v1.roadmap import router as roadmap_router
 from app.api.v1.shop import router as shop_router
 from app.api.v1.sql import router as sql_router
@@ -58,6 +59,7 @@ app.include_router(roadmap_router, prefix="/api/v1")
 app.include_router(leagues_router, prefix="/api/v1")
 app.include_router(shop_router, prefix="/api/v1")
 app.include_router(tests_router, prefix="/api/v1")
+app.include_router(profile_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["system"])

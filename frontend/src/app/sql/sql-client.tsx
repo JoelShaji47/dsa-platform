@@ -196,7 +196,7 @@ export default function SqlProblemsClient() {
                   setSearch(e.target.value);
                 }}
                 placeholder="Search by title..."
-                className="bg-white pl-10"
+                className="pl-10"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -207,7 +207,7 @@ export default function SqlProblemsClient() {
                   setDifficulty(v);
                 }}
               >
-                <SelectTrigger className="w-[140px] bg-white">
+                <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Difficulty" />
                 </SelectTrigger>
                 <SelectContent>
