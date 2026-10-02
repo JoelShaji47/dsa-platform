@@ -219,7 +219,7 @@ function ProblemEditor({
               onClick={() => setLang(l)}
               className={cn(
                 "rounded-lg px-3 py-1 font-mono text-xs",
-                lang === l ? "bg-ink text-white" : "text-ink-faint hover:text-ink"
+                lang === l ? "bg-ink text-paper" : "text-ink-faint hover:text-ink"
               )}
             >
               {l}
@@ -421,7 +421,7 @@ export default function AdminClient() {
                   onClick={() => setTab(t)}
                   className={cn(
                     "rounded-lg px-4 py-1.5 text-sm font-semibold capitalize transition-colors",
-                    tab === t ? "bg-ink text-white" : "text-ink-soft hover:text-ink"
+                    tab === t ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"
                   )}
                 >
                   {t}
@@ -465,7 +465,7 @@ export default function AdminClient() {
                       onClick={() => setFilter(f)}
                       className={cn(
                         "rounded-lg px-3 py-1.5 text-sm font-semibold capitalize",
-                        filter === f ? "bg-ink text-white" : "text-ink-soft"
+                        filter === f ? "bg-ink text-paper" : "text-ink-soft"
                       )}
                     >
                       {f}

@@ -231,7 +231,7 @@ export default function ProblemsClient() {
                   setSearch(e.target.value);
                 }}
                 placeholder="Search by title…"
-                className="bg-white pl-10"
+                className="pl-10"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -242,7 +242,7 @@ export default function ProblemsClient() {
                   setTopic(v);
                 }}
               >
-                <SelectTrigger className="w-[160px] bg-white">
+                <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="All topics" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,7 +261,7 @@ export default function ProblemsClient() {
                   setDifficulty(v);
                 }}
               >
-                <SelectTrigger className="w-[140px] bg-white">
+                <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Difficulty" />
                 </SelectTrigger>
                 <SelectContent>
@@ -280,7 +280,7 @@ export default function ProblemsClient() {
                   setStatus(v as StatusFilter);
                 }}
               >
-                <SelectTrigger className="w-[130px] bg-white">
+                <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>

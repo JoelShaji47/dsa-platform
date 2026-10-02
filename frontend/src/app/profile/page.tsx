@@ -332,7 +332,7 @@ export default function ProfilePage() {
                       className={cn(
                         "whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors",
                         tab === t.key
-                          ? "bg-ink text-white"
+                          ? "bg-ink text-paper"
                           : "text-ink-soft hover:text-ink"
                       )}
                     >
