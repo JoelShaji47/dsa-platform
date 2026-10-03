@@ -52,6 +52,16 @@ const DOCK_COMPONENTS = {
   coach: CoachTabPanel,
 };
 
+type MobileTab = "problem" | "code" | "console" | "coach" | "submissions";
+
+const MOBILE_TABS: { id: MobileTab; label: string }[] = [
+  { id: "problem", label: "Problem" },
+  { id: "code", label: "Code" },
+  { id: "console", label: "Console" },
+  { id: "coach", label: "Coach" },
+  { id: "submissions", label: "Submissions" },
+];
+
 export default function SolveClient() {
   const params = useParams();
   const slug = Array.isArray(params.slug) ? params.slug[0] : (params.slug as string);
@@ -92,6 +102,9 @@ export default function SolveClient() {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("problem");
+
   useEffect(() => {
     let cancelled = false;
     client
@@ -100,7 +113,7 @@ export default function SolveClient() {
         if (cancelled) return;
         setProblem(res.data);
         setUnavailable(!res.data.solvable);
-        setCode(res.data.starter_code.python);
+        setCode(res.data.starter_code?.python ?? "");
         setPageStatus("ok");
         return client.get<HintMetaOut>(`/problems/${slug}/hints`);
       })
@@ -115,6 +128,14 @@ export default function SolveClient() {
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   const starterFor = useCallback(
     (p: ProblemDetail | null, l: Language, m: RunMode) => {
@@ -162,11 +183,15 @@ export default function SolveClient() {
   }, [slug]);
 
   const focusConsole = useCallback(() => {
+    if (isMobile) {
+      setMobileTab("console");
+      return;
+    }
     try {
       dockApi?.getPanel("console")?.focus();
     } catch {
     }
-  }, [dockApi]);
+  }, [dockApi, isMobile]);
 
   const editableCases: EditableCase[] = useMemo(
     () =>
@@ -421,6 +446,10 @@ export default function SolveClient() {
   );
 
   const openCoach = useCallback(() => {
+    if (isMobile) {
+      setMobileTab("coach");
+      return;
+    }
     if (!dockApi) return;
     try {
       const existing = dockApi.getPanel("coach");
@@ -439,14 +468,18 @@ export default function SolveClient() {
       });
     } catch {
     }
-  }, [dockApi]);
+  }, [dockApi, isMobile]);
 
   const closeCoach = useCallback(() => {
+    if (isMobile) {
+      setMobileTab("code");
+      return;
+    }
     try {
       dockApi?.getPanel("coach")?.api.close();
     } catch {
     }
-  }, [dockApi]);
+  }, [dockApi, isMobile]);
 
   const onDockReady = useCallback((event: DockviewReadyEvent) => {
     const api = event.api;
@@ -584,32 +617,111 @@ export default function SolveClient() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#0b0d12]">
+    <div
+      className={
+        isMobile
+          ? "flex h-[100dvh] flex-col bg-[#0b0d12]"
+          : "flex h-screen flex-col bg-[#0b0d12]"
+      }
+    >
       {/* ── Top bar ──────────────────────────────────────────── */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#0e1119] px-4">
-        <div className="flex min-w-0 items-center gap-3">
+      {isMobile ? (
+        <header className="flex h-11 shrink-0 items-center gap-2 border-b border-white/10 bg-[#0e1119] px-2">
           <Link
             href="/problems"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-400 transition-colors hover:text-gray-200"
+            aria-label="Back to library"
+            className="rounded-md p-1.5 text-gray-400 transition-colors hover:text-gray-200"
           >
-            <ArrowLeft size={15} />
-            Library
+            <ArrowLeft size={17} />
           </Link>
-          <span className="h-4 w-px bg-white/10" />
-          <h1 className="truncate text-sm font-semibold text-gray-100">
+          <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-100">
             {problem.title}
           </h1>
-          <span className={`text-xs font-medium ${DIFFICULTY_STYLE[problem.difficulty as Difficulty]}`}>
+          <span
+            className={`shrink-0 text-[11px] font-medium ${
+              DIFFICULTY_STYLE[problem.difficulty as Difficulty]
+            }`}
+          >
             {problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()}
           </span>
           {problem.solved && (
-            <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+            <span className="shrink-0 rounded-md border border-emerald-500/50 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
               Solved
             </span>
           )}
-        </div>
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-2">
           <ThemeToggle dark />
+        </header>
+      ) : (
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#0e1119] px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/problems"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-400 transition-colors hover:text-gray-200"
+            >
+              <ArrowLeft size={15} />
+              Library
+            </Link>
+            <span className="h-4 w-px bg-white/10" />
+            <h1 className="truncate text-sm font-semibold text-gray-100">
+              {problem.title}
+            </h1>
+            <span className={`text-xs font-medium ${DIFFICULTY_STYLE[problem.difficulty as Difficulty]}`}>
+              {problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()}
+            </span>
+            {problem.solved && (
+              <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                Solved
+              </span>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-2">
+            <ThemeToggle dark />
+            <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
+              {LANGS.map((l) => (
+                <button
+                  key={l.key}
+                  onClick={() => handleLangChange(l.key)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    lang === l.key
+                      ? "bg-white/10 text-gray-100"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={openCoach}
+              title="Open coach"
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100"
+            >
+              <Brain size={13} />
+              Coach
+            </button>
+            <button
+              onClick={run}
+              disabled={running || submitting}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
+            >
+              {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+              Run
+            </button>
+            <button
+              onClick={submit}
+              disabled={running || submitting}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+              Submit
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* ── Mobile: language row + panel switcher ────────────── */}
+      {isMobile && (
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#0e1119] px-3 py-1.5">
           <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
             {LANGS.map((l) => (
               <button
@@ -625,32 +737,34 @@ export default function SolveClient() {
               </button>
             ))}
           </div>
-          <button
-            onClick={openCoach}
-            title="Open coach"
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100"
-          >
-            <Brain size={13} />
-            Coach
-          </button>
-          <button
-            onClick={run}
-            disabled={running || submitting}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
-          >
-            {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-            Run
-          </button>
-          <button
-            onClick={submit}
-            disabled={running || submitting}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-          >
-            {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-            Submit
-          </button>
         </div>
-      </header>
+      )}
+
+      {isMobile && (
+        <nav className="flex shrink-0 border-b border-white/10 bg-[#0e1119]">
+          {MOBILE_TABS.map((t) => {
+            const active = mobileTab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setMobileTab(t.id)}
+                aria-current={active ? "page" : undefined}
+                className={`relative min-w-0 flex-1 truncate px-1 py-2.5 text-[11px] font-medium transition-colors ${
+                  active ? "text-gray-100" : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {t.label}
+                {t.id === "console" && runCount > 0 && !active && (
+                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                )}
+                {active && (
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-emerald-500" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* ── Dock workspace: every tab drags anywhere ─────────── */}
       {isAnalyzing ? (
@@ -662,6 +776,36 @@ export default function SolveClient() {
             onClose={closeAnalyze}
           />
         </div>
+      ) : isMobile ? (
+        <DockContext.Provider value={dockValue}>
+          <main className="min-h-0 flex-1 overflow-hidden">
+            {mobileTab === "problem" && (
+              <div className="h-full">
+                <DescriptionTabPanel />
+              </div>
+            )}
+            {mobileTab === "code" && (
+              <div className="h-full">
+                <CodeTabPanel />
+              </div>
+            )}
+            {mobileTab === "console" && (
+              <div className="h-full">
+                <ConsoleTabPanel />
+              </div>
+            )}
+            {mobileTab === "coach" && (
+              <div className="h-full">
+                <CoachTabPanel />
+              </div>
+            )}
+            {mobileTab === "submissions" && (
+              <div className="h-full">
+                <SubmissionsTabPanel />
+              </div>
+            )}
+          </main>
+        </DockContext.Provider>
       ) : (
         <div className="dock-root min-h-0 flex-1">
           <DockContext.Provider value={dockValue}>
@@ -678,6 +822,31 @@ export default function SolveClient() {
             />
           </DockContext.Provider>
         </div>
+      )}
+
+      {/* ── Mobile: thumb-reachable actions ──────────────────── */}
+      {isMobile && (
+        <footer
+          className="flex shrink-0 items-center gap-2 border-t border-white/10 bg-[#0e1119] px-3 py-2"
+          style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+        >
+          <button
+            onClick={run}
+            disabled={running || submitting}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-2.5 text-sm font-medium text-gray-200 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
+          >
+            {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+            Run
+          </button>
+          <button
+            onClick={submit}
+            disabled={running || submitting}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            Submit
+          </button>
+        </footer>
       )}
     </div>
   );
