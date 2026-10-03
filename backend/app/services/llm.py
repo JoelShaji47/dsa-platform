@@ -54,10 +54,20 @@ def _call_gemini(key: str, system: str, prompt: str, max_tokens: int = 700) -> s
             system_instruction=system,
             temperature=0.4,
             max_output_tokens=max_tokens,
+            # gemini-3.x-flash thinks before answering and spends the SAME
+            # max_output_tokens budget on those thought tokens, so at 700-900
+            # the visible reply is cut off at FinishReason.MAX_TOKENS and
+            # arrives as truncated JSON → analyzer 503s. These calls are short
+            # JSON/debrief replies; turn thinking off so the whole budget
+            # goes to the answer. (Only matters for thinking-capable models.)
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
     if not response.text:
         raise LLMError("Gemini returned an empty response")
+    candidate = response.candidates[0] if response.candidates else None
+    if candidate is not None and getattr(candidate.finish_reason, "name", None) == "MAX_TOKENS":
+        raise LLMError("Gemini reply was truncated at max_tokens")
     return response.text
 
 

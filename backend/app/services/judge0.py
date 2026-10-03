@@ -63,12 +63,12 @@ async def submit(source_code: str, language: str, stdin: str = "") -> dict:
         "stdin": stdin,
         "cpu_time_limit": 5,
         "memory_limit": MEMORY_LIMITS_KB.get(language, 256000),
-        # Windows/WSL2 (cgroup v2) host: per-process limits MUST be True.
-        # On cgroup v2 isolate's --cg needs v1 paths that don't exist, so
-        # True switches isolate to -m/-t (no cgroup) — see AGENTS.md.
-        # Only flip to False on a macOS/Rosetta host.
-        "enable_per_process_and_thread_time_limit": True,
-        "enable_per_process_and_thread_memory_limit": True,
+        # macOS/Rosetta host: per-process limits MUST be False.
+        # True makes isolate mmap per-process boxes, which crashes under
+        # Rosetta ("rosetta error: map_anonymous_rc map failed", status 12).
+        # Only flip to True on a Windows/WSL2 (cgroup v2) host — see AGENTS.md.
+        "enable_per_process_and_thread_time_limit": False,
+        "enable_per_process_and_thread_memory_limit": False,
     }
 
     async with httpx.AsyncClient(timeout=30) as client:

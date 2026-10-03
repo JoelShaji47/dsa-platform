@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 import uuid
@@ -26,6 +27,8 @@ from app.services.activity import CHAT, HINT, REVIEW, log_event
 from app.services.llm import LLMError
 
 router = APIRouter(tags=["tutor"])
+
+logger = logging.getLogger(__name__)
 
 _ASSIST_LIMIT = 20
 _ASSIST_WINDOW = 60.0
@@ -266,10 +269,12 @@ def analyze_solution(
             problem, code=code, language=payload.language
         )
     except LLMError as exc:
+        logger.warning("analyze failed for %s: %s", slug, exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
     except ValueError as exc:
+        logger.warning("analyze unreadable reply for %s: %s", slug, exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Analyzer returned an unreadable response: {exc}",
