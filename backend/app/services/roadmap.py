@@ -478,6 +478,10 @@ def recommend_next(
         for slug in pattern["problems"]:
             if solved_by_problem.get(slug, False):
                 continue
+            # Catalog-only entries (no starter code / test cases) open a
+            # "coming soon" page, so they are never recommendable — see AGENTS.md.
+            if not solvable_by_slug.get(slug, False):
+                continue
             candidates.append(
                 {
                     "slug": slug,
@@ -485,15 +489,13 @@ def recommend_next(
                     "pattern_name": pattern["name"],
                     "order": pattern["order"],
                     "mastery": pp.mastery,
-                    "solvable": solvable_by_slug.get(slug, False),
+                    "solvable": True,
                 }
             )
 
-    # score candidates: solvable first (never recommend what can't be run),
-    # then weak patterns, in pattern order, and unsolved
+    # score candidates: weak patterns first, then pattern order.
     def score(c: dict) -> float:
-        mastery = c["mastery"]
-        return (0.0 if c["solvable"] else 1000.0) + (100.0 - mastery) + c["order"] * 0.1
+        return (100.0 - c["mastery"]) + c["order"] * 0.1
 
     candidates.sort(key=score)
     recommendations = []
