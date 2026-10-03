@@ -64,6 +64,7 @@ export default function SolveClient() {
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [runResult, setRunResult] = useState<RunResultOut | null>(null);
+  const [customRunResult, setCustomRunResult] = useState<RunResultOut | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmissionResultOut | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hintMeta, setHintMeta] = useState<HintMetaOut | null>(null);
@@ -142,6 +143,7 @@ export default function SolveClient() {
       if (starter) setCode(starter);
       setRunResult(null);
       setSubmitResult(null);
+      setCustomRunResult(null);
     },
     [problem, lang, starterFor]
   );
@@ -185,12 +187,15 @@ export default function SolveClient() {
           expected_output: c.expected_output,
         }));
       setCaseEdits(base.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+      // The last custom run no longer matches the cases on screen.
+      setCustomRunResult(null);
     },
     [caseEdits, problem]
   );
 
   const onResetEditableCases = useCallback(() => {
     setCaseEdits(null);
+    setCustomRunResult(null);
   }, []);
 
   const runEditedCases = useCallback(async () => {
@@ -198,16 +203,17 @@ export default function SolveClient() {
     if (editableCases.length === 0) return;
     setEditableRunning(true);
     setError(null);
-    setSubmitResult(null);
     try {
       const res = await client.post<RunResultOut>(
         `/problems/${slug}/run-cases`,
         { language: lang, source_code: code, mode, test_cases: editableCases },
         { timeout: 120000 }
       );
-      setRunResult(res.data);
+      // Custom cases keep their own result slot so they never overwrite the
+      // official Run/Submit results in the Result tab.
+      setCustomRunResult(res.data);
       setRunCount((n) => n + 1);
-      setConsoleTab("result");
+      setConsoleTab("testcase");
       focusConsole();
     } catch (err) {
       setError(errDetail(err));
@@ -511,6 +517,7 @@ export default function SolveClient() {
     onHintClick,
     error,
     runResult,
+    customRunResult,
     submitResult,
     shown: (submitResult || runResult) as DockValue["shown"],
     shownStatus: (submitResult || runResult)?.status,

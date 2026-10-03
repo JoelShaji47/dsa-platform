@@ -60,6 +60,7 @@ export default function ConsolePanel({
   onRunEditableCases,
   editableRunning,
   onResetEditableCases,
+  customRunResult,
 }: {
   problem: ProblemDetail;
   error: string | null;
@@ -77,6 +78,8 @@ export default function ConsolePanel({
   onRunEditableCases?: () => void;
   editableRunning?: boolean;
   onResetEditableCases?: () => void;
+  /** Results of "Run my cases" — rendered in the Testcase tab, never in Result. */
+  customRunResult?: RunResultOut | null;
 }) {
   const dark = useTheme() === "dark";
   // th() picks the dark class or the light class — keeps every surface themed.
@@ -445,6 +448,105 @@ export default function ConsolePanel({
                   Reset
                 </button>
               </div>
+              {customRunResult && (
+                <div className="mt-3">
+                  <p
+                    className={th(
+                      "mb-2 font-mono text-[11px] text-gray-500",
+                      "mb-2 font-mono text-[11px] text-ink-faint"
+                    )}
+                  >
+                    My cases · {customRunResult.test_results.filter((t) => t.passed).length}/
+                    {customRunResult.test_results.length} passed ·{" "}
+                    {customRunResult.runtime_ms.toFixed(0)} ms
+                  </p>
+                  {customRunResult.test_results.map((t) => (
+                    <div
+                      key={t.index}
+                      className={`mb-2 rounded-lg border p-3 ${
+                        t.passed
+                          ? "border-emerald-500/30 bg-emerald-500/5"
+                          : "border-red-500/30 bg-red-500/5"
+                      }`}
+                    >
+                      <p
+                        className={th(
+                          "flex items-center gap-1.5 font-mono text-xs font-medium text-gray-400",
+                          "flex items-center gap-1.5 font-mono text-xs font-medium text-ink-soft"
+                        )}
+                      >
+                        {t.passed ? (
+                          <CheckCircle2 size={12} className="text-emerald-400" />
+                        ) : (
+                          <XCircle size={12} className="text-red-400" />
+                        )}
+                        Case {t.index + 1}
+                        {!t.passed && t.status_key && (
+                          <span>· {statusKeyLabel(t.status_key)}</span>
+                        )}
+                      </p>
+                      {!t.passed && (
+                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <div>
+                            <p
+                              className={th(
+                                "mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500",
+                                "mb-1 text-[11px] font-medium uppercase tracking-wider text-ink-faint"
+                              )}
+                            >
+                              Input
+                            </p>
+                            <pre
+                              className={th(
+                                "overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-gray-300",
+                                "overflow-x-auto whitespace-pre-wrap rounded-md bg-ink/[0.04] p-2 font-mono text-[12px] text-ink-soft"
+                              )}
+                            >
+                              {(t.input || "").trimEnd()}
+                            </pre>
+                          </div>
+                          <div>
+                            <p
+                              className={th(
+                                "mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500",
+                                "mb-1 text-[11px] font-medium uppercase tracking-wider text-ink-faint"
+                              )}
+                            >
+                              Expected
+                            </p>
+                            <pre
+                              className={th(
+                                "overflow-x-auto whitespace-pre-wrap rounded-md bg-[#1a1a2e] p-2 font-mono text-[12px] text-emerald-400",
+                                "overflow-x-auto whitespace-pre-wrap rounded-md bg-quest/10 p-2 font-mono text-[12px] text-quest"
+                              )}
+                            >
+                              {t.expected_output}
+                            </pre>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <p
+                              className={th(
+                                "mb-1 text-[11px] font-medium uppercase tracking-wider text-gray-500",
+                                "mb-1 text-[11px] font-medium uppercase tracking-wider text-ink-faint"
+                              )}
+                            >
+                              Your output
+                            </p>
+                            <pre
+                              className={th(
+                                "overflow-x-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-[#1a1a2e] p-2 font-mono text-[12px] text-red-300",
+                                "overflow-x-auto whitespace-pre-wrap rounded-md border border-rust/30 bg-rust/10 p-2 font-mono text-[12px] text-rust"
+                              )}
+                            >
+                              {t.actual_output || "(no output)"}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className={th("mt-2 font-mono text-[11px] text-gray-600", "mt-2 font-mono text-[11px] text-ink-faint")}>
                 Edited cases run here only — Submit still grades the originals + hidden cases.
               </p>

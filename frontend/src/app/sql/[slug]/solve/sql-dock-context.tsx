@@ -33,6 +33,8 @@ export interface SqlDockValue {
   onHintClick: (level: number) => void;
   error: string | null;
   runResult: RunResultOut | null;
+  /** Results from "Run my cases" — kept apart from the official run/submit. */
+  customRunResult: RunResultOut | null;
   submitResult: SubmissionResultOut | null;
   shown: RunResultOut | SubmissionResultOut | null;
   shownStatus: SubmissionStatus | undefined;

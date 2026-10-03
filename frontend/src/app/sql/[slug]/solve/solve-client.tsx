@@ -48,6 +48,7 @@ export default function SqlSolveClient() {
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [runResult, setRunResult] = useState<RunResultOut | null>(null);
+  const [customRunResult, setCustomRunResult] = useState<RunResultOut | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmissionResultOut | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hintMeta, setHintMeta] = useState<HintMetaOut | null>(null);
@@ -134,12 +135,14 @@ export default function SqlSolveClient() {
           expected_output: c.expected_output,
         }));
       setCaseEdits(base.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+      setCustomRunResult(null);
     },
     [caseEdits, problem]
   );
 
   const onResetEditableCases = useCallback(() => {
     setCaseEdits(null);
+    setCustomRunResult(null);
   }, []);
 
   const runEditedCases = useCallback(async () => {
@@ -147,16 +150,17 @@ export default function SqlSolveClient() {
     if (editableCases.length === 0) return;
     setEditableRunning(true);
     setError(null);
-    setSubmitResult(null);
     try {
       const res = await client.post<RunResultOut>(
         `/sql/${slug}/run-cases`,
         { source_code: code, test_cases: editableCases },
         { timeout: 120000 }
       );
-      setRunResult(res.data);
+      // Custom cases keep their own result slot so they never overwrite the
+      // official Run/Submit results in the Result tab.
+      setCustomRunResult(res.data);
       setRunCount((n) => n + 1);
-      setConsoleTab("result");
+      setConsoleTab("testcase");
       try {
         dockApi?.getPanel("console")?.focus();
       } catch {
@@ -436,6 +440,7 @@ export default function SqlSolveClient() {
     onHintClick,
     error,
     runResult,
+    customRunResult,
     submitResult,
     shown: (submitResult || runResult) as SqlDockValue["shown"],
     shownStatus: (submitResult || runResult)?.status,

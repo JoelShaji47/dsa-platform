@@ -81,6 +81,7 @@ export function SqlConsoleTabPanel() {
           onRunEditableCases={d.onRunEditableCases}
           editableRunning={d.editableRunning}
           onResetEditableCases={d.onResetEditableCases}
+          customRunResult={d.customRunResult}
         />
       </div>
     </div>
