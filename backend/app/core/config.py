@@ -33,10 +33,43 @@ class Settings(BaseSettings):
     def supabase_configured(self) -> bool:
         return bool(self.SUPABASE_URL)
 
-    # Judge0
+    # Judge0 (self-hosted or RapidAPI cloud).
     JUDGE0_API_URL: str = ""
     JUDGE0_API_KEY: str = ""
     JUDGE0_API_HOST: str = ""
+    # RapidAPI key rotation: comma-separated list, e.g. "k1,k2,k3".
+    # Numbered vars JUDGE0_API_KEY1 .. JUDGE0_API_KEY30 are also honored.
+    JUDGE0_API_KEYS: str = ""
+    JUDGE0_API_KEY1: str = ""
+    JUDGE0_API_KEY2: str = ""
+    JUDGE0_API_KEY3: str = ""
+    JUDGE0_API_KEY4: str = ""
+    JUDGE0_API_KEY5: str = ""
+    JUDGE0_API_KEY6: str = ""
+    JUDGE0_API_KEY7: str = ""
+    JUDGE0_API_KEY8: str = ""
+    JUDGE0_API_KEY9: str = ""
+    JUDGE0_API_KEY10: str = ""
+    JUDGE0_API_KEY11: str = ""
+    JUDGE0_API_KEY12: str = ""
+    JUDGE0_API_KEY13: str = ""
+    JUDGE0_API_KEY14: str = ""
+    JUDGE0_API_KEY15: str = ""
+    JUDGE0_API_KEY16: str = ""
+    JUDGE0_API_KEY17: str = ""
+    JUDGE0_API_KEY18: str = ""
+    JUDGE0_API_KEY19: str = ""
+    JUDGE0_API_KEY20: str = ""
+    JUDGE0_API_KEY21: str = ""
+    JUDGE0_API_KEY22: str = ""
+    JUDGE0_API_KEY23: str = ""
+    JUDGE0_API_KEY24: str = ""
+    JUDGE0_API_KEY25: str = ""
+    JUDGE0_API_KEY26: str = ""
+    JUDGE0_API_KEY27: str = ""
+    JUDGE0_API_KEY28: str = ""
+    JUDGE0_API_KEY29: str = ""
+    JUDGE0_API_KEY30: str = ""
 
     # Gemini (hints + reviews use GEMINI_API_KEY; chat uses rotation below)
     GEMINI_API_KEY: str = ""
@@ -60,6 +93,18 @@ class Settings(BaseSettings):
     @property
     def judge0_configured(self) -> bool:
         return bool(self.JUDGE0_API_URL)
+
+    @property
+    def judge0_keys(self) -> list[str]:
+        """All configured RapidAPI keys, deduped, in priority order."""
+        keys = [k.strip() for k in self.JUDGE0_API_KEYS.split(",") if k.strip()]
+        for i in range(1, 31):
+            k = getattr(self, f"JUDGE0_API_KEY{i}", "") or ""
+            if k.strip():
+                keys.append(k.strip())
+        if not keys and self.JUDGE0_API_KEY and self.JUDGE0_API_KEY.strip():
+            keys = [self.JUDGE0_API_KEY.strip()]
+        return list(dict.fromkeys(keys))
 
     @property
     def gemini_configured(self) -> bool:

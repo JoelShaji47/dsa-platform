@@ -35,11 +35,11 @@ class Judge0Error(Exception):
     pass
 
 
-def _headers() -> dict[str, str]:
-    if not settings.JUDGE0_API_KEY:
+def _headers(api_key: str = "") -> dict[str, str]:
+    if not api_key:
         return {}
     return {
-        "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
+        "X-RapidAPI-Key": api_key,
         "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
     }
 
@@ -48,6 +48,12 @@ def _base_url() -> str:
     if not settings.judge0_configured:
         raise Judge0Error("JUDGE0_API_URL is not configured")
     return settings.JUDGE0_API_URL.rstrip("/")
+
+
+# HTTP statuses that mean "this key is spent" on RapidAPI: exhausted monthly
+# quota (429), revoked/invalid key (401), or blocked plan (403). Anything else
+# (400/422 bad submission, 5xx outage) must NOT burn through the key pool.
+_ROTATE_STATUSES = {401, 403, 429}
 
 
 async def submit(source_code: str, language: str, stdin: str = "") -> dict:
@@ -67,24 +73,36 @@ async def submit(source_code: str, language: str, stdin: str = "") -> dict:
         # True makes isolate mmap per-process boxes, which crashes under
         # Rosetta ("rosetta error: map_anonymous_rc map failed", status 12).
         # Only flip to True on a Windows/WSL2 (cgroup v2) host — see AGENTS.md.
+        # (Irrelevant on RapidAPI cloud, which runs its own Linux hosts.)
         "enable_per_process_and_thread_time_limit": False,
         "enable_per_process_and_thread_memory_limit": False,
     }
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        try:
-            response = await client.post(
-                url, json=payload, params=params, headers=_headers()
-            )
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise Judge0Error(
-                f"Judge0 returned {exc.response.status_code}: {exc.response.text}"
-            ) from exc
-        except httpx.RequestError as exc:
-            raise Judge0Error(f"Could not reach Judge0: {exc}") from exc
+    # No keys configured = self-hosted Judge0, single attempt, no headers.
+    keys = settings.judge0_keys or [""]
 
-    result = response.json()
-    status_id = result.get("status", {}).get("id")
-    result["status_key"] = STATUS_CODES.get(status_id, "UNKNOWN")
-    return result
+    last_error: Judge0Error | None = None
+    async with httpx.AsyncClient(timeout=60) as client:
+        for position, api_key in enumerate(keys):
+            last_key = position == len(keys) - 1
+            try:
+                response = await client.post(
+                    url, json=payload, params=params, headers=_headers(api_key)
+                )
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                last_error = Judge0Error(
+                    f"Judge0 returned {exc.response.status_code}: {exc.response.text}"
+                )
+                if exc.response.status_code in _ROTATE_STATUSES and not last_key:
+                    continue  # key spent — try the next one
+                raise last_error from exc
+            except httpx.RequestError as exc:
+                raise Judge0Error(f"Could not reach Judge0: {exc}") from exc
+
+            result = response.json()
+            status_id = result.get("status", {}).get("id")
+            result["status_key"] = STATUS_CODES.get(status_id, "UNKNOWN")
+            return result
+
+    raise last_error or Judge0Error("Judge0 returned no usable response")
