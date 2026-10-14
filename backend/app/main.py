@@ -17,6 +17,7 @@ from app.api.v1.shop import router as shop_router
 from app.api.v1.sql import router as sql_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.tests import router as tests_router
+from app.api.v1.custom_roadmaps import router as custom_roadmaps_router
 from app.api.v1.tutor import router as tutor_router
 from app.core.config import settings
 from app.db.session import SessionLocal
@@ -59,6 +60,7 @@ app.include_router(roadmap_router, prefix="/api/v1")
 app.include_router(leagues_router, prefix="/api/v1")
 app.include_router(shop_router, prefix="/api/v1")
 app.include_router(tests_router, prefix="/api/v1")
+app.include_router(custom_roadmaps_router, prefix="/api/v1")
 app.include_router(profile_router, prefix="/api/v1")
 
 
