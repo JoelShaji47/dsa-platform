@@ -3,12 +3,22 @@
 import { useEffect } from "react";
 import { useTheme } from "@/context/theme-context";
 import { useDock } from "./dock-context";
+import { VisualizerView } from "@/visualize/visualizer-view";
 import AssistantPanel from "./assistant-panel";
 import ConsolePanel from "./console-panel";
 import DescriptionPanel from "./description-panel";
 import EditorCell from "./editor-cell";
 import SubmissionsTab from "./submissions-tab";
 import { STATUS_STYLES } from "./status-utils";
+
+export function VisualizeTabPanel() {
+  const d = useDock();
+  return (
+    <div className="h-full overflow-hidden">
+      <VisualizerView slug={d.slug} />
+    </div>
+  );
+}
 
 export function DescriptionTabPanel() {
   const d = useDock();

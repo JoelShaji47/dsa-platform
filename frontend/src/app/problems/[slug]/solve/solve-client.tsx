@@ -11,6 +11,7 @@ import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
 import { java } from "@codemirror/lang-java";
 import client from "@/lib/api";
+import { useSolveSession } from "@/lib/telemetry";
 import { ThemeToggle } from "@/context/theme-context";
 import type {
   AnalyzeOut,
@@ -23,7 +24,6 @@ import type {
   RunResultOut,
   SubmissionHistoryItem,
   SubmissionResultOut,
-  SubmissionStatus,
 } from "@/lib/types";
 import { type CoachMessage } from "./assistant-panel";
 import AnalysisView from "./analysis-view";
@@ -35,6 +35,7 @@ import {
   ConsoleTabPanel,
   DescriptionTabPanel,
   SubmissionsTabPanel,
+  VisualizeTabPanel,
 } from "./dock-panels";
 import { DIFFICULTY_STYLE, errDetail } from "./status-utils";
 
@@ -50,9 +51,10 @@ const DOCK_COMPONENTS = {
   code: CodeTabPanel,
   console: ConsoleTabPanel,
   coach: CoachTabPanel,
+  visualize: VisualizeTabPanel,
 };
 
-type MobileTab = "problem" | "code" | "console" | "coach" | "submissions";
+type MobileTab = "problem" | "code" | "console" | "coach" | "submissions" | "visualize";
 
 const MOBILE_TABS: { id: MobileTab; label: string }[] = [
   { id: "problem", label: "Problem" },
@@ -60,6 +62,7 @@ const MOBILE_TABS: { id: MobileTab; label: string }[] = [
   { id: "console", label: "Console" },
   { id: "coach", label: "Coach" },
   { id: "submissions", label: "Submissions" },
+  { id: "visualize", label: "Visualize" },
 ];
 
 export default function SolveClient() {
@@ -104,6 +107,9 @@ export default function SolveClient() {
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>("problem");
+
+  // Solve-session telemetry: start/heartbeat/finish (fire-and-forget).
+  useSolveSession(slug);
 
   useEffect(() => {
     let cancelled = false;
@@ -507,6 +513,12 @@ export default function SolveClient() {
       component: "coach",
       position: { referencePanel: "code", direction: "within" },
     });
+    api.addPanel({
+      id: "visualize",
+      title: "Visualize",
+      component: "visualize",
+      position: { referencePanel: "description", direction: "within" },
+    });
     try {
       // Coach lands selected — put Code back on top, keep focus on description.
       api.getPanel("code")?.api.setActive();
@@ -802,6 +814,11 @@ export default function SolveClient() {
             {mobileTab === "submissions" && (
               <div className="h-full">
                 <SubmissionsTabPanel />
+              </div>
+            )}
+            {mobileTab === "visualize" && (
+              <div className="h-full">
+                <VisualizeTabPanel />
               </div>
             )}
           </main>
