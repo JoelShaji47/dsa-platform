@@ -45,6 +45,13 @@ function TestSetupScreen() {
   const [starting, setStarting] = useState(false);
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [cameraError, setCameraError] = useState<string | null>(null);
+  // Custom timer + custom questions (one by one, both optional).
+  const [duration, setDuration] = useState<number | null>(null);
+  const [numQuestions, setNumQuestions] = useState(3);
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ slug: string; title: string; difficulty: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [pickedSlugs, setPickedSlugs] = useState<{ slug: string; title: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +61,7 @@ function TestSetupScreen() {
         if (cancelled) return;
         setConfig(res.data);
         setSelected(res.data.topics.map((t) => t.topic));
+        setDuration((prev) => prev ?? res.data.default_duration_seconds);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -91,8 +99,52 @@ function TestSetupScreen() {
   );
   const allSelected = allTopics.length > 0 && selected.length === allTopics.length;
 
-  const duration = config?.default_duration_seconds ?? 3600;
-  const minutes = Math.round(duration / 60);
+  const durationOptions = config?.duration_options_seconds ?? [900, 1800, 2700, 3600, 5400, 7200];
+  const maxQuestions = config?.max_questions ?? 6;
+  const effectiveDuration = duration ?? config?.default_duration_seconds ?? 3600;
+  const minutes = Math.round(effectiveDuration / 60);
+
+  // Debounced problem search for the custom-question picker. Clearing happens
+  // in the input's onChange (below), so this effect never sets state directly.
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) return;
+    let cancelled = false;
+    const id = setTimeout(() => {
+      client
+        .get("/problems", { params: { search: term } })
+        .then((res) => {
+          if (cancelled) return;
+          setSearchResults(
+            (res.data ?? []).slice(0, 8).map((p: { slug: string; title: string; difficulty: string }) => ({
+              slug: p.slug,
+              title: p.title,
+              difficulty: p.difficulty,
+            }))
+          );
+        })
+        .catch(() => {
+          if (!cancelled) setSearchResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [query]);
+
+  const onQueryChange = (value: string) => {
+    setQuery(value);
+    if (value.trim().length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+    } else {
+      setSearching(true);
+    }
+  };
 
   const enableCamera = async () => {
     if (cameraState === "requesting") return;
@@ -136,7 +188,10 @@ function TestSetupScreen() {
     try {
       const res = await client.post<TestSession>("/tests", {
         topics: selected,
-        duration_seconds: duration,
+        duration_seconds: effectiveDuration,
+        ...(pickedSlugs.length > 0
+          ? { problem_slugs: pickedSlugs.map((p) => p.slug) }
+          : { num_questions: numQuestions }),
       });
       router.push(`/test/${res.data.id}`);
     } catch (err) {
@@ -161,8 +216,11 @@ function TestSetupScreen() {
               Take a Test
             </h1>
             <p className="mt-2 max-w-xl text-ink-soft">
-              The test is {minutes} minutes. Submit each question before the
-              timer runs out for it to be graded.
+              The test is {minutes} minutes
+              {pickedSlugs.length > 0
+                ? ` with ${pickedSlugs.length} hand-picked question${pickedSlugs.length > 1 ? "s" : ""}`
+                : ` with ${numQuestions} question${numQuestions > 1 ? "s" : ""}`}
+              . Submit each question before the timer runs out for it to be graded.
             </p>
           </div>
 
@@ -173,11 +231,135 @@ function TestSetupScreen() {
                 Duration
               </p>
               <p className="font-mono text-lg font-bold text-ink">
-                {formatClock(duration)}
+                {formatClock(effectiveDuration)}
               </p>
             </div>
           </div>
         </div>
+
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-card p-6 shadow-card">
+          <h2 className="font-display text-lg font-bold text-ink">Custom timer</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Step 1 — pick how long you want. The countdown is enforced server-side.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {durationOptions.map((s) => {
+              const on = effectiveDuration === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setDuration(s)}
+                  aria-pressed={on}
+                  className={`rounded-xl border px-4 py-2 font-mono text-sm font-bold transition-all ${
+                    on
+                      ? "border-gold/50 bg-accent/40 text-ink shadow-glow"
+                      : "border-ink/10 bg-paper/60 text-ink-soft hover:border-ink/25"
+                  }`}
+                >
+                  {Math.round(s / 60)}m
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-ink/10 bg-card p-6 shadow-card">
+          <h2 className="font-display text-lg font-bold text-ink">Custom questions</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Step 2 — how many questions (1–{maxQuestions}, balanced E/M/H), or hand-pick
+            exact problems below. Hand-picked wins when both are set.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setNumQuestions((n) => Math.max(1, n - 1))}
+              disabled={numQuestions <= 1}
+              className="rounded-lg border border-ink/15 px-3 py-1.5 font-mono font-bold text-ink disabled:opacity-40"
+              aria-label="Fewer questions"
+            >
+              −
+            </button>
+            <span className="font-mono text-lg font-bold text-ink">
+              {pickedSlugs.length > 0 ? pickedSlugs.length : numQuestions} question{(pickedSlugs.length > 0 ? pickedSlugs.length : numQuestions) > 1 ? "s" : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => setNumQuestions((n) => Math.min(maxQuestions, n + 1))}
+              disabled={numQuestions >= maxQuestions}
+              className="rounded-lg border border-ink/15 px-3 py-1.5 font-mono font-bold text-ink disabled:opacity-40"
+              aria-label="More questions"
+            >
+              +
+            </button>
+            {pickedSlugs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPickedSlugs([])}
+                className="ml-2 text-sm font-semibold text-rust hover:underline"
+              >
+                Clear hand-picked
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <input
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder="Type to search problems (min 2 letters)…"
+              className="w-full rounded-xl border border-ink/15 bg-paper/60 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint"
+            />
+            {searching && <p className="mt-2 text-xs text-ink-faint">Searching…</p>}
+            {searchResults.length > 0 && (
+              <ul className="mt-2 divide-y divide-ink/8 overflow-hidden rounded-xl border border-ink/10">
+                {searchResults.map((r) => {
+                  const picked = pickedSlugs.some((p) => p.slug === r.slug);
+                  const full = pickedSlugs.length >= maxQuestions;
+                  return (
+                    <li key={r.slug}>
+                      <button
+                        type="button"
+                        disabled={(full && !picked) || picked}
+                        onClick={() => {
+                          if (pickedSlugs.length < maxQuestions) {
+                            setPickedSlugs((prev) => [...prev, { slug: r.slug, title: r.title }]);
+                            onQueryChange("");
+                          }
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-paper/60 disabled:opacity-40"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-ink">{r.title}</span>
+                        <span className="font-mono text-[11px] uppercase text-ink-faint">{r.difficulty}</span>
+                        <span className="font-mono text-[11px] text-gold">{picked ? "added" : "add"}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {pickedSlugs.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {pickedSlugs.map((p, i) => (
+                  <span
+                    key={p.slug}
+                    className="flex items-center gap-2 rounded-full border border-gold/40 bg-accent/40 px-3 py-1 text-xs font-semibold text-ink"
+                  >
+                    {i + 1}. {p.title}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${p.title}`}
+                      onClick={() => setPickedSlugs((prev) => prev.filter((x) => x.slug !== p.slug))}
+                      className="font-mono text-rust hover:underline"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
 
         {error && (
           <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-rust/30 bg-rust/10 px-4 py-3 text-sm text-rust">

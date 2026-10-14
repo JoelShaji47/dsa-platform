@@ -74,7 +74,6 @@ class TestProblem(Base):
     __tablename__ = "test_problems"
     __table_args__ = (
         UniqueConstraint("session_id", "position", name="uq_test_problem_position"),
-        UniqueConstraint("session_id", "difficulty", name="uq_test_problem_difficulty"),
         UniqueConstraint("session_id", "problem_id", name="uq_test_problem_problem"),
     )
 

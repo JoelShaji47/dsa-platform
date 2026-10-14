@@ -30,7 +30,7 @@ from app.services.sql_grader import SQLValidationError, grade_sql
 from app.services.test_generator import (
     SLOTS,
     TopicPoolEmptyError,
-    pick_test_problems,
+    pick_custom_problems,
     solvable_pool,
 )
 
@@ -186,6 +186,8 @@ def get_config(
         if key in counts:
             counts[key] += 1
 
+    from app.schemas.test import DURATION_OPTIONS_SECONDS, MAX_TEST_QUESTIONS
+
     return TestConfigOut(
         topics=[
             TopicAvailability(
@@ -198,6 +200,8 @@ def get_config(
             for topic in Topic
         ],
         default_duration_seconds=DEFAULT_DURATION_SECONDS,
+        duration_options_seconds=DURATION_OPTIONS_SECONDS,
+        max_questions=MAX_TEST_QUESTIONS,
     )
 
 
@@ -230,10 +234,28 @@ def create_test(
             TestStatus.ABANDONED if still_running else TestStatus.EXPIRED,
         )
 
+    count = len(payload.problem_slugs) if payload.problem_slugs else payload.num_questions
+    if payload.difficulties is not None and len(payload.difficulties) != count:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="difficulties length must match the question count",
+        )
+
     try:
-        picks = pick_test_problems(db, topics)
-    except TopicPoolEmptyError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        picks = pick_custom_problems(
+            db,
+            topics,
+            num_questions=count,
+            difficulties=payload.difficulties,
+            problem_slugs=payload.problem_slugs,
+        )
+    except (TopicPoolEmptyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT
+            if isinstance(exc, TopicPoolEmptyError)
+            else status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
 
     now = _now()
     session = TestSession(

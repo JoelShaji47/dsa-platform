@@ -57,23 +57,107 @@ def pick_test_problems(
 ) -> list[tuple[Difficulty, Topic, Problem]]:
     """One Easy, one Medium and one Hard problem. Slots never repeat a problem
     because a problem carries exactly one difficulty."""
+    return pick_custom_problems(db, topics, num_questions=3, rng=rng)
+
+
+def _balanced_difficulties(count: int) -> list[Difficulty]:
+    """Cycle E/M/H so any count stays balanced (E,M,H,M,E,H,...)."""
+    cycle = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]
+    return [cycle[i % 3] for i in range(count)]
+
+
+def pick_custom_problems(
+    db: Session,
+    topics: list[Topic],
+    num_questions: int = 3,
+    difficulties: list[Difficulty] | None = None,
+    problem_slugs: list[str] | None = None,
+    rng: random.SystemRandom | None = None,
+) -> list[tuple[Difficulty, Topic, Problem]]:
+    """Custom test question picker, one building block at a time.
+
+    - problem_slugs: exact problems in the given order (validated solvable).
+    - difficulties: per-position difficulty override (len must match count).
+    - default: balanced E/M/H cycle across num_questions positions.
+    Problems never repeat within one test.
+    """
     rng = rng or random.SystemRandom()
+
+    if problem_slugs:
+        wanted = list(dict.fromkeys(problem_slugs))
+        if len(wanted) != len(problem_slugs):
+            raise ValueError("Duplicate problem slugs in custom test")
+        rows = db.query(Problem).filter(Problem.slug.in_(wanted)).all()
+        by_slug = {p.slug: p for p in rows}
+        picks: list[tuple[Difficulty, Topic, Problem]] = []
+        for slug in problem_slugs:
+            problem = by_slug.get(slug)
+            if problem is None:
+                raise ValueError(f"Unknown problem slug: {slug}")
+            if not problem.starter_code or not problem.test_cases:
+                raise TopicPoolEmptyError(problem.topic, problem.difficulty)
+            picks.append((problem.difficulty, problem.topic, problem))
+        return picks
+
+    if num_questions < 1 or num_questions > 6:
+        raise ValueError("num_questions must be between 1 and 6")
+    want_diffs = list(difficulties) if difficulties else _balanced_difficulties(num_questions)
+    if len(want_diffs) != num_questions:
+        raise ValueError("difficulties length must match num_questions")
+
+    # Classic 3-question path keeps the legacy category guarantees (distinct
+    # categories for 3+ topics, full coverage for 2, single for 1).
+    if difficulties is None and num_questions == 3:
+        pool = solvable_pool(db, topics)
+        buckets: dict[tuple[Difficulty, Topic], list[Problem]] = {
+            (difficulty, topic): [
+                p for p in pool if p.difficulty == difficulty and p.topic == topic
+            ]
+            for difficulty in SLOTS
+            for topic in topics
+        }
+        slot_categories = choose_slot_categories(topics, rng)
+        legacy: list[tuple[Difficulty, Topic, Problem]] = []
+        for difficulty in SLOTS:
+            category = slot_categories[difficulty]
+            candidates = buckets[(difficulty, category)]
+            if not candidates:
+                raise TopicPoolEmptyError(category, difficulty)
+            legacy.append((difficulty, category, rng.choice(candidates)))
+        return legacy
+
     pool = solvable_pool(db, topics)
-
-    buckets: dict[tuple[Difficulty, Topic], list[Problem]] = {
-        (difficulty, topic): [
-            p for p in pool if p.difficulty == difficulty and p.topic == topic
+    # Spread positions across the selected topics round-robin so custom counts
+    # still touch every chosen area instead of clustering on one.
+    spread: list[Topic] = [topics[i % len(topics)] for i in range(num_questions)] if topics else []
+    used_ids: set = set()
+    out: list[tuple[Difficulty, Topic, Problem]] = []
+    for pos, difficulty in enumerate(want_diffs):
+        want_topic = spread[pos] if spread else None
+        candidates = [
+            p
+            for p in pool
+            if p.difficulty == difficulty
+            and (want_topic is None or p.topic == want_topic)
+            and p.id not in used_ids
         ]
-        for difficulty in SLOTS
-        for topic in topics
-    }
-
-    slot_categories = choose_slot_categories(topics, rng)
-    picks: list[tuple[Difficulty, Topic, Problem]] = []
-    for difficulty in SLOTS:
-        category = slot_categories[difficulty]
-        candidates = buckets[(difficulty, category)]
         if not candidates:
-            raise TopicPoolEmptyError(category, difficulty)
-        picks.append((difficulty, category, rng.choice(candidates)))
-    return picks
+            candidates = [
+                p
+                for p in pool
+                if p.difficulty == difficulty and p.topic in topics and p.id not in used_ids
+            ]
+        if not candidates:
+            # Fall back to any topic for this difficulty before failing, so a
+            # narrow topic selection with few Hards still builds a test.
+            candidates = [
+                p
+                for p in pool
+                if p.difficulty == difficulty and p.id not in used_ids
+            ]
+        if not candidates:
+            raise TopicPoolEmptyError(topics[0] if topics else Topic.ARRAY, difficulty)
+        chosen = rng.choice(candidates)
+        used_ids.add(chosen.id)
+        out.append((difficulty, chosen.topic, chosen))
+    return out

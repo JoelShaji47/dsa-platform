@@ -29,14 +29,28 @@ class TopicAvailability(BaseModel):
     total: int
 
 
+DURATION_OPTIONS_SECONDS: list[int] = [900, 1800, 2700, 3600, 5400, 7200]
+MAX_TEST_QUESTIONS: int = 6
+
+
 class TestConfigOut(BaseModel):
     topics: list[TopicAvailability]
     default_duration_seconds: int
+    duration_options_seconds: list[int] = DURATION_OPTIONS_SECONDS
+    max_questions: int = MAX_TEST_QUESTIONS
 
 
 class CreateTestPayload(BaseModel):
     topics: list[Topic] = Field(min_length=1)
     duration_seconds: int = Field(default=3600, ge=60, le=7200)
+    # Custom question count (1..MAX). Defaults to the classic 3 (E/M/H).
+    num_questions: int = Field(default=3, ge=1, le=MAX_TEST_QUESTIONS)
+    # Fully custom question list: exact problem slugs in the requested order.
+    # When provided, num_questions is ignored and len(problem_slugs) is used.
+    problem_slugs: list[str] | None = Field(default=None, min_length=1, max_length=MAX_TEST_QUESTIONS)
+    # Optional per-position difficulty override, e.g. ["EASY","EASY","MEDIUM"].
+    # When provided its length must match the final question count.
+    difficulties: list[Difficulty] | None = Field(default=None, min_length=1, max_length=MAX_TEST_QUESTIONS)
 
 
 class DraftPayload(BaseModel):

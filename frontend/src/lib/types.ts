@@ -211,6 +211,8 @@ export interface TopicAvailability {
 export interface TestConfigOut {
   topics: TopicAvailability[];
   default_duration_seconds: number;
+  duration_options_seconds?: number[];
+  max_questions?: number;
 }
 
 export interface TestQuestion {
@@ -322,6 +324,37 @@ export interface LeagueInfo {
   my_rank: number | null;
   my_xp: number;
   last_week_movement: number | null;
+}
+
+export interface CustomRoadmapStep {
+  id: string;
+  position: number;
+  problem_slug: string | null;
+  title: string;
+  kind: string;
+  pattern_key: string | null;
+  difficulty: string | null;
+  est_mins: number;
+  day_index: number;
+  done: boolean;
+  video_url: string | null;
+}
+
+export interface CustomRoadmap {
+  id: string;
+  title: string;
+  kind: string;
+  level: string;
+  goal: string;
+  company: string | null;
+  mins_per_day: number;
+  total_days: number;
+  share_code: string;
+  owner: boolean;
+  steps: CustomRoadmapStep[];
+  me_done: number;
+  total: number;
+  friend_done: number | null;
 }
 
 export interface ShopStatus {
