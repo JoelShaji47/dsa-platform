@@ -16,7 +16,8 @@ export type PointerName =
   | "j";
 
 export interface ArraySnapshot {
-  values: number[];
+  /** Numbers for array problems, single chars for string problems. */
+  values: (number | string)[];
   /** Indices part of the current comparison/operation. */
   active: number[];
   /** Indices already settled (sorted region, placed element, …). */
@@ -24,6 +25,17 @@ export interface ArraySnapshot {
   /** Indices eliminated from consideration (binary search). */
   eliminated: number[];
   pointers: Partial<Record<PointerName, number>>;
+}
+
+/** Vertical stack snapshot. Index 0 is the bottom; top is values.at(-1). */
+export interface StackSnapshot {
+  values: (number | string)[];
+  /** Positions (from bottom) touched by the current op — usually the top. */
+  active: number[];
+  /** Positions already resolved/consumed. */
+  settled: number[];
+  /** Caption rendered under the stack, e.g. "stack" / "min-stack". */
+  label?: string;
 }
 
 export interface BaseStep {
@@ -35,6 +47,10 @@ export interface BaseStep {
   /** Pseudocode line this step maps to (index into the entry's pseudocode). */
   line: number;
   array: ArraySnapshot;
+  /** Primary stack (stack problems). Rendered when present. */
+  stack?: StackSnapshot;
+  /** Secondary stack (Min Stack's min-stack). Rendered beside `stack`. */
+  stackAlt?: StackSnapshot;
   /** Named variable values shown beside the code, e.g. { target: 9 }. */
   vars: Record<string, string | number>;
   result?: string;
@@ -60,8 +76,15 @@ export interface VisualizerEntry {
   generate: (input: unknown) => BaseStep[];
 }
 
-function emptyArray(values: number[]): ArraySnapshot {
+function emptyArray(values: (number | string)[]): ArraySnapshot {
   return { values: [...values], active: [], settled: [], eliminated: [], pointers: {} };
+}
+
+export function snapStack(
+  values: (number | string)[],
+  partial: Partial<StackSnapshot> = {}
+): StackSnapshot {
+  return { values: [...values], active: [], settled: [], ...partial };
 }
 
 export function step(
@@ -77,7 +100,7 @@ export function step(
 }
 
 export function snap(
-  values: number[],
+  values: (number | string)[],
   partial: Partial<ArraySnapshot> = {}
 ): ArraySnapshot {
   return { ...emptyArray(values), ...partial };

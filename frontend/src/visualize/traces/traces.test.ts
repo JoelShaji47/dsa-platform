@@ -6,6 +6,13 @@ import { generateMoveZeroes, parseMoveZeroes } from "./move-zeroes";
 import { generateContainer, parseContainer } from "./container-with-most-water";
 import { generateThreeSum, parseThreeSum } from "./three-sum";
 import { generateStock, parseStock } from "./best-time-to-buy-and-sell-stock";
+import { generateValidParentheses, parseValidParentheses } from "./valid-parentheses";
+import { generateMinStack, parseMinStack } from "./min-stack";
+import { generateEvalRpn, parseEvalRpn } from "./eval-rpn";
+import { generateDailyTemperatures, parseDailyTemperatures } from "./daily-temperatures";
+import { generateLongestSubstring, parseLongestSubstring } from "./longest-substring";
+import { generatePermutationInString, parsePermutationInString } from "./permutation-in-string";
+import { generateCharReplacement, parseCharReplacement } from "./char-replacement";
 
 describe("two-sum trace", () => {
   it("finds the pair and ends done with the right result", () => {
@@ -122,5 +129,99 @@ describe("binary-search trace", () => {
   it("rejects unsorted arrays and bad input", () => {
     expect(() => parseBinarySearch("[3, 1, 2], 1")).toThrow();
     expect(() => parseBinarySearch("hello")).toThrow();
+  });
+});
+
+describe("valid-parentheses trace", () => {
+  it("accepts nested and rejects mismatched brackets", () => {
+    const ok = generateValidParentheses(parseValidParentheses("{[()]}"));
+    expect(ok[ok.length - 1].result).toBe("true");
+    expect(ok[ok.length - 1].done).toBe(true);
+    const bad = generateValidParentheses(parseValidParentheses("([)]"));
+    expect(bad[bad.length - 1].result).toBe("false");
+  });
+
+  it("rejects non-bracket input", () => {
+    expect(() => parseValidParentheses("abc")).toThrow();
+    expect(() => parseValidParentheses("(")).toThrow();
+  });
+});
+
+describe("min-stack trace", () => {
+  it("tracks the minimum across pushes and pops", () => {
+    const steps = generateMinStack(parseMinStack("push 3, push 5, getMin, push 2, getMin, pop, getMin"));
+    const mins = steps.filter((s) => s.op === "getMin").map((s) => s.result ?? s.vars.min);
+    expect(steps[steps.length - 1].result).toBe("3");
+    expect(steps[steps.length - 1].done).toBe(true);
+    expect(mins).toEqual([3, 2, 3]);
+  });
+
+  it("rejects bad ops", () => {
+    expect(() => parseMinStack("push, pop")).toThrow();
+    expect(() => parseMinStack("")).toThrow();
+  });
+});
+
+describe("eval-rpn trace", () => {
+  it("evaluates the classic examples", () => {
+    const basic = generateEvalRpn(parseEvalRpn("2 1 + 3 *"));
+    expect(basic[basic.length - 1].result).toBe("9");
+    const last = generateEvalRpn(parseEvalRpn("4 13 5 / +"));
+    expect(last[last.length - 1].result).toBe("6");
+  });
+
+  it("rejects bad tokens", () => {
+    expect(() => parseEvalRpn("2 +")).toThrow();
+    expect(() => parseEvalRpn("2 a +")).toThrow();
+  });
+});
+
+describe("daily-temperatures trace", () => {
+  it("produces [1,1,4,2,1,1,0,0] for the classic input", () => {
+    const steps = generateDailyTemperatures(parseDailyTemperatures("[73, 74, 75, 71, 69, 72, 76, 73]"));
+    const last = steps[steps.length - 1];
+    expect(last.result).toBe("[1,1,4,2,1,1,0,0]");
+    expect(last.done).toBe(true);
+  });
+
+  it("handles falling temperatures", () => {
+    const steps = generateDailyTemperatures(parseDailyTemperatures("[60, 50, 40]"));
+    expect(steps[steps.length - 1].result).toBe("[0,0,0]");
+  });
+});
+
+describe("longest-substring trace", () => {
+  it("finds 3 for abcabcbb and 1 for bbbbb", () => {
+    expect(generateLongestSubstring(parseLongestSubstring("abcabcbb")).at(-1)!.result).toBe("3");
+    expect(generateLongestSubstring(parseLongestSubstring("bbbbb")).at(-1)!.result).toBe("1");
+  });
+
+  it("rejects short input", () => {
+    expect(() => parseLongestSubstring("a")).toThrow();
+  });
+});
+
+describe("permutation-in-string trace", () => {
+  it("finds the permutation and reports misses", () => {
+    expect(generatePermutationInString(parsePermutationInString("ab, eidbaooo")).at(-1)!.result).toBe("true");
+    expect(generatePermutationInString(parsePermutationInString("ab, eidboaoo")).at(-1)!.result).toBe("false");
+  });
+
+  it("rejects malformed input", () => {
+    expect(() => parsePermutationInString("ab")).toThrow();
+    expect(() => parsePermutationInString("abcdefg, ab")).toThrow();
+  });
+});
+
+describe("char-replacement trace", () => {
+  it("finds 4 for AABABBA with k=1", () => {
+    const steps = generateCharReplacement(parseCharReplacement("AABABBA, 1"));
+    expect(steps[steps.length - 1].result).toBe("4");
+    expect(steps[steps.length - 1].done).toBe(true);
+  });
+
+  it("rejects bad k", () => {
+    expect(() => parseCharReplacement("AABABBA")).toThrow();
+    expect(() => parseCharReplacement("AABABBA, x")).toThrow();
   });
 });
