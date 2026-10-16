@@ -19,6 +19,7 @@ happens on the next seed.py run).
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -69,12 +70,15 @@ def build_prompt(title: str, difficulty: str, fetched: dict) -> str:
     {"input": "...", "expected_output": "...", "is_hidden": false},
     {"input": "...", "expected_output": "...", "is_hidden": false},
     {"input": "...", "expected_output": "...", "is_hidden": true},
+    {"input": "...", "expected_output": "...", "is_hidden": true},
+    {"input": "...", "expected_output": "...", "is_hidden": true},
+    {"input": "...", "expected_output": "...", "is_hidden": true},
     {"input": "...", "expected_output": "...", "is_hidden": true}
   ],
   "reference_python": "complete program reading stdin, printing the answer"
 }
 
-Rules: exactly 3 visible + 2 hidden cases; hidden cases MUST differ from visible (edge cases: empty/single/min/max/duplicates); expected outputs exact (numbers as plain ints, arrays space-separated on one line); starters must parse the SAME stdin layout the reference uses; reference must be efficient enough for n up to 10^4. CRITICAL: our judge compares stdout EXACTLY, so if multiple answers are valid you MUST define a canonical order (e.g. lines sorted lexicographically, numbers ascending) and state it in Output Format — never write 'any order'."""
+Rules: exactly 3 visible + 5 hidden cases (8 total); hidden cases MUST differ from visible (edge cases: empty/single/min/max/duplicates/large); expected outputs exact (numbers as plain ints, arrays space-separated on one line); starters must parse the SAME stdin layout the reference uses; reference must be efficient enough for n up to 10^4. CRITICAL: our judge compares stdout EXACTLY, so if multiple answers are valid you MUST define a canonical order (e.g. lines sorted lexicographically, numbers ascending) and state it in Output Format — never write 'any order'."""
     return reference + "\nProduce JSON with exactly these keys:\n" + spec
 
 
@@ -108,7 +112,11 @@ def extract_json(text: str) -> str:
 
 
 def parse_json(text: str) -> dict:
-    return json.loads(extract_json(text.strip()))
+    raw = extract_json(text.strip())
+    # Models sometimes emit literal control chars inside strings; strip the
+    # ones JSON forbids (keep \n and \t) before parsing.
+    raw = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", raw)
+    return json.loads(raw)
 
 
 def draft_problem(title: str, difficulty: str, fetched: dict) -> dict:
@@ -128,6 +136,8 @@ def draft_problem(title: str, difficulty: str, fetched: dict) -> dict:
                 raise ValueError(f"draft missing key: {key}")
         if len([t for t in data["test_cases"] if not t.get("is_hidden")]) != 3:
             raise ValueError("need exactly 3 visible cases")
+        if len([t for t in data["test_cases"] if t.get("is_hidden")]) != 5:
+            raise ValueError("need exactly 5 hidden cases")
         return data
     raise ValueError(f"could not get valid draft: {last_exc}")
 
