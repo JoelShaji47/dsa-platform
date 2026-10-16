@@ -627,6 +627,10 @@ int main() {
             {"input": "1\n", "expected_output": "1", "is_hidden": False},
             {"input": "1 2 3 4 5 6 7\n", "expected_output": "1\n2 3\n4 5 6 7", "is_hidden": False},
             {"input": "1 null 2 null 3\n", "expected_output": "1\n2\n3", "is_hidden": True},
+            {"input": "2 1 3\n", "expected_output": "2\n1 3", "is_hidden": True},
+            {"input": "4 2 6 1 3 5 7\n", "expected_output": "4\n2 6\n1 3 5 7", "is_hidden": True},
+            {"input": "1 null 2 null 3 null 4\n", "expected_output": "1\n2\n3\n4", "is_hidden": True},
+            {"input": "5 3 8 1 4 null 9\n", "expected_output": "5\n3 8\n1 4 9", "is_hidden": True},
         ],
     },
     {

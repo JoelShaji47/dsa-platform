@@ -144,6 +144,10 @@ public class Main {
             {"input": "1\n42\n", "expected_output": "42", "is_hidden": False},
             {"input": "2\n7 -7\n", "expected_output": "-7 7", "is_hidden": False},
             {"input": "6\n1 1 2 2 3 3\n", "expected_output": "3 3 2 2 1 1", "is_hidden": True},
+            {"input": "3\n9 9 9\n", "expected_output": "9 9 9", "is_hidden": True},
+            {"input": "4\n-1 -2 -3 -4\n", "expected_output": "-4 -3 -2 -1", "is_hidden": True},
+            {"input": "8\n-5 0 5 -5 0 5 100 -100\n", "expected_output": "-100 100 5 0 -5 5 0 -5", "is_hidden": True},
+            {"input": "10\n1 2 3 4 5 6 7 8 9 10\n", "expected_output": "10 9 8 7 6 5 4 3 2 1", "is_hidden": True},
         ],
     },
     {
@@ -886,6 +890,10 @@ public class Main {
             {"input": "4\n30 40 50 60\n", "expected_output": "1 1 1 0", "is_hidden": False},
             {"input": "3\n60 60 60\n", "expected_output": "0 0 0", "is_hidden": False},
             {"input": "5\n70 69 68 67 80\n", "expected_output": "4 3 2 1 0", "is_hidden": True},
+            {"input": "6\n30 30 30 30 30 30\n", "expected_output": "0 0 0 0 0 0", "is_hidden": True},
+            {"input": "2\n10 20\n", "expected_output": "1 0", "is_hidden": True},
+            {"input": "7\n50 40 30 20 10 0 100\n", "expected_output": "6 5 4 3 2 1 0", "is_hidden": True},
+            {"input": "6\n90 80 70 60 50 40\n", "expected_output": "0 0 0 0 0 0", "is_hidden": True},
         ],
     },
     {
