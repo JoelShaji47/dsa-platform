@@ -78,3 +78,17 @@ def purge_test_users():
                 synchronize_session=False
             )
         db.commit()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiters():
+    """Clear every shared sliding-window limiter around each test.
+
+    The limiters are process-global, so without this a test that deliberately
+    trips a limit would leak into the next one that exercises the same route.
+    """
+    from app.services.rate_limit import reset_all_limiters
+
+    reset_all_limiters()
+    yield
+    reset_all_limiters()

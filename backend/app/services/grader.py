@@ -8,6 +8,16 @@ MAX_OUTPUT_CHARS = 10_000
 
 RUN_VISIBLE_CASE_LIMIT = 3
 
+# Wall-clock ceiling for a single test case. Judge0 runs with wait=true and a
+# 5s CPU limit, so anything past this is stalled (or genuinely far too slow);
+# that one case is recorded as a TLE instead of failing the whole submission.
+DEFAULT_CASE_TIMEOUT_SECONDS = 25.0
+
+# Cap in-flight Judge0 calls. A problem can carry dozens of cases, and firing
+# them all at once can swamp a single self-hosted container (one Java box can
+# reserve ~4 GB).
+MAX_CONCURRENT_CASES = 8
+
 
 @dataclass
 class TestOutcome:
@@ -96,10 +106,10 @@ async def _run_test(source_code: str, language: str, index: int, case: dict) -> 
     outcome = TestOutcome(
         index=index,
         hidden=bool(case.get("is_hidden", False)),
-        input=case["input"],
-        expected_output=case["expected_output"],
+        input=case.get("input", ""),
+        expected_output=case.get("expected_output", ""),
     )
-    result = await submit(source_code, language, stdin=case["input"])
+    result = await submit(source_code, language, stdin=case.get("input", ""))
     outcome.status_key = result.get("status_key", "UNKNOWN")
     outcome.runtime_ms = float(result.get("time") or 0) * 1000
     outcome.memory_kb = float(result.get("memory") or 0)
@@ -118,9 +128,50 @@ async def _run_test(source_code: str, language: str, index: int, case: dict) -> 
 
     outcome.actual_output = truncate_output(result.get("stdout"))
     outcome.passed = normalize_output(result.get("stdout")) == normalize_output(
-        case["expected_output"]
+        case.get("expected_output", "")
     )
     return outcome
+
+
+def _timeout_outcome(index: int, case: dict, timeout: float) -> TestOutcome:
+    """Synthetic result for a case that outlived the client-side deadline.
+
+    We never learned its real verdict, so it is reported as a TLE with an
+    explanatory stderr — the honest reading for a case that ran past 25s under
+    a 5s CPU limit. Crucially it keeps the *other* cases' results.
+    """
+    return TestOutcome(
+        index=index,
+        hidden=bool(case.get("is_hidden", False)),
+        input=case.get("input", ""),
+        expected_output=case.get("expected_output", ""),
+        passed=False,
+        status=SubmissionStatus.TLE,
+        status_key="TIME_LIMIT_EXCEEDED",
+        stderr=f"Test case did not finish within {timeout:.0f}s (client timeout).",
+    )
+
+
+async def _run_case(
+    source_code: str,
+    language: str,
+    index: int,
+    case: dict,
+    timeout: float,
+    semaphore: asyncio.Semaphore,
+) -> TestOutcome:
+    """Run one case under a concurrency cap and a wall-clock deadline.
+
+    Only a *timeout* is absorbed here; real infrastructure problems (Judge0
+    unreachable, 5xx) still raise Judge0Error so the route can answer 503.
+    """
+    async with semaphore:
+        try:
+            return await asyncio.wait_for(
+                _run_test(source_code, language, index, case), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            return _timeout_outcome(index, case, timeout)
 
 
 def _aggregate(outcomes: list[TestOutcome]) -> SubmissionStatus:
@@ -137,12 +188,21 @@ def _aggregate(outcomes: list[TestOutcome]) -> SubmissionStatus:
 
 
 async def grade_code(
-    source_code: str, language: str, test_cases: list[dict]
+    source_code: str,
+    language: str,
+    test_cases: list[dict],
+    *,
+    case_timeout: float | None = None,
 ) -> GradeResult:
     if not test_cases:
         raise Judge0Error("Problem has no test cases")
 
+    timeout = DEFAULT_CASE_TIMEOUT_SECONDS if case_timeout is None else case_timeout
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_CASES)
     outcomes = await asyncio.gather(
-        *(_run_test(source_code, language, i, case) for i, case in enumerate(test_cases))
+        *(
+            _run_case(source_code, language, i, case, timeout, semaphore)
+            for i, case in enumerate(test_cases)
+        )
     )
     return GradeResult(status=_aggregate(list(outcomes)), test_results=list(outcomes))

@@ -1,6 +1,4 @@
 import logging
-import threading
-import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,50 +23,33 @@ from app.schemas.tutor import (
 from app.services import gemini, tutor
 from app.services.activity import CHAT, HINT, REVIEW, log_event
 from app.services.llm import LLMError
+from app.services.rate_limit import SlidingWindowLimiter
 
 router = APIRouter(tags=["tutor"])
 
 logger = logging.getLogger(__name__)
 
-_ASSIST_LIMIT = 20
-_ASSIST_WINDOW = 60.0
-_assist_hits: dict = {}
-_assist_lock = threading.Lock()
+_ASSIST_LIMITER = SlidingWindowLimiter(
+    limit=20,
+    window_seconds=60.0,
+    message="Coach rate limit: 20 messages per minute. Slow down a touch.",
+)
 
 # Analyze is one LLM call per click and grants nothing, so it gets a tighter
 # per-user cap than the coach chat to bound cost.
-_ANALYZE_LIMIT = 6
-_ANALYZE_WINDOW = 60.0
-_analyze_hits: dict = {}
-_analyze_lock = threading.Lock()
+_ANALYZE_LIMITER = SlidingWindowLimiter(
+    limit=6,
+    window_seconds=60.0,
+    message="Analyze rate limit: 6 per minute. Give it a moment.",
+)
 
 
 def _check_assist_rate(user_id) -> None:
-    now = time.monotonic()
-    key = str(user_id)
-    with _assist_lock:
-        hits = [t for t in _assist_hits.get(key, []) if now - t < _ASSIST_WINDOW]
-        if len(hits) >= _ASSIST_LIMIT:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Coach rate limit: 20 messages per minute. Slow down a touch.",
-            )
-        hits.append(now)
-        _assist_hits[key] = hits
+    _ASSIST_LIMITER.check(user_id)
 
 
 def _check_analyze_rate(user_id) -> None:
-    now = time.monotonic()
-    key = str(user_id)
-    with _analyze_lock:
-        hits = [t for t in _analyze_hits.get(key, []) if now - t < _ANALYZE_WINDOW]
-        if len(hits) >= _ANALYZE_LIMIT:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Analyze rate limit: 6 per minute. Give it a moment.",
-            )
-        hits.append(now)
-        _analyze_hits[key] = hits
+    _ANALYZE_LIMITER.check(user_id)
 
 
 def _get_problem_or_404(db: Session, slug: str) -> Problem:

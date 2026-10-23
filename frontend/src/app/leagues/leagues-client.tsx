@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   ArrowLeftRight,
   ChevronUp,
   Crown,
   Flame,
-  Loader2,
   LogOut,
   Medal,
   Minus,
@@ -28,22 +28,10 @@ import client from "@/lib/api";
 import type { LeagueInfo, LeagueMember, StatsOut } from "@/lib/types";
 import { Coin } from "@/components/coin";
 import { cn } from "@/lib/utils";
-import { tierTheme } from "./leagues-theme";
-import { Aura, Beams, CountUp } from "./league-fx";
+import { TIER_THEMES, tierTheme, tierVars } from "./leagues-theme";
+import { Aura, CountUp, TierCrest } from "./league-fx";
 
 type Tab = "league" | "global" | "monthly" | "patterns";
-
-const TIERS = ["Bronze", "Silver", "Gold", "Sapphire", "Ruby", "Emerald", "Diamond"];
-
-const TIER_COLORS = [
-  "text-orange-700",
-  "text-slate-500",
-  "text-gold-deep",
-  "text-sky-600",
-  "text-rust",
-  "text-quest",
-  "text-violet-600",
-];
 
 const XP_BY_DIFFICULTY = [
   { label: "Easy", xp: 10 },
@@ -95,83 +83,91 @@ function useCountdownToMonday(): string {
   return left;
 }
 
+/** A single status chip. Lives on the tier band, so it is white on the tier
+ *  field (>= 6.3:1 at 90% white) rather than a themed badge. */
+function BandChip({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-white ring-1 ring-inset ring-white/25">
+      <span className="shrink-0">{icon}</span>
+      {children}
+    </span>
+  );
+}
+
 function ZoneTag({ zone }: { zone: LeagueMember["zone"] }) {
   if (zone === "promote")
     return (
-      <span className="flex items-center gap-1 font-mono text-[10px] font-semibold uppercase text-quest">
+      <span className="flex items-center gap-1 font-mono text-[10px] font-semibold uppercase text-quest-deep">
         <ChevronUp size={11} strokeWidth={3} /> Up
       </span>
     );
   if (zone === "relegate")
     return (
-      <span className="flex items-center gap-1 font-mono text-[10px] uppercase text-rust">
+      <span className="flex items-center gap-1 font-mono text-[10px] uppercase text-rust-deep">
         <TrendingDown size={11} /> Down
       </span>
     );
   return (
-    <span className="flex items-center gap-1 font-mono text-[10px] uppercase text-ink-faint">
+    <span className="flex items-center gap-1 font-mono text-[10px] uppercase text-ink-soft">
       <Minus size={11} /> Hold
     </span>
   );
 }
 
-/** Vertical climb rail: spine + tier medallions, current tier ringed in accent. */
-function TierLadder({ current }: { current: number }) {
+/**
+ * The seven worlds: one row per tier, each carrying its own colour.
+ *
+ * Every row re-declares the `--tier-*` properties for its own tier, so the
+ * `tier-text` / `tier-swatch` classes resolve to that tier's colour and pick
+ * the light or dark text variant from CSS instead of a JS theme branch.
+ */
+function SevenWorlds({ current }: { current: number }) {
   return (
-    <div className="panel p-5">
-      <p className="eyebrow">The climb</p>
-      <p className="mt-1 text-xs text-ink-soft">
-        Seven tiers. One solve at a time — everyone starts in Bronze.
-      </p>
-      <ol className="relative mt-4 space-y-1">
-        <span
-          aria-hidden
-          className="absolute bottom-4 left-[26px] top-4 w-px bg-ink/10"
-        />
-        {TIERS.map((name, i) => {
+    <div className="panel overflow-hidden">
+      <div className="px-5 pt-5">
+        <p className="eyebrow">The seven worlds</p>
+        <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+          Everyone starts in Bronze. Top 10 climb on Monday.
+        </p>
+      </div>
+      <ol className="mt-3">
+        {TIER_THEMES.map((t, i) => {
           const active = i === current;
-          const passed = i < current;
+          const cleared = i < current;
           return (
             <li
-              key={name}
+              key={t.name}
+              style={tierVars(t)}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                active && "bg-gold/10 ring-1 ring-gold/40"
+                "relative flex items-center gap-3 px-5 py-2.5",
+                active && "tier-soft"
               )}
             >
-              <span
-                className={cn(
-                  "relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-card",
-                  active
-                    ? "border-gold/60"
-                    : passed
-                      ? "border-quest/50"
-                      : "border-ink/10"
-                )}
-              >
-                <Trophy
-                  size={12}
-                  className={cn(
-                    TIER_COLORS[i],
-                    !active && !passed && "opacity-40"
-                  )}
+              {active && (
+                <span
+                  aria-hidden
+                  className="tier-rail absolute inset-y-0 left-0 w-[3px]"
                 />
-              </span>
+              )}
               <span
+                aria-hidden
                 className={cn(
-                  "font-display text-sm font-bold",
-                  active ? "text-ink" : "text-ink-soft"
+                  "h-3.5 w-3.5 shrink-0 rounded-[4px]",
+                  active || cleared
+                    ? "tier-swatch"
+                    : "border border-dashed border-ink/25"
                 )}
-              >
-                {name}
+              />
+              <span className="tier-text font-display text-sm font-bold">
+                {t.name}
               </span>
-              <span className="ml-auto font-mono text-[10px] uppercase">
+              <span className="ml-auto font-mono text-[10px] uppercase tracking-widest">
                 {active ? (
-                  <span className="rounded-full bg-gold/15 px-2 py-0.5 font-bold text-gold-deep">
+                  <span className="rounded-full bg-ink/8 px-2 py-0.5 font-bold text-ink">
                     You
                   </span>
-                ) : passed ? (
-                  <span className="text-quest">Cleared</span>
+                ) : cleared ? (
+                  <span className="text-quest-deep">Cleared</span>
                 ) : (
                   <span className="text-ink-faint">Locked</span>
                 )}
@@ -180,8 +176,8 @@ function TierLadder({ current }: { current: number }) {
           );
         })}
       </ol>
-      <Separator className="my-3" />
-      <p className="text-xs leading-relaxed text-ink-faint">
+      <Separator />
+      <p className="px-5 py-3 text-xs leading-relaxed text-ink-faint">
         Top 10 each week climb a tier · bottom 5 drop · rank 1 takes Weekly
         Champion.
       </p>
@@ -202,7 +198,6 @@ export default function LeaguesClient() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("league");
   const [league, setLeague] = useState<LeagueInfo | null>(null);
-  const [optedOut, setOptedOut] = useState(false);
   const [lastMovement, setLastMovement] = useState<number | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [stats, setStats] = useState<StatsOut | null>(null);
@@ -224,7 +219,6 @@ export default function LeaguesClient() {
       .then(([res, statsRes]) => {
         setLeague(res.data.league);
         setMembers(res.data.members ?? []);
-        setOptedOut(!!res.data.opted_out && !res.data.league);
         setLastMovement(res.data.league ? null : (res.data.last_movement ?? null));
         if (res.data.league?.last_week_movement !== undefined) {
           setLastMovement(res.data.league.last_week_movement);
@@ -297,7 +291,10 @@ export default function LeaguesClient() {
     [tab, members, rows, user?.username]
   );
 
-  const theme = tierTheme(league?.tier ?? 0);
+  const tier = league?.tier ?? 0;
+  const theme = tierTheme(tier);
+  const atTopTier = tier >= TIER_THEMES.length - 1;
+  const nextTier = atTopTier ? null : TIER_THEMES[tier + 1].name;
   const myRow = boardRows.find((r) => r.me);
   const xpOf = (r: BoardRow | undefined) =>
     r && r.xp !== undefined ? r.xp : 0;
@@ -321,548 +318,535 @@ export default function LeaguesClient() {
     !!myRow &&
     boardRows.length >= 30 &&
     myRow.rank > boardRows.length - 5;
-  const nextTier = TIERS[Math.min((league?.tier ?? 0) + 1, TIERS.length - 1)];
   const streak = stats?.current_streak ?? user?.current_streak ?? 0;
   const solved = stats?.total_solved ?? 0;
 
   return (
     <ProtectedRoute>
-      <div className="atlas-bg relative min-h-screen overflow-hidden">
-        {/* Tier wash over the whole page */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <span
-            className="absolute -top-32 left-1/2 h-96 w-[60rem] -translate-x-1/2 rounded-full opacity-20 blur-3xl"
-            style={{ backgroundColor: theme.accent }}
-          />
-          <span
-            className="absolute bottom-0 right-0 h-72 w-72 rounded-full opacity-10 blur-3xl"
-            style={{ backgroundColor: theme.accent }}
-          />
-        </div>
+      <div
+        className="atlas-bg relative min-h-screen overflow-hidden"
+        style={tierVars(theme)}
+      >
         <div className="relative">
-        <TopBar active="leagues">
-          {user && <UserChip username={user.username} />}
-        </TopBar>
-        <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6">
-          <div>
-            <p className="eyebrow">Ranked play · everyone climbs</p>
-            <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink">
-              Leagues
-            </h1>
-            <p className="mt-1 max-w-[65ch] text-sm leading-relaxed text-ink-soft">
-              The whole point of CodeQuest: solve a little every day, bank XP
-              with every question, and outclimb last week&apos;s you. Cohorts of
-              30 race at a similar pace — nobody starts ahead, nobody gets left
-              behind.
-            </p>
-          </div>
+          <TopBar active="leagues">
+            {user && <UserChip username={user.username} />}
+          </TopBar>
 
-          {/* ── Split hero: climb status + tier medallion ─────────── */}
-          <div
-            className="rise-in relative mt-6 overflow-hidden rounded-2xl border border-ink/10 bg-card p-6 shadow-card sm:p-8"
-            style={{ boxShadow: theme.glow }}
-          >
-            <Beams color={theme.accent} />
-            <Aura color={theme.accent} />
-            <div className="relative grid gap-6 md:grid-cols-[1.5fr_1fr]">
-              <div>
-                <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
-                  <Swords size={12} />
-                  Season ends in {countdown}
-                  {league && (
-                    <span className="ml-auto hidden sm:inline">
-                      {league.size} racers · week of {league.week_start}
-                    </span>
-                  )}
-                </p>
-                <h2
-                  className="mt-2 font-display text-5xl font-bold tracking-tight sm:text-6xl"
-                  style={{ color: theme.accent }}
-                >
-                  {tab === "league" ? theme.name : "Rankings"}
-                </h2>
-                {tab === "league" && myRow ? (
-                  <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
-                    <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                        Rank
-                      </dt>
-                      <dd className="font-display text-2xl font-bold text-ink">
-                        #{myRow.rank}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                        Week XP
-                      </dt>
-                      <dd className="font-display text-2xl font-bold text-ink">
-                        <CountUp value={myXp} />
-                      </dd>
-                    </div>
-                    {promoLine && (
-                      <div>
-                        <dt className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                          {promoLine.safe ? "Cushion" : "To climb"}
-                        </dt>
-                        <dd
-                          className={cn(
-                            "font-display text-2xl font-bold",
-                            promoLine.safe ? "text-quest" : "text-gold-deep"
-                          )}
-                        >
-                          {promoLine.text}
-                        </dd>
-                      </div>
-                    )}
-                    <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                        Day streak
-                      </dt>
-                      <dd className="flex items-center gap-1.5 font-display text-2xl font-bold text-ink">
-                        <Flame size={18} className="text-rust" />
-                        {streak}
-                      </dd>
-                    </div>
-                  </dl>
-                ) : (
-                  <p className="mt-3 max-w-[52ch] text-sm text-ink-soft">
-                    Join this week&apos;s cohort and every solve starts moving
-                    you up the board from your very first Easy.
-                  </p>
-                )}
-                {tab === "league" && boardRows.length > 1 && (
-                  <div className="mt-4 space-y-2">
-                    <div>
-                      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                        <span>To the promotion line</span>
-                        <span>
-                          {myXp}/{cutoffXp} XP · {cutoffProgress}%
-                        </span>
-                      </div>
-                      <div
-                        className="mt-1 h-2 overflow-hidden rounded-full bg-ink/8"
-                        role="progressbar"
-                        aria-valuenow={cutoffProgress}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label="Progress to promotion line"
-                      >
-                        <div
-                          className="h-full rounded-full transition-[width] duration-700"
-                          style={{
-                            width: `${cutoffProgress}%`,
-                            backgroundColor: theme.accent,
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                        <span>To the leader</span>
-                        <span>
-                          {myXp}/{leaderXp} XP · {leaderProgress}%
-                        </span>
-                      </div>
-                      <div
-                        className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink/8"
-                        role="progressbar"
-                        aria-valuenow={leaderProgress}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label="Progress to leader"
-                      >
-                        <div
-                          className="h-full rounded-full bg-gold transition-[width] duration-700"
-                          style={{ width: `${leaderProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                    {inDanger && (
-                      <p className="flex items-center gap-1.5 text-xs font-medium text-rust">
-                        <TrendingDown size={13} />
-                        You&apos;re {myXp - relegationXp} XP above the drop zone
-                        — one more solve steadies the ship.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Tier medallion — double-bezel hardware card */}
-              <div className="rounded-[2rem] bg-ink/5 p-1.5 ring-1 ring-ink/10 md:justify-self-end md:w-full md:max-w-[300px]">
-                <div className="rounded-[calc(2rem-0.375rem)] bg-card p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-14 w-14 items-center justify-center rounded-full ring-2"
-                      style={{
-                        backgroundColor: `${theme.accent}14`,
-                        // @ts-expect-error CSS var for ring color
-                        "--tw-ring-color": `${theme.accent}66`,
-                      }}
-                    >
-                      <Trophy size={24} style={{ color: theme.accent }} />
-                    </span>
-                    <div>
-                      <p className="eyebrow">Your tier</p>
-                      <p
-                        className="font-display text-xl font-bold leading-tight"
-                        style={{ color: theme.accent }}
-                      >
-                        {theme.name}
-                      </p>
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                        Tier {(league?.tier ?? 0) + 1} of {TIERS.length} · next:{" "}
-                        {nextTier}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {lastMovement !== null && lastMovement !== undefined ? (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1",
-                          lastMovement > 0 && "border-quest/50 text-quest",
-                          lastMovement < 0 && "border-rust/50 text-rust"
-                        )}
-                      >
-                        {lastMovement > 0 ? (
-                          <>
-                            <TrendingUp size={12} /> Promoted last week
-                          </>
-                        ) : lastMovement < 0 ? (
-                          <>
-                            <TrendingDown size={12} /> Relegated — climb back
-                          </>
-                        ) : (
-                          "Held tier last week"
-                        )}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="gap-1">
-                        <SparklesFallback /> First race in {theme.name}
-                      </Badge>
-                    )}
-                    <Badge variant="secondary" className="gap-1">
-                      <Flame size={12} /> {streak}-day streak
-                    </Badge>
-                  </div>
-                  <Separator className="my-3" />
-                  <p className="text-xs leading-relaxed text-ink-soft">
-                    One Medium a day (~20 XP) clears most promotion lines by
-                    Sunday. Consistency beats intensity.
-                  </p>
-                  {tab === "league" &&
-                    (league ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={leave}
-                        className="mt-3 hover:border-rust hover:text-rust"
-                      >
-                        <LogOut size={13} />
-                        Sit this week out
-                      </Button>
-                    ) : (
-                      !loading && (
-                        <Button size="sm" onClick={rejoin} className="mt-3">
-                          Rejoin the climb
-                        </Button>
-                      )
-                    ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── How the climb works ─────────────────────────────── */}
-          <section aria-label="How the climb works" className="mt-5">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {CLIMB_STEPS.map((s, i) => (
-                <div
-                  key={s.title}
-                  className="rise-in panel p-4"
-                  style={{ animationDelay: `${i * 90}ms` }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${theme.accent}14` }}
-                    >
-                      <s.icon size={17} style={{ color: theme.accent }} />
-                    </span>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
-                      Step {i + 1}
+          {/* ── Tier world band: full-bleed, one saturated field ──────────
+              The band is fixed in both themes — it is the tier's world, not a
+              themed surface — which is what lets every band colour carry white
+              text at a measured >= 5.9:1. Everything below follows the theme. */}
+          <section className="tier-band relative overflow-hidden">
+            <Aura color="rgba(255,255,255,0.85)" />
+            <span
+              aria-hidden
+              className="tier-rail absolute inset-x-0 bottom-0 h-1"
+            />
+            <div className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-6 sm:gap-x-7">
+                {/* Crest plate — a fixed bone badge so all seven arcs hold
+                    their measured contrast in either theme. */}
+                <div className="self-start rounded-[2rem] bg-white/15 p-1.5 ring-1 ring-white/25">
+                  <div className="rounded-[calc(2rem-0.375rem)] bg-[#f7f5f0] px-3 py-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7)]">
+                    <TierCrest current={tier} themes={TIER_THEMES} size={96} />
+                    <p className="mt-1.5 text-center font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66727e]">
+                      {league || loading
+                        ? `Tier ${tier + 1} / ${TIER_THEMES.length}`
+                        : "Not racing"}
                     </p>
                   </div>
-                  <p className="mt-2.5 font-display text-sm font-bold text-ink">
-                    {s.title}
-                  </p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">
-                    {s.text}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <h1 className="eyebrow flex items-center gap-1.5 text-white/90">
+                      <Swords size={12} /> Leagues
+                      <span className="hidden sm:inline">· ranked play</span>
+                    </h1>
+                    <span className="w-full font-mono text-[10px] uppercase tracking-[0.16em] text-white/90 sm:w-auto">
+                      Season ends in {countdown}
+                    </span>
+                  </div>
+                  <h2 className="mt-2 font-display text-4xl font-bold leading-none tracking-tight text-white sm:text-5xl">
+                    {tab !== "league"
+                      ? "Rankings"
+                      : league || loading
+                        ? theme.name
+                        : "Sitting out"}
+                  </h2>
+                  <p className="mt-2.5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-white/90">
+                    {!league && !loading
+                      ? "Rejoin to be seeded at your pace"
+                      : atTopTier
+                        ? "Final tier"
+                        : `Next: ${nextTier}`}
+                    {league ? (
+                      <span className="hidden sm:inline">
+                        {` · ${league.size} racers · week of ${league.week_start}`}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
-              ))}
+
+                <div className="col-span-2">
+                  {tab === "league" && myRow ? (
+                    <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-white/20 pt-5 sm:grid-cols-4">
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-widest text-white/90">
+                          Rank
+                        </dt>
+                        <dd className="mt-0.5 font-display text-2xl font-bold text-white">
+                          #{myRow.rank}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-widest text-white/90">
+                          Week XP
+                        </dt>
+                        <dd className="mt-0.5 font-display text-2xl font-bold text-white">
+                          <CountUp value={myXp} />
+                        </dd>
+                      </div>
+                      {promoLine && (
+                        <div>
+                          <dt className="font-mono text-[10px] uppercase tracking-widest text-white/90">
+                            {promoLine.safe ? "Cushion" : "To climb"}
+                          </dt>
+                          <dd className="mt-0.5 font-display text-xl font-bold text-white sm:text-2xl">
+                            {promoLine.text}
+                          </dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-widest text-white/90">
+                          Day streak
+                        </dt>
+                        <dd className="mt-0.5 flex items-center gap-1.5 font-display text-2xl font-bold text-white">
+                          <Flame size={17} className="text-white/90" />
+                          {streak}
+                        </dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="border-t border-white/20 pt-5 text-sm leading-relaxed text-white/90">
+                      {loading
+                        ? "Loading this week's cohort…"
+                        : league
+                          ? "No XP banked yet this week — your first accepted solve puts you on the board."
+                          : "Join this week's cohort and every solve starts moving you up the board from your very first Easy."}
+                    </p>
+                  )}
+
+                  {tab === "league" && boardRows.length > 1 && (
+                    <div className="mt-5 space-y-2.5">
+                      <div>
+                        <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-white/90">
+                          <span>To the promotion line</span>
+                          <span>
+                            {myXp}/{cutoffXp} XP · {cutoffProgress}%
+                          </span>
+                        </div>
+                        <div
+                          className="mt-1 h-2 overflow-hidden rounded-full bg-white/20"
+                          role="progressbar"
+                          aria-valuenow={cutoffProgress}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label="Progress to promotion line"
+                        >
+                          <div
+                            className="h-full rounded-full bg-white transition-[width] duration-700"
+                            style={{ width: `${cutoffProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-white/90">
+                          <span>To the leader</span>
+                          <span>
+                            {myXp}/{leaderXp} XP · {leaderProgress}%
+                          </span>
+                        </div>
+                        <div
+                          className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/20"
+                          role="progressbar"
+                          aria-valuenow={leaderProgress}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label="Progress to leader"
+                        >
+                          <div
+                            className="h-full rounded-full bg-white/55 transition-[width] duration-700"
+                            style={{ width: `${leaderProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                      {inDanger && (
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-white/90">
+                          <TrendingDown size={13} />
+                          You&apos;re {myXp - relegationXp} XP above the drop zone
+                          — one more solve steadies the ship.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-wrap items-center gap-2">
+                    {lastMovement !== null && lastMovement !== undefined ? (
+                      lastMovement > 0 ? (
+                        <BandChip icon={<TrendingUp size={12} />}>
+                          Promoted last week
+                        </BandChip>
+                      ) : lastMovement < 0 ? (
+                        <BandChip icon={<TrendingDown size={12} />}>
+                          Relegated — climb back
+                        </BandChip>
+                      ) : (
+                        <BandChip icon={<Minus size={12} />}>
+                          Held tier last week
+                        </BandChip>
+                      )
+                    ) : (
+                      <BandChip icon={<Crown size={12} />}>
+                        First race in {theme.name}
+                      </BandChip>
+                    )}
+                    <BandChip icon={<Flame size={12} />}>
+                      {streak}-day streak
+                    </BandChip>
+                    <div className="ml-auto">
+                      {tab === "league" &&
+                        (league ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={leave}
+                            className="border-white/30 bg-white/5 text-white hover:border-white/60 hover:bg-white/10 hover:text-white"
+                          >
+                            <LogOut size={13} />
+                            Sit this week out
+                          </Button>
+                        ) : (
+                          !loading && (
+                            <Button
+                              size="sm"
+                              onClick={rejoin}
+                              className="bg-white text-[#3b4753] hover:bg-white/90"
+                            >
+                              Rejoin the climb
+                            </Button>
+                          )
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* ── Every question moves you ────────────────────────── */}
-          <section
-            aria-label="XP per question"
-            className="rise-in panel mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3.5"
-            style={{ animationDelay: "120ms" }}
-          >
-            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <Coin size={15} />
-              Every question moves you
+          <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+            <p className="max-w-[72ch] text-sm leading-relaxed text-ink-soft">
+              Solve a little every day, bank XP with every question, and
+              outclimb last week&apos;s you. Cohorts of 30 race at a similar
+              pace — nobody starts ahead, nobody gets left behind.
             </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {XP_BY_DIFFICULTY.map((d) => (
-                <Badge key={d.label} variant="secondary" className="gap-1.5 font-mono">
-                  {d.label} · {d.xp} XP
-                </Badge>
-              ))}
-            </div>
-            <p className="w-full text-xs text-ink-faint sm:w-auto sm:flex-1 sm:text-right">
-              Streaks to +50% · clean first-tries +25% · weak patterns +25%
-            </p>
-          </section>
 
-          <div className="mt-5 flex gap-1 overflow-x-auto rounded-xl border border-ink/10 bg-card p-1 shadow-card sm:w-fit">
-            {(["league", "global", "monthly", "patterns"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={cn(
-                  "whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-semibold capitalize transition-colors",
-                  tab === t ? "text-white" : "text-ink-soft hover:text-ink"
-                )}
-                style={
-                  tab === t ? { backgroundColor: theme.accent } : undefined
-                }
-              >
-                {t === "league" ? "My league" : t}
-              </button>
-            ))}
-          </div>
+            {/* ── How the climb works ─────────────────────────────── */}
+            <section aria-label="How the climb works" className="mt-5">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {CLIMB_STEPS.map((s, i) => (
+                  <div
+                    key={s.title}
+                    className="rise-in panel p-4"
+                    style={{ animationDelay: `${i * 90}ms` }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="tier-soft flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                        <s.icon size={17} className="tier-text" />
+                      </span>
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">
+                        Step {i + 1}
+                      </p>
+                    </div>
+                    <p className="mt-2.5 font-display text-sm font-bold text-ink">
+                      {s.title}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">
+                      {s.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-          {tab === "patterns" && patterns.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {patterns.map((p) => (
+            {/* ── Every question moves you ────────────────────────── */}
+            <section
+              aria-label="XP per question"
+              className="rise-in panel mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3.5"
+              style={{ animationDelay: "120ms" }}
+            >
+              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <Coin size={15} />
+                Every question moves you
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {XP_BY_DIFFICULTY.map((d) => (
+                  <Badge key={d.label} variant="secondary" className="gap-1.5 font-mono">
+                    {d.label} · {d.xp} XP
+                  </Badge>
+                ))}
+              </div>
+              <p className="w-full text-xs text-ink-faint sm:w-auto sm:flex-1 sm:text-right">
+                Streaks to +50% · clean first-tries +25% · weak patterns +25%
+              </p>
+            </section>
+
+            <div className="mt-5 flex gap-1 overflow-x-auto rounded-xl border border-ink/10 bg-card p-1 shadow-card sm:w-fit">
+              {(["league", "global", "monthly", "patterns"] as const).map((t) => (
                 <button
-                  key={p.key}
+                  key={t}
                   type="button"
-                  onClick={() => setPattern(p.key)}
+                  onClick={() => setTab(t)}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                    pattern === p.key
-                      ? "border-quest bg-quest/10 text-quest"
-                      : "border-ink/10 text-ink-soft hover:text-ink"
+                    "whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-semibold capitalize transition-colors",
+                    tab === t ? "tier-band" : "text-ink-soft hover:text-ink"
                   )}
                 >
-                  {p.name}
+                  {t === "league" ? "My league" : t}
                 </button>
               ))}
             </div>
-          )}
 
-          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
-            <div className="panel overflow-hidden">
-              {loading ? (
-                <div className="space-y-2 px-4 py-5 sm:px-5" aria-label="Loading standings">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <Skeleton className="h-5 w-7" />
-                      <Skeleton className="h-5 flex-1" />
-                      <Skeleton className="h-5 w-14" />
-                    </div>
-                  ))}
-                </div>
-              ) : tab === "league" && !league ? (
-                <div className="px-6 py-12 text-center">
-                  <ArrowLeftRight size={28} className="mx-auto text-ink-faint" />
-                  <p className="mt-3 font-display text-lg font-bold text-ink">
-                    You&apos;re out this week
-                  </p>
-                  <p className="mx-auto mt-1 max-w-sm text-sm text-ink-soft">
-                    Ranked play is better together — rejoin and we&apos;ll seed
-                    you into a cohort of 30 at your pace. Your tier and streak
-                    are safe.
-                  </p>
-                  <Button onClick={rejoin} className="mx-auto mt-4">
-                    Rejoin the climb
-                  </Button>
-                  {optedOut ? null : null}
-                </div>
-              ) : boardRows.length === 0 ? (
-                <div className="px-6 py-12 text-center">
-                  <Trophy size={28} className="mx-auto text-ink-faint" />
-                  <p className="mt-3 font-display text-lg font-bold text-ink">
-                    No standings yet
-                  </p>
-                  <p className="mx-auto mt-1 max-w-sm text-sm text-ink-soft">
-                    Solve any problem and you&apos;ll appear here — your first
-                    10 XP already moves you off the bottom.
-                  </p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-ink/8">
-                  {boardRows.map((r, idx) => {
-                    const score =
-                      "xp" in r && r.xp !== undefined ? r.xp : null;
-                    const solvedCount =
-                      score === null && "solved" in r ? (r.solved ?? 0) : null;
-                    const prevXp =
-                      idx > 0 && boardRows[idx - 1].xp !== undefined
-                        ? (boardRows[idx - 1].xp as number)
-                        : null;
-                    const gap =
-                      prevXp !== null && score !== null && idx > 0
-                        ? prevXp - score
-                        : null;
-                    const showPromoCut =
-                      tab === "league" && idx === 9 && boardRows.length > 10;
-                    const showDangerCut =
-                      tab === "league" &&
-                      boardRows.length >= 30 &&
-                      idx === boardRows.length - 6;
-                    return (
-                      <li key={`${r.rank}-${r.username}`}>
-                        {showDangerCut && (
-                          <p className="flex items-center gap-2 bg-rust/5 px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest text-rust sm:px-5">
-                            <TrendingDown size={11} /> Drop zone below — final 5
-                            fall a tier
-                          </p>
-                        )}
-                        <div
-                          className={cn(
-                            "flex items-center gap-3 px-4 py-3 sm:px-5",
-                            r.me && theme.soft
+            {tab === "patterns" && patterns.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {patterns.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setPattern(p.key)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      pattern === p.key
+                        ? "border-quest-deep bg-quest/10 text-quest-deep"
+                        : "border-ink/10 text-ink-soft hover:text-ink"
+                    )}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
+              <div className="panel overflow-hidden">
+                {loading ? (
+                  <div className="space-y-2 px-4 py-5 sm:px-5" aria-label="Loading standings">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <Skeleton className="h-5 w-7" />
+                        <Skeleton className="h-5 flex-1" />
+                        <Skeleton className="h-5 w-14" />
+                      </div>
+                    ))}
+                  </div>
+                ) : tab === "league" && !league ? (
+                  <div className="px-6 py-12 text-center">
+                    <ArrowLeftRight size={28} className="mx-auto text-ink-faint" />
+                    <p className="mt-3 font-display text-lg font-bold text-ink">
+                      You&apos;re out this week
+                    </p>
+                    <p className="mx-auto mt-1 max-w-sm text-sm text-ink-soft">
+                      Ranked play is better together — rejoin and we&apos;ll seed
+                      you into a cohort of 30 at your pace. Your tier and streak
+                      are safe.
+                    </p>
+                    <Button onClick={rejoin} className="mx-auto mt-4">
+                      Rejoin the climb
+                    </Button>
+                  </div>
+                ) : boardRows.length === 0 ? (
+                  <div className="px-6 py-12 text-center">
+                    <Trophy size={28} className="mx-auto text-ink-faint" />
+                    <p className="mt-3 font-display text-lg font-bold text-ink">
+                      No standings yet
+                    </p>
+                    <p className="mx-auto mt-1 max-w-sm text-sm text-ink-soft">
+                      Solve any problem and you&apos;ll appear here — your first
+                      10 XP already moves you off the bottom.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-ink/8">
+                    {boardRows.map((r, idx) => {
+                      const score =
+                        "xp" in r && r.xp !== undefined ? r.xp : null;
+                      const solvedCount =
+                        score === null && "solved" in r ? (r.solved ?? 0) : null;
+                      const prevXp =
+                        idx > 0 && boardRows[idx - 1].xp !== undefined
+                          ? (boardRows[idx - 1].xp as number)
+                          : null;
+                      const gap =
+                        prevXp !== null && score !== null && idx > 0
+                          ? prevXp - score
+                          : null;
+                      // The promotion banner renders after its row, so idx 9
+                      // puts it directly below rank 10. The drop banner renders
+                      // before its row, so it starts at the first relegated rank.
+                      const showPromoCut =
+                        tab === "league" && idx === 9 && boardRows.length > 10;
+                      const showDangerCut =
+                        tab === "league" &&
+                        boardRows.length >= 30 &&
+                        idx === boardRows.length - 5;
+                      // Zones are places, not labels: the board shades the
+                      // promotion and drop bands so the cut is visible without
+                      // reading every rank.
+                      const podium = tab === "league" && r.rank <= 3;
+                      const inPromoZone =
+                        tab === "league" && r.rank <= 10 && boardRows.length > 10;
+                      const inDropZone =
+                        tab === "league" &&
+                        boardRows.length >= 30 &&
+                        r.rank > boardRows.length - 5;
+                      return (
+                        <li key={`${r.rank}-${r.username}`}>
+                          {showDangerCut && (
+                            <p className="flex items-center gap-2 border-y border-rust/25 bg-rust/12 px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-rust-deep sm:px-5">
+                              <TrendingDown size={11} /> Drop zone below — final
+                              5 fall a tier
+                            </p>
                           )}
-                          style={
-                            r.rank === 1 && tab === "league"
-                              ? { boxShadow: `inset 3px 0 0 ${theme.accent}` }
-                              : r.me
-                                ? { boxShadow: `inset 3px 0 0 ${theme.accent}55` }
-                                : undefined
-                          }
-                        >
-                          <span
+                          <div
                             className={cn(
-                              "w-7 shrink-0 text-center font-mono text-sm font-bold",
-                              r.rank === 1 ? "text-gold-deep" : "text-ink-faint"
+                              "relative flex items-center gap-3 px-4 py-3 sm:px-5",
+                              r.me
+                                ? "tier-soft"
+                                : podium
+                                  ? r.rank === 1
+                                    ? "bg-gold/12"
+                                    : "bg-ink/[0.035]"
+                                  : inPromoZone
+                                    ? "bg-quest/12"
+                                    : inDropZone && "bg-rust/12"
                             )}
                           >
-                            {r.rank <= 3 ? (
-                              <Trophy
-                                size={15}
+                            {(r.me || (podium && r.rank === 1)) && (
+                              <span
+                                aria-hidden
                                 className={cn(
-                                  "mx-auto",
-                                  r.rank === 1
-                                    ? "text-gold-deep"
-                                    : r.rank === 2
-                                      ? "text-slate-400"
-                                      : "text-orange-700"
+                                  "absolute inset-y-0 left-0 w-[3px]",
+                                  r.me ? "tier-rail" : "bg-gold"
                                 )}
                               />
-                            ) : (
-                              r.rank
                             )}
-                          </span>
-                          <span
-                            className={cn(
-                              "min-w-0 flex-1 truncate text-sm font-medium",
-                              r.me ? "text-ink" : "text-ink-soft"
-                            )}
-                          >
-                            {r.username}
-                            {gap !== null && gap > 0 && (
-                              <span className="ml-2 font-mono text-[10px] text-ink-faint">
-                                +{gap} to pass
-                              </span>
-                            )}
-                          </span>
-                          {"zone" in r && r.zone ? (
-                            <ZoneTag zone={r.zone as LeagueMember["zone"]} />
-                          ) : null}
-                          <span className="flex shrink-0 items-center gap-1.5 font-mono text-sm font-bold text-ink">
-                            {score !== null ? (<><Coin size={13} />{score}</>) : `${solvedCount} solved`}
-                          </span>
-                        </div>
-                        {showPromoCut && (
-                          <p className="flex items-center gap-2 bg-quest/5 px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest text-quest sm:px-5">
-                            <ChevronUp size={11} strokeWidth={3} /> Promotion
-                            line — above this climbs a tier
-                          </p>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <aside className="space-y-5">
-              <TierLadder current={league?.tier ?? 0} />
-              <div className="panel p-5">
-                <p className="eyebrow">This week&apos;s stakes</p>
-                <ul className="mt-3 space-y-2.5 text-sm">
-                  <li className="flex items-start gap-2.5">
-                    <Crown size={15} className="mt-0.5 shrink-0 text-gold-deep" />
-                    <span className="text-ink-soft">
-                      <span className="font-semibold text-ink">
-                        Weekly Champion
-                      </span>{" "}
-                      — rank 1 earns the badge forever.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <ChevronUp
-                      size={15}
-                      strokeWidth={3}
-                      className="mt-0.5 shrink-0 text-quest"
-                    />
-                    <span className="text-ink-soft">
-                      <span className="font-semibold text-ink">Top 10 climb</span>{" "}
-                      — a tier up on Monday morning.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <Flame size={15} className="mt-0.5 shrink-0 text-rust" />
-                    <span className="text-ink-soft">
-                      <span className="font-semibold text-ink">
-                        {solved} solved · {streak}-day streak
-                      </span>{" "}
-                      — every day you show up, multipliers grow.
-                    </span>
-                  </li>
-                </ul>
-                <Separator className="my-3" />
-                <p className="text-xs leading-relaxed text-ink-faint">
-                  Fell behind? The drop is only one tier, and cohorts re-seed
-                  by pace — your comeback week is always winnable.
-                </p>
+                            <span
+                              className={cn(
+                                "w-7 shrink-0 text-center font-mono text-sm font-bold",
+                                r.rank === 1 ? "text-gold-deep" : "text-ink-soft"
+                              )}
+                            >
+                              {r.rank <= 3 ? (
+                                <Trophy
+                                  size={15}
+                                  className={cn(
+                                    "mx-auto",
+                                    r.rank === 1
+                                      ? "text-gold-deep"
+                                      : r.rank === 2
+                                        ? "text-slate-500"
+                                        : "text-orange-700"
+                                  )}
+                                />
+                              ) : (
+                                r.rank
+                              )}
+                            </span>
+                            <span
+                              className={cn(
+                                "min-w-0 flex-1 truncate text-sm font-medium",
+                                r.me ? "font-semibold text-ink" : "text-ink-soft"
+                              )}
+                            >
+                              {r.username}
+                              {r.me && gap !== null && gap > 0 && (
+                                <span className="ml-2 font-mono text-[10px] text-ink-soft">
+                                  +{gap} to pass
+                                </span>
+                              )}
+                            </span>
+                            {"zone" in r && r.zone ? (
+                              <ZoneTag zone={r.zone as LeagueMember["zone"]} />
+                            ) : null}
+                            <span className="flex shrink-0 items-center gap-1.5 font-mono text-sm font-bold text-ink">
+                              {score !== null ? (<><Coin size={13} />{score}</>) : `${solvedCount} solved`}
+                            </span>
+                          </div>
+                          {showPromoCut && (
+                            <p className="flex items-center gap-2 border-y border-quest/25 bg-quest/12 px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-quest-deep sm:px-5">
+                              <ChevronUp size={11} strokeWidth={3} /> Promotion
+                              line — above this climbs a tier
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
-            </aside>
-          </div>
-          {tab === "league" && league && (
-            <p className="mt-3 text-xs text-ink-faint">
-              Top 10 promote a tier · bottom 5 relegated · rank 1 takes the
-              Weekly Champion badge. Seasons reset every Monday.
-            </p>
-          )}
-        </main>
+
+              <aside className="space-y-5">
+                <SevenWorlds current={tier} />
+                <div className="panel p-5">
+                  <p className="eyebrow">This week&apos;s stakes</p>
+                  <ul className="mt-3 space-y-2.5 text-sm">
+                    <li className="flex items-start gap-2.5">
+                      <Crown size={15} className="mt-0.5 shrink-0 text-gold-deep" />
+                      <span className="text-ink-soft">
+                        <span className="font-semibold text-ink">
+                          Weekly Champion
+                        </span>{" "}
+                        — rank 1 earns the badge forever.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <ChevronUp
+                        size={15}
+                        strokeWidth={3}
+                        className="mt-0.5 shrink-0 text-quest-deep"
+                      />
+                      <span className="text-ink-soft">
+                        <span className="font-semibold text-ink">Top 10 climb</span>{" "}
+                        — a tier up on Monday morning.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Flame size={15} className="mt-0.5 shrink-0 text-rust-deep" />
+                      <span className="text-ink-soft">
+                        <span className="font-semibold text-ink">
+                          {solved} solved · {streak}-day streak
+                        </span>{" "}
+                        — every day you show up, multipliers grow.
+                      </span>
+                    </li>
+                  </ul>
+                  <Separator className="my-3" />
+                  <p className="text-xs leading-relaxed text-ink-faint">
+                    Fell behind? The drop is only one tier, and cohorts re-seed
+                    by pace — your comeback week is always winnable.
+                  </p>
+                </div>
+              </aside>
+            </div>
+            {tab === "league" && league && (
+              <p className="mt-3 text-xs text-ink-faint">
+                Top 10 promote a tier · bottom 5 relegated · rank 1 takes the
+                Weekly Champion badge. Seasons reset every Monday.
+              </p>
+            )}
+          </main>
         </div>
       </div>
     </ProtectedRoute>
-  );
-}
-
-function SparklesFallback() {
-  return (
-    <span className="flex items-center gap-1">
-      <Crown size={12} /> New season
-    </span>
   );
 }
