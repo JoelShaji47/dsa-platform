@@ -34,6 +34,15 @@ export interface TestCaseOut {
   expected_output: string;
 }
 
+export interface Approach {
+  name: string;
+  idea: string;
+  time_complexity: string;
+  space_complexity: string;
+  tradeoff?: string | null;
+  trace_key?: string | null;
+}
+
 export interface ProblemDetail {
   id: string;
   title: string;

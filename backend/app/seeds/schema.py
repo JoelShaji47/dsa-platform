@@ -47,3 +47,12 @@ class ProblemSeed(BaseModel):
 
     def visible_tests(self) -> list[TestCase]:
         return [t for t in self.test_cases if not t.is_hidden]
+
+
+class ApproachSeed(BaseModel):
+    name: str
+    idea: str
+    time_complexity: str
+    space_complexity: str
+    tradeoff: str | None = None
+    trace_key: str | None = None

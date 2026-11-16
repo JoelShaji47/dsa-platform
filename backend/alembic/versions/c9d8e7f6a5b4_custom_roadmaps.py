@@ -1,7 +1,7 @@
 """custom roadmaps: builder + friend join + weekly rate limit
 
 Revision ID: c9d8e7f6a5b4
-Revises: a1b2c3d4e5f6
+Revises: f7a8b9c0d1e2
 Create Date: 2026-10-14
 """
 
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'c9d8e7f6a5b4'
-down_revision: Union[str, Sequence[str], None] = 'a1b2c3d4e5f6'
+down_revision: Union[str, Sequence[str], None] = 'f7a8b9c0d1e2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

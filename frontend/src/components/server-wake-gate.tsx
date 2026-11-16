@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Compass, Database, Server, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const POLL_MS = 3000;
+const POLL_MS = 15000;
 const GIVE_UP_MS = 90000;
 
 async function pingBackend(): Promise<boolean> {
@@ -12,14 +12,14 @@ async function pingBackend(): Promise<boolean> {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     // /auth/me without a token answers 401 when the server is awake.
-    // Anything 5xx (dead proxy, cold backend) or no response at all
-    // means it is still waking.
+    // Anything 5xx (dead proxy, cold backend), 429 (Render's hibernation
+    // rate limit), or no response at all means it is still waking.
     const res = await fetch("/api/v1/auth/me", {
       signal: ctrl.signal,
       cache: "no-store",
     });
     clearTimeout(timer);
-    return res.status < 500;
+    return res.status !== 429 && res.status < 500;
   } catch {
     return false;
   }
@@ -105,14 +105,14 @@ export default function ServerWakeGate({ children }: { children: ReactNode }) {
   const [acked, setAcked] = useState(false);
   const [waitedSecs, setWaitedSecs] = useState(0);
   const [retrying, setRetrying] = useState(false);
-  const startedAt = useRef(Date.now());
 
   useEffect(() => {
+    const startedAt = Date.now();
     let cancelled = false;
     let interval = 0;
     const tick = window.setInterval(() => {
       if (!cancelled)
-        setWaitedSecs(Math.floor((Date.now() - startedAt.current) / 1000));
+        setWaitedSecs(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
 
     const check = async () => {
