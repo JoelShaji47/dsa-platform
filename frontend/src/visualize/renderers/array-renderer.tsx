@@ -3,7 +3,20 @@
 import type { ArraySnapshot, PointerName } from "../trace-types";
 import { cn } from "@/lib/utils";
 
-const POINTER_ORDER: PointerName[] = ["low", "mid", "high", "left", "right", "slow", "fast", "i", "j"];
+const POINTER_ORDER: PointerName[] = [
+  "low",
+  "mid",
+  "high",
+  "left",
+  "right",
+  "slow",
+  "fast",
+  "i",
+  "j",
+  "k",
+  "parent",
+  "child",
+];
 
 const POINTER_COLOR: Record<PointerName, string> = {
   low: "text-sky-300",
@@ -15,11 +28,14 @@ const POINTER_COLOR: Record<PointerName, string> = {
   fast: "text-orange-300",
   i: "text-amber-300",
   j: "text-fuchsia-300",
+  k: "text-fuchsia-300",
+  parent: "text-sky-300",
+  child: "text-orange-300",
 };
 
 /** Near-black array stage: thin outlines, index row, pointer labels, CSS-only motion. */
 export function ArrayRenderer({ snapshot }: { snapshot: ArraySnapshot }) {
-  const { values, active, settled, eliminated, deps = [], pointers } = snapshot;
+  const { values, active, settled, eliminated, deps = [], pointers, label } = snapshot;
   const byIndex = new Map<number, PointerName[]>();
   (Object.entries(pointers) as [PointerName, number | undefined][]).forEach(([name, idx]) => {
     if (idx == null || idx < 0 || idx >= values.length) return;
@@ -29,6 +45,7 @@ export function ArrayRenderer({ snapshot }: { snapshot: ArraySnapshot }) {
   });
 
   return (
+    <div className="flex flex-col items-center">
     <div className="overflow-x-auto pb-1">
       <div className="flex min-w-fit gap-1.5">
         {values.map((v, k) => {
@@ -72,6 +89,8 @@ export function ArrayRenderer({ snapshot }: { snapshot: ArraySnapshot }) {
           );
         })}
       </div>
+    </div>
+    {label && <span className="mt-1.5 font-mono text-[10px] text-gray-500">{label}</span>}
     </div>
   );
 }

@@ -13,7 +13,10 @@ export type PointerName =
   | "slow"
   | "fast"
   | "i"
-  | "j";
+  | "j"
+  | "k"
+  | "parent"
+  | "child";
 
 export interface ArraySnapshot {
   /** Numbers for array problems, single chars for string problems. */
@@ -27,6 +30,8 @@ export interface ArraySnapshot {
   /** Source indices used by the current computation (DP recurrences). */
   deps?: number[];
   pointers: Partial<Record<PointerName, number>>;
+  /** Caption rendered under the array, e.g. "max-heap" / "words". */
+  label?: string;
 }
 
 /** Vertical stack snapshot. Index 0 is the bottom; top is values.at(-1). */
@@ -72,6 +77,8 @@ export interface LinkedListNode {
   id: number;
   value: number | string;
   next: number | null;
+  /** Random-pointer target for copy-list-with-random-pointer traces. */
+  random?: number | null;
 }
 
 /** Linked-list snapshot. The renderer walks `head` through `next` links. */
@@ -124,6 +131,8 @@ export interface GraphEdgeSnapshot {
   from: number | string;
   to: number | string;
   directed?: boolean;
+  /** Weight or short caption rendered on the edge, e.g. "4" / "hot→dot". */
+  label?: string;
 }
 
 /** Abstract graph snapshot. Nodes are placed on a circle; edges may be directed. */
@@ -135,6 +144,8 @@ export interface GraphSnapshot {
   /** Node ids already visited/resolved. */
   settled: (number | string)[];
   pointers: Partial<Record<GraphPointerName, number | string>>;
+  /** Extra per-node captions, e.g. { 3: "d=7" } for Dijkstra distances. */
+  annotations?: Record<string, string>;
   /** Caption rendered under the graph, e.g. "original" / "clone". */
   label?: string;
 }
@@ -168,6 +179,8 @@ export interface BaseStep {
   /** Pseudocode line this step maps to (index into the entry's pseudocode). */
   line: number;
   array: ArraySnapshot;
+  /** Secondary array (two-string / two-heap comparisons). Rendered beside `array`. */
+  arrayAlt?: ArraySnapshot;
   /** Primary stack (stack problems). Rendered when present. */
   stack?: StackSnapshot;
   /** Secondary stack (Min Stack's min-stack). Rendered beside `stack`. */
@@ -182,12 +195,16 @@ export interface BaseStep {
   linkedListAlt?: LinkedListSnapshot;
   /** Binary tree (tree problems). Rendered when present. */
   tree?: TreeSnapshot;
+  /** Secondary tree (e.g. the second input to Same Tree). Rendered beside `tree`. */
+  treeAlt?: TreeSnapshot;
   /** Primary abstract graph (graph problems). Rendered when present. */
   graph?: GraphSnapshot;
   /** Secondary graph (e.g. the cloned copy). Rendered beside `graph`. */
   graphAlt?: GraphSnapshot;
   /** Grid/matrix (grid graphs and 2-D DP tables). Rendered when present. */
   grid?: GridSnapshot;
+  /** Secondary grid (e.g. the two Pacific/Atlantic passes). Rendered beside `grid`. */
+  gridAlt?: GridSnapshot;
   /** Named variable values shown beside the code, e.g. { target: 9 }. */
   vars: Record<string, string | number>;
   result?: string;

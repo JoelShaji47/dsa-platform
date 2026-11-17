@@ -34,6 +34,53 @@ import { climbingStairsEntry } from "./traces/climbing-stairs";
 import { uniquePathsEntry } from "./traces/unique-paths";
 import { coinChangeEntry } from "./traces/coin-change";
 import { editDistanceEntry } from "./traces/edit-distance";
+import { maximumSubarrayEntry } from "./traces/maximum-subarray";
+import { mergeIntervalsEntry } from "./traces/merge-intervals";
+import { topKFrequentEntry } from "./traces/top-k-frequent-elements";
+import { trappingRainWaterEntry } from "./traces/trapping-rain-water";
+import { validAnagramEntry } from "./traces/valid-anagram";
+import { validPalindromeEntry } from "./traces/valid-palindrome";
+import { minimumWindowSubstringEntry } from "./traces/minimum-window-substring";
+import { groupAnagramsEntry } from "./traces/group-anagrams";
+import { containsDuplicateIIEntry } from "./traces/contains-duplicate-ii";
+import { fruitIntoBasketsEntry } from "./traces/fruit-into-baskets";
+import { addTwoNumbersEntry } from "./traces/add-two-numbers";
+import { removeNthNodeEntry } from "./traces/remove-nth-node-from-end-of-list";
+import { copyRandomPointerEntry } from "./traces/copy-list-with-random-pointer";
+import { mergeKSortedListsEntry } from "./traces/merge-k-sorted-lists";
+import { reverseKGroupEntry } from "./traces/reverse-nodes-in-k-group";
+import { reorderListEntry } from "./traces/reorder-list";
+import { palindromeLinkedListEntry } from "./traces/palindrome-linked-list";
+import { asteroidCollisionEntry } from "./traces/asteroid-collision";
+import { carFleetEntry } from "./traces/car-fleet";
+import { generateParenthesesEntry } from "./traces/generate-parentheses";
+import { nextGreaterElementEntry } from "./traces/next-greater-element";
+import { largestRectangleEntry } from "./traces/largest-rectangle-in-histogram";
+import { baseballGameEntry } from "./traces/baseball-game";
+import { kthLargestStreamEntry } from "./traces/kth-largest-element-in-a-stream";
+import { lastStoneWeightEntry } from "./traces/last-stone-weight";
+import { carPoolingEntry } from "./traces/car-pooling";
+import { kClosestPointsEntry } from "./traces/k-closest-points-to-origin";
+import { kthLargestArrayEntry } from "./traces/kth-largest-element-in-an-array";
+import { medianStreamEntry } from "./traces/find-median-from-data-stream";
+import { balancedTreeEntry } from "./traces/balanced-binary-tree";
+import { diameterTreeEntry } from "./traces/diameter-of-binary-tree";
+import { sameTreeEntry } from "./traces/same-tree";
+import { rightSideViewEntry } from "./traces/binary-tree-right-side-view";
+import { kthSmallestBSTEntry } from "./traces/kth-smallest-element-in-a-bst";
+import { lcaBstEntry } from "./traces/lowest-common-ancestor-bst";
+import { maxAreaIslandEntry } from "./traces/max-area-of-island";
+import { rottingOrangesEntry } from "./traces/rotting-oranges";
+import { pacificAtlanticEntry } from "./traces/pacific-atlantic-water-flow";
+import { wordLadderEntry } from "./traces/word-ladder";
+import { courseScheduleIIEntry } from "./traces/course-schedule-ii";
+import { networkDelayEntry } from "./traces/network-delay-time";
+import { houseRobberEntry } from "./traces/house-robber";
+import { houseRobberIIEntry } from "./traces/house-robber-ii";
+import { lisEntry } from "./traces/longest-increasing-subsequence";
+import { lcsEntry } from "./traces/longest-common-subsequence";
+import { wordBreakEntry } from "./traces/word-break";
+import { partitionSubsetEntry } from "./traces/partition-equal-subset-sum";
 import { ArrayRenderer } from "./renderers/array-renderer";
 import { StackRenderer } from "./renderers/stack-renderer";
 import { QueueRenderer } from "./renderers/queue-renderer";
@@ -50,9 +97,18 @@ export interface RegistryItem {
 function arrayItem(entry: VisualizerEntry): RegistryItem {
   return {
     entry,
-    render: (step) => <ArrayRenderer snapshot={step.array} />,
+    render: (step) => (
+      <div className="flex flex-col gap-4">
+        {(step.array.values.length > 0 || !step.arrayAlt) && (
+          <ArrayRenderer snapshot={step.array} />
+        )}
+        {step.arrayAlt && <ArrayRenderer snapshot={step.arrayAlt} />}
+      </div>
+    ),
   };
 }
+
+const heapItem = arrayItem;
 
 function stackItem(entry: VisualizerEntry): RegistryItem {
   return {
@@ -117,7 +173,12 @@ function treeItem(entry: VisualizerEntry): RegistryItem {
     entry,
     render: (step) => (
       <div className="flex flex-col gap-4">
-        {step.tree && <TreeRenderer snapshot={step.tree} />}
+        {(step.tree || step.treeAlt) && (
+          <div className="flex flex-wrap items-start justify-center gap-8">
+            {step.tree && <TreeRenderer snapshot={step.tree} />}
+            {step.treeAlt && <TreeRenderer snapshot={step.treeAlt} />}
+          </div>
+        )}
         {step.queue && <QueueRenderer snapshot={step.queue} />}
         {step.array.values.length > 0 && <ArrayRenderer snapshot={step.array} />}
       </div>
@@ -155,7 +216,12 @@ function gridItem(entry: VisualizerEntry): RegistryItem {
     entry,
     render: (step) => (
       <div className="flex flex-col gap-4">
-        {step.grid && <GridRenderer snapshot={step.grid} />}
+        {(step.grid || step.gridAlt) && (
+          <div className="flex flex-wrap items-start justify-center gap-8">
+            {step.grid && <GridRenderer snapshot={step.grid} />}
+            {step.gridAlt && <GridRenderer snapshot={step.gridAlt} />}
+          </div>
+        )}
         {step.queue && <QueueRenderer snapshot={step.queue} />}
         {step.array.values.length > 0 && <ArrayRenderer snapshot={step.array} />}
       </div>
@@ -197,6 +263,53 @@ const REGISTRY: Record<string, RegistryItem> = {
   "unique-paths": gridItem(uniquePathsEntry),
   "coin-change": arrayItem(coinChangeEntry),
   "edit-distance": gridItem(editDistanceEntry),
+  "maximum-subarray": arrayItem(maximumSubarrayEntry),
+  "merge-intervals": arrayItem(mergeIntervalsEntry),
+  "top-k-frequent-elements": arrayItem(topKFrequentEntry),
+  "trapping-rain-water": arrayItem(trappingRainWaterEntry),
+  "valid-anagram": arrayItem(validAnagramEntry),
+  "valid-palindrome": arrayItem(validPalindromeEntry),
+  "minimum-window-substring": arrayItem(minimumWindowSubstringEntry),
+  "group-anagrams": arrayItem(groupAnagramsEntry),
+  "contains-duplicate-ii": arrayItem(containsDuplicateIIEntry),
+  "fruit-into-baskets": arrayItem(fruitIntoBasketsEntry),
+  "add-two-numbers": linkedItem(addTwoNumbersEntry),
+  "remove-nth-node-from-end-of-list": linkedItem(removeNthNodeEntry),
+  "copy-list-with-random-pointer": linkedItem(copyRandomPointerEntry),
+  "merge-k-sorted-lists": linkedItem(mergeKSortedListsEntry),
+  "reverse-nodes-in-k-group": linkedItem(reverseKGroupEntry),
+  "reorder-list": linkedItem(reorderListEntry),
+  "palindrome-linked-list": linkedItem(palindromeLinkedListEntry),
+  "asteroid-collision": stackItem(asteroidCollisionEntry),
+  "car-fleet": stackItem(carFleetEntry),
+  "generate-parentheses": stackItem(generateParenthesesEntry),
+  "next-greater-element": stackItem(nextGreaterElementEntry),
+  "largest-rectangle-in-histogram": stackItem(largestRectangleEntry),
+  "baseball-game": stackItem(baseballGameEntry),
+  "kth-largest-element-in-a-stream": heapItem(kthLargestStreamEntry),
+  "last-stone-weight": heapItem(lastStoneWeightEntry),
+  "car-pooling": arrayItem(carPoolingEntry),
+  "k-closest-points-to-origin": arrayItem(kClosestPointsEntry),
+  "kth-largest-element-in-an-array": heapItem(kthLargestArrayEntry),
+  "find-median-from-data-stream": arrayItem(medianStreamEntry),
+  "balanced-binary-tree": treeItem(balancedTreeEntry),
+  "diameter-of-binary-tree": treeItem(diameterTreeEntry),
+  "same-tree": treeItem(sameTreeEntry),
+  "binary-tree-right-side-view": treeItem(rightSideViewEntry),
+  "kth-smallest-element-in-a-bst": treeItem(kthSmallestBSTEntry),
+  "lowest-common-ancestor-bst": treeItem(lcaBstEntry),
+  "max-area-of-island": gridItem(maxAreaIslandEntry),
+  "rotting-oranges": gridItem(rottingOrangesEntry),
+  "pacific-atlantic-water-flow": gridItem(pacificAtlanticEntry),
+  "word-ladder": graphItem(wordLadderEntry),
+  "course-schedule-ii": graphItem(courseScheduleIIEntry),
+  "network-delay-time": graphItem(networkDelayEntry),
+  "house-robber": arrayItem(houseRobberEntry),
+  "house-robber-ii": arrayItem(houseRobberIIEntry),
+  "longest-increasing-subsequence": arrayItem(lisEntry),
+  "longest-common-subsequence": gridItem(lcsEntry),
+  "word-break": arrayItem(wordBreakEntry),
+  "partition-equal-subset-sum": arrayItem(partitionSubsetEntry),
 };
 
 export function lookupVisualizer(slug: string): RegistryItem | null {

@@ -87,7 +87,7 @@ function edgePath(
 export function GraphRenderer({ snapshot }: { snapshot: GraphSnapshot }) {
   const rawId = useId();
   const markerId = `graph-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  const { nodes, edges, active, settled, pointers, label } = snapshot;
+  const { nodes, edges, active, settled, pointers, annotations, label } = snapshot;
   const { items, byId } = layout(nodes);
   const byNode = new Map<GraphId, GraphPointerName[]>();
   (Object.entries(pointers) as [GraphPointerName, GraphId | undefined][]).forEach(([name, id]) => {
@@ -140,21 +140,47 @@ export function GraphRenderer({ snapshot }: { snapshot: GraphSnapshot }) {
                   : settled.includes(edge.from) && settled.includes(edge.to)
                     ? "settled"
                     : "default";
+              const rawLabel = edge.label;
+              const dx = to.x - from.x;
+              const dy = to.y - from.y;
+              const distance = Math.hypot(dx, dy) || 1;
+              const labelX =
+                edge.from === edge.to
+                  ? from.x
+                  : (from.x + to.x) / 2 - (dy / distance) * 14;
+              const labelY =
+                edge.from === edge.to
+                  ? from.y - NODE_RADIUS - 14
+                  : (from.y + to.y) / 2 + (dx / distance) * 14;
               return (
-                <path
-                  key={`${String(edge.from)}-${String(edge.to)}-${index}`}
-                  d={edgePath(edge, from, to, hasReverse)}
-                  fill="none"
-                  stroke={
-                    state === "active"
-                      ? "rgba(252,211,77,0.7)"
-                      : state === "settled"
-                        ? "rgba(52,211,153,0.5)"
-                        : "rgba(255,255,255,0.16)"
-                  }
-                  strokeWidth={2}
-                  markerEnd={edge.directed ? `url(#${markerId}-${state})` : undefined}
-                />
+                <g key={`${String(edge.from)}-${String(edge.to)}-${index}`}>
+                  <path
+                    d={edgePath(edge, from, to, hasReverse)}
+                    fill="none"
+                    stroke={
+                      state === "active"
+                        ? "rgba(252,211,77,0.7)"
+                        : state === "settled"
+                          ? "rgba(52,211,153,0.5)"
+                          : "rgba(255,255,255,0.16)"
+                    }
+                    strokeWidth={2}
+                    markerEnd={edge.directed ? `url(#${markerId}-${state})` : undefined}
+                  />
+                  {rawLabel && (
+                    <text
+                      x={labelX}
+                      y={labelY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={9}
+                      fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                      fill={state === "active" ? "#fcd34d" : "#9ca3af"}
+                    >
+                      {rawLabel}
+                    </text>
+                  )}
+                </g>
               );
             })}
             {items.map(({ node, x, y }) => {
@@ -212,6 +238,18 @@ export function GraphRenderer({ snapshot }: { snapshot: GraphSnapshot }) {
                   >
                     {node.label}
                   </text>
+                  {annotations?.[String(node.id)] && (
+                    <text
+                      x={x}
+                      y={y + NODE_RADIUS + 12}
+                      textAnchor="middle"
+                      fontSize={9}
+                      fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                      fill="#9ca3af"
+                    >
+                      {annotations[String(node.id)]}
+                    </text>
+                  )}
                 </g>
               );
             })}

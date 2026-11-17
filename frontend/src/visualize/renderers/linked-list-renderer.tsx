@@ -100,6 +100,11 @@ export function LinkedListRenderer({ snapshot }: { snapshot: LinkedListSnapshot 
                     <span className="mt-1 font-mono text-[10px] text-gray-500">
                       {node.id === head ? "head" : `#${node.id}`}
                     </span>
+                    {node.random != null && (
+                      <span className="font-mono text-[9px] text-fuchsia-300">
+                        r&#8594;#{node.random}
+                      </span>
+                    )}
                   </div>
                   {!isTail ? (
                     <span className="mt-8 font-mono text-lg text-gray-500">→</span>

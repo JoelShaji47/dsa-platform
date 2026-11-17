@@ -21,7 +21,7 @@ export function parseLevelOrderTree(
     throw new Error("Use the form [3, 9, 20, null, null, 15, 7]");
   }
 
-  const values = body.split(",").map((token) => {
+  const values = (bracket ? body.split(",") : body.split(/[\s,]+/)).map((token) => {
     const cleaned = token.trim().toLowerCase();
     if (NULL_TOKENS.has(cleaned)) return null;
     const value = Number(token);
