@@ -39,8 +39,9 @@ export interface Approach {
   idea: string;
   time_complexity: string;
   space_complexity: string;
-  tradeoff?: string | null;
-  trace_key?: string | null;
+  tradeoff: string | null;
+  /** Visualizer registry key for this rung's trace, if one exists. */
+  trace_key: string | null;
 }
 
 export interface ProblemDetail {
@@ -62,6 +63,8 @@ export interface ProblemDetail {
   video_url: string | null;
   function_modes: string[];
   function_starter: Record<string, string>;
+  /** Ordered solution ladder (brute force -> optimal). */
+  approaches: Approach[];
 }
 
 export type RunMode = "main" | "function";

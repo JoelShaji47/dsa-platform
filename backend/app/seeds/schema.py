@@ -9,6 +9,24 @@ class TestCase(BaseModel):
     is_hidden: bool = False
 
 
+class ApproachSeed(BaseModel):
+    """One rung of a problem's solution ladder, cheapest approach first.
+
+    ``trace_key`` points at a visualizer registry entry (usually the problem's
+    own slug) so the ladder can hand off to the step-by-step player.
+    """
+
+    name: str = Field(min_length=1, max_length=80)
+    idea: str = Field(min_length=10)
+    time_complexity: str = Field(min_length=1, max_length=40)
+    space_complexity: str = Field(min_length=1, max_length=40)
+    # Why you would / would not reach for this rung.
+    tradeoff: str | None = Field(default=None, max_length=400)
+    trace_key: str | None = Field(
+        default=None, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", max_length=220
+    )
+
+
 class ProblemSeed(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     slug: str = Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", max_length=220)
@@ -44,6 +62,9 @@ class ProblemSeed(BaseModel):
     companies: list[str] = Field(default_factory=list)
     editorial_url: str | None = None
     video_url: str | None = None
+    # Ordered solution ladder (brute force -> optimal). Optional: most catalog
+    # entries have no authored ladder yet.
+    approaches: list[ApproachSeed] = Field(default_factory=list)
 
     def visible_tests(self) -> list[TestCase]:
         return [t for t in self.test_cases if not t.is_hidden]
