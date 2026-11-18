@@ -34,6 +34,7 @@ from app.models.hint import HintUsage
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.telemetry import (
+    RecommendationImpression,
     RecommendationOpportunity,
     SolveSession,
     estimate_active_seconds,
@@ -239,6 +240,56 @@ def test_impression_frame_empty_without_impressions():
     assert n_before >= 0  # opportunities may exist from other tests
     # No impressions logged in this DB -> empty frame (honest, not invented).
     assert list(frame.columns)[:1] == [FEATURE_COLUMNS[0]]
+
+
+def test_impression_frame_carries_clicked_dismissed_labels():
+    from app.ml.features import build_impression_training_frame
+
+    headers, uid = make_test_user()
+    uid = uuid.UUID(str(uid))
+    with SessionLocal() as db:
+        opp = RecommendationOpportunity(user_id=uid, model_version="heuristic-v1",
+                                        candidate_count=2)
+        db.add(opp)
+        db.commit()
+        db.refresh(opp)
+        problems = (
+            db.query(Problem)
+            .filter(
+                Problem.is_published.is_(True),
+                Problem.starter_code.is_not(None),
+                Problem.test_cases.is_not(None),
+            )
+            .order_by(Problem.slug)
+            .limit(2)
+            .all()
+        )
+        assert len(problems) == 2
+        clicked = RecommendationImpression(
+            opportunity_id=opp.id, user_id=uid, problem_id=problems[0].id,
+            rank=0, rendered=True, model_version="heuristic-v1",
+            clicked_at=datetime.now(timezone.utc),
+        )
+        dismissed = RecommendationImpression(
+            opportunity_id=opp.id, user_id=uid, problem_id=problems[1].id,
+            rank=1, rendered=True, model_version="heuristic-v1",
+            dismissed_at=datetime.now(timezone.utc),
+        )
+        db.add_all([clicked, dismissed])
+        db.commit()
+
+        frame = build_impression_training_frame(db)
+
+    # My two impressions must surface with the right clicked/dismissed labels,
+    # alongside any other impressions already in the DB.
+    assert "clicked" in frame.columns and "dismissed" in frame.columns
+    by_slug = frame.set_index("slug")
+    clicked_row = by_slug.loc[problems[0].slug]
+    dismissed_row = by_slug.loc[problems[1].slug]
+    assert clicked_row["clicked"] == 1.0 and clicked_row["dismissed"] == 0.0
+    assert dismissed_row["clicked"] == 0.0 and dismissed_row["dismissed"] == 1.0
+    assert clicked_row["relevance"] == 1  # clicked -> relevance 1
+    assert dismissed_row["relevance"] == 0  # dismissed -> relevance 0
 
 
 # ---- A4/A5: fallback + evaluation ----
