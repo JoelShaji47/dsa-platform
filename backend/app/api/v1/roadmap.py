@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Depends
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.telemetry import (
+    ImpressionsIn,
+    SessionFinishIn,
+    SessionStartIn,
+    session_out,
+)
 from app.services.roadmap import (
     get_activity,
     get_daily_question,
@@ -24,18 +32,108 @@ def roadmap(
     return get_roadmap(db, current_user)
 
 
+@router.get("/pathway")
+def pathway(
+    limit: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Layer 2: ordered pattern plan, highest learning signal per hour first."""
+    from app.services.pathway import build_pathway
+
+    return build_pathway(db, current_user, limit=limit)
+
+
 @router.get("/recommendations")
 def recommendations(
     explain: bool = False,
     pattern: str | None = None,
+    intent: str = "balanced",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
-    recs = get_recommendations(db, current_user, explain=explain)
+    recs = get_recommendations(db, current_user, explain=explain, intent=intent)
     if pattern is not None:
         # Weak-pattern drill: top picks constrained to one pattern.
         recs = [r for r in recs if r.get("pattern_key") == pattern]
     return {"recommendations": recs}
+
+
+@router.post("/impressions")
+def log_impressions(
+    body: ImpressionsIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Record which recommendations were actually rendered (B1).
+
+    Only the owning user may log to their opportunity; duplicates from
+    client retries are ignored (idempotent).
+    """
+    from app.services import telemetry as _telemetry
+
+    try:
+        n = _telemetry.record_impressions(
+            db, current_user, body.opportunity_id,
+            [i.model_dump() for i in body.items],
+        )
+    except PermissionError:
+        raise HTTPException(status_code=404, detail="opportunity not found")
+    return {"recorded": n}
+
+
+@router.post("/sessions")
+def start_solve_session(
+    body: SessionStartIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    from app.services import telemetry as _telemetry
+
+    try:
+        s = _telemetry.start_session(
+            db, current_user, body.problem_slug,
+            body.client_session_id, body.opportunity_id,
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="problem not found")
+    except PermissionError:
+        raise HTTPException(status_code=404, detail="opportunity not found")
+    return {"session": session_out(s)}
+
+
+@router.post("/sessions/{session_id}/heartbeat")
+def heartbeat_solve_session(
+    session_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    from app.services import telemetry as _telemetry
+
+    try:
+        s = _telemetry.heartbeat_session(db, current_user, session_id)
+    except PermissionError:
+        raise HTTPException(status_code=404, detail="session not found")
+    return {"session": session_out(s)}
+
+
+@router.post("/sessions/{session_id}/finish")
+def finish_solve_session(
+    session_id: UUID,
+    body: SessionFinishIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    from app.services import telemetry as _telemetry
+
+    try:
+        s = _telemetry.finish_session(
+            db, current_user, session_id,
+            body.claimed_time_complexity, body.claimed_space_complexity,
+        )
+    except PermissionError:
+        raise HTTPException(status_code=404, detail="session not found")
+    return {"session": session_out(s)}
 
 
 @router.get("/review-due")

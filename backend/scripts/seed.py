@@ -66,6 +66,10 @@ def main() -> None:
                 payload["editorial_url"] = seed.editorial_url
             if seed.video_url:
                 payload["video_url"] = seed.video_url
+            if seed.approaches:
+                payload["approaches"] = [
+                    approach.model_dump() for approach in seed.approaches
+                ]
 
             # Global arena rules: exactly three visible test cases and exactly
             # two examples per problem. Applied at seed time so any database

@@ -1,0 +1,48 @@
+# Render blueprint for the DSA Platform API.
+# Apply via dashboard: New > Blueprint > select this repo. Render creates the
+# web service below; fill the `sync: false` values when prompted (or later in
+# Environment settings). Secrets never belong in this file.
+#
+# Judge0 runs on RapidAPI cloud (see JUDGE0_* vars) — no Judge0 containers
+# are deployed. The frontend ships separately on Vercel with
+# BACKEND_API_URL=https://<this-service>.onrender.com.
+
+services:
+  - type: web
+    name: dsa-platform-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # --- App ---
+      - key: CORS_ORIGINS
+        value: http://localhost:3000
+      # NOTE: append your Vercel URL here after first frontend deploy,
+      # e.g. "http://localhost:3000,https://dsa-platform.vercel.app"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      # --- Database (Supabase pooler; already migrated to head) ---
+      - key: DATABASE_URL
+        sync: false
+      # --- Supabase auth (JWKS verification) ---
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # --- Judge0 via RapidAPI cloud ---
+      - key: JUDGE0_API_URL
+        value: https://judge0-ce.p.rapidapi.com
+      - key: JUDGE0_API_HOST
+        value: judge0-ce.p.rapidapi.com
+      - key: JUDGE0_API_KEYS
+        sync: false
+      # --- AI tutor ---
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: GROQ_API_KEY
+        sync: false

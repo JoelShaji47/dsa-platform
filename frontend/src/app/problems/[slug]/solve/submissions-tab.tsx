@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { Clock, History, Loader2 } from "lucide-react";
-import CodeMirror from "@uiw/react-codemirror";
-import { python } from "@codemirror/lang-python";
-import { cpp } from "@codemirror/lang-cpp";
-import { java } from "@codemirror/lang-java";
-import { oneDark } from "@codemirror/theme-one-dark";
+import Editor from "@monaco-editor/react";
 import { useTheme } from "@/context/theme-context";
 import type { SubmissionHistoryItem } from "@/lib/types";
 import { STATUS_STYLES } from "./status-utils";
+
+const MONACO_LANG: Record<string, string> = {
+  python: "python",
+  cpp: "cpp",
+  java: "java",
+};
 
 export default function SubmissionsTab({
   submissions,
@@ -41,7 +43,7 @@ export default function SubmissionsTab({
     );
   }
 
-  const langMap: Record<string, () => unknown> = { python, cpp, java };
+  const langMap: Record<string, string> = MONACO_LANG;
 
   return (
     <div className="space-y-1.5">
@@ -105,21 +107,26 @@ export default function SubmissionsTab({
             </button>
             {isExpanded && (
               <div className={dark ? "border-t border-ink/10 bg-arena" : "border-t border-ink/10 bg-paper-deep"}>
-                <div className="p-3">
-                  <CodeMirror
+                <div className="h-[300px] p-3">
+                  <Editor
                     value={s.code}
-                    height="auto"
-                    style={{
-                      fontSize: "13px",
-                      maxHeight: "350px",
-                      overflow: "auto",
-                    }}
-                    theme={dark ? oneDark : "light"}
-                    extensions={[(langMap[s.language] ?? python)() as never]}
-                    readOnly
-                    basicSetup={{
-                      highlightActiveLine: false,
-                      highlightActiveLineGutter: false,
+                    height="100%"
+                    language={langMap[s.language] ?? "python"}
+                    theme={dark ? "vs-dark" : "vs"}
+                    loading={
+                      <div className="text-xs text-ink-faint">Loading…</div>
+                    }
+                    options={{
+                      readOnly: true,
+                      fontSize: 13,
+                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                      renderLineHighlight: "none",
+                      automaticLayout: true,
+                      scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+                      overviewRulerLanes: 0,
+                      hideCursorInOverviewRuler: true,
                     }}
                   />
                 </div>

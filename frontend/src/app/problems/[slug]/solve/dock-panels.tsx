@@ -5,6 +5,7 @@ import { useTheme } from "@/context/theme-context";
 import { useDock } from "./dock-context";
 import { VisualizerView } from "@/visualize/visualizer-view";
 import AssistantPanel from "./assistant-panel";
+import { ApproachLadder } from "./approach-ladder";
 import ConsolePanel from "./console-panel";
 import DescriptionPanel from "./description-panel";
 import EditorCell from "./editor-cell";
@@ -15,8 +16,25 @@ export function VisualizeTabPanel() {
   const d = useDock();
   return (
     <div className="h-full overflow-hidden">
-      <VisualizerView slug={d.slug} />
+      {/* Keyed by the selected trace so switching approaches mounts a fresh
+          session (its own default input) instead of syncing in an effect. */}
+      <VisualizerView
+        key={d.vizTraceKey ?? d.slug}
+        slug={d.slug}
+        traceKey={d.vizTraceKey}
+      />
     </div>
+  );
+}
+
+export function ApproachesTabPanel() {
+  const d = useDock();
+  return (
+    <ApproachLadder
+      approaches={d.problem.approaches ?? []}
+      activeTraceKey={d.vizTraceKey}
+      onVisualize={d.focusVisualize}
+    />
   );
 }
 
@@ -60,6 +78,7 @@ export function CodeTabPanel() {
       runCount={d.runCount}
       onCode={d.onCode}
       onModeChange={d.onModeChange}
+      onLangChange={d.onLangChange}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { FlaskConical } from "lucide-react";
+import { useTheme } from "@/context/theme-context";
 import { lookupVisualizer, type RegistryItem } from "./registry";
 import type { BaseStep } from "./trace-types";
 import { useTracePlayer } from "./player/use-trace-player";
@@ -48,8 +49,17 @@ function TraceSession({ item, steps, error }: { item: RegistryItem; steps: BaseS
   );
 }
 
-export function VisualizerView({ slug }: { slug: string }) {
-  const item = lookupVisualizer(slug);
+export function VisualizerView({
+  slug,
+  traceKey,
+}: {
+  slug: string;
+  /** Approach-specific trace to play. Falls back to the problem's own trace. */
+  traceKey?: string | null;
+}) {
+  const item = lookupVisualizer(traceKey ?? slug);
+  const dark = useTheme() === "dark";
+  const th = (dc: string, l: string) => (dark ? dc : l);
 
   const [raw, setRaw] = useState(item?.entry.defaultInput ?? "");
   const [applied, setApplied] = useState(item?.entry.defaultInput ?? "");
@@ -68,10 +78,13 @@ export function VisualizerView({ slug }: { slug: string }) {
 
   if (!item) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 bg-[#0b0d12] p-8 text-center">
-        <FlaskConical size={22} className="text-gray-500" />
-        <p className="font-display text-lg font-bold text-gray-200">Visualization coming soon</p>
-        <p className="max-w-sm text-sm text-gray-400">
+      <div className={th(
+        "flex h-full flex-col items-center justify-center gap-2 bg-[#0b0d12] p-8 text-center",
+        "flex h-full flex-col items-center justify-center gap-2 bg-paper p-8 text-center"
+      )}>
+        <FlaskConical size={22} className={th("text-gray-500", "text-ink-faint")} />
+        <p className={th("font-display text-lg font-bold text-gray-200", "font-display text-lg font-medium text-ink")}>Visualization coming soon</p>
+        <p className={th("max-w-sm text-sm text-gray-400", "max-w-sm text-sm text-ink-soft")}>
           This problem doesn&apos;t have a step-by-step trace yet. The player, renderers and
           registry are ready — only its trace generator is missing.
         </p>
@@ -92,7 +105,7 @@ export function VisualizerView({ slug }: { slug: string }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Input bar */}
-      <div className="shrink-0 border-b border-white/10 bg-[#0e1119] px-4 py-2.5">
+      <div className={th("shrink-0 border-b border-white/10 bg-[#0e1119] px-4 py-2.5", "shrink-0 border-b border-ink/10 bg-card px-4 py-2.5")}>
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={raw}
@@ -104,12 +117,15 @@ export function VisualizerView({ slug }: { slug: string }) {
             spellCheck={false}
             placeholder={item.entry.inputHint}
             aria-label="Visualization input"
-            className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-1.5 font-mono text-xs text-gray-100 placeholder:text-gray-600"
+            className={th(
+              "min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-1.5 font-mono text-xs text-gray-100 placeholder:text-gray-600",
+              "min-w-0 flex-1 rounded-lg border border-ink/15 bg-white px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint"
+            )}
           />
           <button
             type="button"
             onClick={apply}
-            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
+            className="rounded-lg bg-quest px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
           >
             Apply
           </button>
@@ -124,7 +140,10 @@ export function VisualizerView({ slug }: { slug: string }) {
                 setApplied(p.value);
                 setError(null);
               }}
-              className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 font-mono text-[11px] text-gray-400 hover:border-white/25 hover:text-gray-200"
+              className={th(
+                "rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 font-mono text-[11px] text-gray-400 hover:border-white/25 hover:text-gray-200",
+                "rounded-md border border-ink/10 bg-ink/[0.03] px-2 py-0.5 font-mono text-[11px] text-ink-soft hover:border-ink/25 hover:text-ink"
+              )}
             >
               {p.label}
             </button>

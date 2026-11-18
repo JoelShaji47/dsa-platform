@@ -30,11 +30,20 @@ def monday(n_weeks_ago=0):
 def test_board_seeds_cohort_and_ranks_by_week_xp():
     h1, u1 = register()
     h2, _ = register()
-    now = datetime.now(timezone.utc)
+    # Anchor to the exact window the endpoint computes. A bare "now - 1 day"
+    # fell into the previous week whenever the suite ran on a Monday, which
+    # silently zeroed the user's week XP and failed the assert below.
+    week_start_dt, _ = leagues.week_bounds()
     with SessionLocal() as db:
         for u in (u1,):
             user = db.query(User).filter(User.id == u).one()
-            log_xp(db, user, 40, "solve", created_at=now - timedelta(days=1))
+            log_xp(
+                db,
+                user,
+                40,
+                "solve",
+                created_at=week_start_dt + timedelta(hours=1),
+            )
             db.commit()
 
     body = client.get("/api/v1/leagues/me", headers=h1).json()

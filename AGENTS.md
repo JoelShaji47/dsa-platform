@@ -32,6 +32,7 @@ The Judge0 CE amd64 image runs under Rosetta 2. Standard `isolate` per-process s
 - **Verify Catalog**: `python scripts/verify_seeds.py` (checks test cases against reference solutions)
 - **Check Starters**: `python scripts/check_starters.py` (lints/compiles all starter code scaffolds; needs `g++`/`javac` locally, no Judge0)
 - **Train Recommender**: `python scripts/train_recommender.py` (exit 2 = not enough data, heuristic stays live; needs `brew install libomp` on macOS)
+- **Refit Student Model**: `python scripts/refit_skill_model.py` (replays the submission log in time order to rebuild `skill_estimates` + per-problem difficulty; idempotent)
 
 ### Frontend (from `frontend/`)
 - **Start**: `npm run dev` (Next.js 16 + TypeScript on :3000, rewrites `/api` to port 8000)
@@ -46,5 +47,7 @@ The Judge0 CE amd64 image runs under Rosetta 2. Standard `isolate` per-process s
 
 ## Architecture Notes
 - **Grading**: `backend/app/services/grader.py` handles batching test cases to Judge0.
+- **Student model (Layer 1)**: `backend/app/services/skill_model.py` keeps an Elo/IRT ability logit per `(user, pattern)` in `skill_estimates` and a learned difficulty logit per problem (`problems.difficulty_b/difficulty_n`). Updated online after every graded submit (`api/v1/problems.py`) and replayable from the event log. Pattern mastery is the mean predicted solve rate over the pattern's *solvable* problems, so catalog placeholders cannot deflate it; `confidence = n/(n+3)` is exposed as `skill.confidence`.
+- **Pathway (Layer 2)**: `backend/app/services/pathway.py` ranks patterns by expected learning signal per estimated hour (`4·p·(1−p) / hours`) along the prerequisite DAG, simulating evidence gain rather than an invented theta gain. Exposed as `pathway` in `GET /roadmap` and `GET /roadmap/pathway`. Prerequisites now gate on evidence (`n ≥ 3` and predicted ≥ 0.5), with `solved > 0` only as the no-estimate fallback — previously the gate cascaded and the whole DAG was always unlocked.
 - **AI Tutor**: Gemini hints and failure reviews are cached in the database.
 - **Starters**: Scaffolds are "parse-only" — they handle stdin parsing so the user only writes the core logic.

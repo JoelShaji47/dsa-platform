@@ -5,6 +5,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Check,
+  ChevronRight,
   Lock,
   Minus,
   Plus,
@@ -35,7 +36,15 @@ export interface Pattern {
   snippet: string;
   solved: number;
   total: number;
+  solvable_total?: number;
   mastery: number;
+  /** Layer 1 student model: predicted solve rate + evidence behind it. */
+  skill?: {
+    theta: number;
+    n: number;
+    solve_rate: number;
+    confidence: number;
+  };
   complete: boolean;
   problems: RoadmapProblem[];
 }
@@ -139,11 +148,11 @@ function GraphNode({
       <span className="flex items-center gap-1.5 font-display text-[13px] font-semibold leading-tight">
         {pattern.name}
         {done ? (
-          <Check size={13} strokeWidth={3} className="shrink-0 text-quest" />
+          <Check size={13} strokeWidth={1.5} className="shrink-0 text-quest" />
         ) : null}
-        {locked ? <Lock size={11} className="shrink-0 opacity-60" /> : null}
+        {locked ? <Lock size={11} strokeWidth={1.5} className="shrink-0 opacity-60" /> : null}
       </span>
-      <span className="mt-0.5 font-mono text-[11px] font-medium opacity-70">
+      <span className="mt-0.5 stat-num text-[11px] font-medium opacity-70">
         {solved}/{solvable.length}
       </span>
       {!locked && solved > 0 && (
@@ -179,17 +188,25 @@ function PatternDetail({
           type="button"
           onClick={onClose}
           aria-label="Close pattern details"
-          className="rounded-lg border border-ink/10 p-1.5 text-ink-faint transition-colors hover:text-ink"
+          className="fluid-ease rounded-lg border border-ink/10 p-1.5 text-ink-faint transition-all duration-300 ease-out hover:text-ink"
         >
-          <X size={14} />
+          <X size={14} strokeWidth={1.5} />
         </button>
       </div>
       <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
         {pattern.snippet}
       </p>
-      <p className="mt-3 font-mono text-[11px] text-ink-faint">
+      <p className="mt-3 stat-num text-[11px] text-ink-faint">
         {solvable.filter((p) => p.solved).length}/{solvable.length} solved ·{" "}
         {pattern.mastery}% mastered
+        {pattern.skill && pattern.skill.n > 0 && pattern.skill.confidence < 0.5 && (
+          <span
+            title={`Estimated from ${pattern.skill.n} graded attempt(s) — it sharpens as you practice.`}
+            className="ml-1 text-ink-faint/70"
+          >
+            (estimate)
+          </span>
+        )}
       </p>
       <ul className="mt-3 space-y-1">
         {solvable.map((pr) => (
@@ -206,7 +223,7 @@ function PatternDetail({
                     : "border-ink/20 text-transparent"
                 )}
               >
-                <Check size={11} strokeWidth={4} />
+                <Check size={11} strokeWidth={1.5} />
               </span>
               <span
                 className={cn(
@@ -217,8 +234,8 @@ function PatternDetail({
                 {pr.title}
               </span>
               {pr.recommended && (
-                <span className="flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-gold-deep">
-                  <Sparkles size={10} />
+                <span className="flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 stat-num text-[10px] font-semibold text-gold-deep">
+                  <Sparkles size={10} strokeWidth={1.5} />
                   Next
                 </span>
               )}
@@ -266,10 +283,37 @@ export default function RoadmapGraph({
 
   const selected = selectedKey ? byKey[selectedKey] : null;
 
+  // Empty instrument state: the canvas has nothing to map yet.
+  if (visible.length === 0) {
+    return (
+      <div className="roadmap-canvas relative flex min-h-[540px] flex-col overflow-hidden rounded-[inherit] ring-1 ring-ink/10">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
+          <span className="lux-eyebrow fluid-ease">Empty canvas</span>
+          <h3 className="mt-4 font-display text-3xl font-medium tracking-tight text-ink">
+            No patterns in this course yet
+          </h3>
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-soft">
+            Once your course has runnable problems, they map here as a living
+            graph of pattern nodes with prerequisites.
+          </p>
+          <Link
+            href="/problems"
+            className="btn-island group fluid-ease mt-8 bg-quest text-sm text-white"
+          >
+            Browse problems
+            <span className="btn-island-icon">
+              <ChevronRight size={14} strokeWidth={1.5} />
+            </span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="panel relative min-h-[540px] overflow-hidden">
+    <div className="roadmap-canvas relative min-h-[540px] overflow-hidden rounded-[inherit] ring-1 ring-ink/10">
       <div
-        className="roadmap-canvas h-[540px] cursor-grab overflow-auto active:cursor-grabbing"
+        className="relative h-[540px] cursor-grab overflow-auto active:cursor-grabbing"
         onPointerDown={(e) => {
           if (e.button !== 0 || sessionRef.current) return;
           sessionRef.current = {
@@ -323,7 +367,7 @@ export default function RoadmapGraph({
                   markerHeight="5"
                   orient="auto-start-reverse"
                 >
-                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#c9a227" />
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#8fb3a4" />
                 </marker>
               </defs>
               {layout.edges.map(([s, t], i) => (
@@ -350,14 +394,14 @@ export default function RoadmapGraph({
         </div>
       </div>
 
-      <div className="absolute left-4 top-4 z-30 flex items-center gap-1 rounded-xl border border-ink/10 bg-card/90 px-1.5 py-1 shadow-card backdrop-blur-md">
+      <div className="absolute left-4 top-4 z-30 flex items-center gap-1 rounded-full border border-ink/10 bg-card/90 px-1.5 py-1 text-ink-soft shadow-card backdrop-blur-md">
         <button
           type="button"
           title="Zoom out"
           onClick={() => clampZoom(zoom * 0.9)}
-          className="rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-ink/5 hover:text-ink"
+          className="fluid-ease rounded-full p-1.5 transition-all duration-300 ease-out hover:bg-ink/5 hover:text-ink"
         >
-          <Minus size={14} />
+          <Minus size={14} strokeWidth={1.5} />
         </button>
         <button
           type="button"
@@ -366,7 +410,7 @@ export default function RoadmapGraph({
             setZoom(0.85);
             setPan({ x: 0, y: 0 });
           }}
-          className="rounded-lg px-2 py-1.5 font-mono text-[11px] text-ink-faint transition-colors hover:bg-ink/5 hover:text-ink"
+          className="fluid-ease rounded-full px-2 py-1.5 stat-num text-[11px] transition-all duration-300 ease-out hover:bg-ink/5 hover:text-ink"
         >
           {Math.round(zoom * 100)}%
         </button>
@@ -374,14 +418,14 @@ export default function RoadmapGraph({
           type="button"
           title="Zoom in"
           onClick={() => clampZoom(zoom * 1.1)}
-          className="rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-ink/5 hover:text-ink"
+          className="fluid-ease rounded-full p-1.5 transition-all duration-300 ease-out hover:bg-ink/5 hover:text-ink"
         >
-          <Plus size={14} />
+          <Plus size={14} strokeWidth={1.5} />
         </button>
       </div>
 
       <p className="flex items-center gap-1.5 border-t border-ink/10 bg-card px-5 py-2.5 text-[11px] text-ink-faint">
-        <BookOpen size={12} />
+        <BookOpen size={12} strokeWidth={1.5} />
         Drag to pan · scroll to zoom · click a node for its problems
       </p>
 

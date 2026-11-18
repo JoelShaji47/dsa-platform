@@ -10,6 +10,7 @@ from app.models.hint import HintUsage
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
+from app.services import skill_model
 
 logger = logging.getLogger(__name__)
 
@@ -287,6 +288,14 @@ class PatternProgress:
     accepted: int = 0
     hints_used: int = 0
     mastery: float = 0.0
+    # Layer 1 student model (see app.services.skill_model). ``solve_rate`` is
+    # the mean P(solve) over this pattern's *solvable* problems; ``confidence``
+    # says how much evidence backs it (0 with no graded observations).
+    skill_theta: float = 0.0
+    skill_n: int = 0
+    solve_rate: float = 0.0
+    confidence: float = 0.0
+    solvable_total: int = 0
 
     @property
     def complete(self) -> bool:
@@ -343,14 +352,33 @@ def _build_user_state(
     }
 
     progress: dict[str, PatternProgress] = {}
+    skill = skill_model.load_user_skill(db, user.id)
+    solvable = skill_model.solvable_difficulties(problems.values())
     for pattern_key, pattern in PATTERN_BY_KEY.items():
         pp = PatternProgress(key=pattern_key, total=len(pattern["problems"]))
         for slug in pattern["problems"]:
             pp.solved += int(solved_by_problem.get(slug, False))
             pp.attempts += attempts_by_problem.get(slug, 0)
             pp.hints_used += hints_by_problem.get(slug, 0)
-        if pp.solved > 0:
-            # mastery between 0 and 100 influenced by solve ratio and hint independence
+
+        # Layer 1: mastery is predicted solve rate over solvable problems, so
+        # catalog placeholders can no longer deflate it. With no evidence the
+        # prediction would just be the difficulty prior, so fall back to the
+        # (honest, zero-for-untouched) evidence ratio instead.
+        theta, n = skill.get(pattern_key, (0.0, 0))
+        difficulties = solvable.get(pattern_key, [])
+        prediction = skill_model.pattern_prediction(theta, n, difficulties)
+        pp.skill_theta = prediction["theta"]
+        pp.skill_n = prediction["n"]
+        pp.solve_rate = prediction["solve_rate"]
+        pp.confidence = prediction["confidence"]
+        pp.solvable_total = prediction["solvable_total"]
+
+        if n > 0 and difficulties:
+            pp.mastery = round(100.0 * prediction["solve_rate"], 1)
+        elif pp.solved > 0 and pp.total > 0:
+            # No skill estimate yet (e.g. before the first replay): keep the
+            # legacy ratio so nothing regresses to 0 mid-deploy.
             resolved = min(pp.solved / pp.total, 1.0)
             hint_penalty = min(pp.hints_used / (pp.solved + pp.hints_used), 0.35)
             pp.mastery = round((resolved * 100) * (1 - hint_penalty), 1)
@@ -394,6 +422,9 @@ def get_roadmap(
     # so the tree highlights exactly one "Recommended next" node/problem.
     top_recommended = recommended[0]["slug"] if recommended else None
 
+    # NOTE: assemble pattern_out BEFORE create_opportunity commits. A commit
+    # expires every loaded Problem attribute, and re-reading them afterwards
+    # costs one roundtrip per attribute per problem (80s+ over a slow link).
     pattern_out = []
     for pattern in PATTERNS:
         pp = progress[pattern["key"]]
@@ -424,24 +455,70 @@ def get_roadmap(
                 "snippet": pattern["snippet"],
                 "solved": pp.solved,
                 "total": pp.total,
+                "solvable_total": pp.solvable_total,
                 "mastery": pp.mastery,
+                "skill": {
+                    "theta": pp.skill_theta,
+                    "n": pp.skill_n,
+                    "solve_rate": pp.solve_rate,
+                    "confidence": pp.confidence,
+                },
                 "complete": pp.complete,
                 "problems": problem_out,
             }
         )
 
+    # Layer 2: skill-aware pattern pathway. Built from the in-memory state
+    # above (no extra queries) and before create_opportunity commits, since a
+    # commit expires every loaded Problem attribute.
+    plan = {"objective": "information_per_hour", "steps": []}
+    try:
+        from app.services import pathway as _pathway
+
+        plan = _pathway.build_pathway(
+            db,
+            user,
+            problems=problems,
+            progress=progress,
+            solved_by_problem=solved_by_problem,
+        )
+    except Exception:
+        logger.debug("pathway simulation abstained", exc_info=True)
+
+    # Fail-safe opportunity log so the highlighted node can be joined to a
+    # later impression (generated tree != exposed node until rendered).
+    opportunity_id = None
+    try:
+        from app.services import telemetry as _telemetry
+
+        opportunity_id = _telemetry.create_opportunity(
+            db, user, "heuristic-v1", len(recommended)
+        )
+    except Exception:
+        logger.debug("roadmap opportunity logging abstained", exc_info=True)
+
     return {
         "patterns": pattern_out,
+        "pathway": plan,
         "totals": {
             "solved": sum(p["solved"] for p in pattern_out),
             "total": sum(p["total"] for p in pattern_out),
         },
+        "opportunity_id": str(opportunity_id) if opportunity_id else None,
     }
 
 
 def _unlocked_patterns(
     progress: dict[str, PatternProgress],
 ) -> set[str]:
+    """Prerequisite gate.
+
+    A prerequisite is satisfied by evidence, not by a single solve: either the
+    learner has solved something there (legacy, always honoured) or the student
+    model has enough observations in the pattern to predict, with confidence,
+    that they can solve half of it. The second path is what lets a learner who
+    is strong but unlucky past one problem keep moving.
+    """
     unlocked = set()
     changed = True
     while changed:
@@ -450,12 +527,26 @@ def _unlocked_patterns(
             if pattern["key"] in unlocked:
                 continue
             if all(
-                progress[pk].solved > 0 or pk in unlocked
+                _prerequisite_ready(progress[pk])
                 for pk in pattern["prerequisites"]
             ):
                 unlocked.add(pattern["key"])
                 changed = True
     return unlocked
+
+
+def _prerequisite_ready(pp: PatternProgress) -> bool:
+    """Is this pattern's learning objective actually met?
+
+    Evidence wins when we have it: the student model must predict at least
+    ``UNLOCK_SOLVE_RATE`` across the pattern from ``MIN_UNLOCK_EVIDENCE``
+    observations. Without any estimate (cold user, or a deploy before the
+    first replay) the legacy "solved at least one" signal keeps the roadmap
+    from emptying out.
+    """
+    if pp.skill_n >= skill_model.MIN_UNLOCK_EVIDENCE:
+        return pp.solve_rate >= skill_model.UNLOCK_SOLVE_RATE
+    return pp.solved > 0
 
 
 def recommend_next(
@@ -465,9 +556,10 @@ def recommend_next(
     progress: dict[str, PatternProgress],
 ) -> list[dict]:
     unlocked = _unlocked_patterns(progress)
+    loaded = _load_problems(db)
     solvable_by_slug = {
         slug: bool(p.starter_code and p.test_cases)
-        for slug, p in _load_problems(db).items()
+        for slug, p in loaded.items()
     }
 
     candidates: list[dict] = []
@@ -482,6 +574,12 @@ def recommend_next(
             # "coming soon" page, so they are never recommendable — see AGENTS.md.
             if not solvable_by_slug.get(slug, False):
                 continue
+            problem = loaded.get(slug)
+            predicted = (
+                skill_model.problem_solve_rate(pp.skill_theta, problem)
+                if problem is not None
+                else 0.0
+            )
             candidates.append(
                 {
                     "slug": slug,
@@ -490,12 +588,19 @@ def recommend_next(
                     "order": pattern["order"],
                     "mastery": pp.mastery,
                     "solvable": True,
+                    "predicted_solve_rate": predicted,
+                    "zone_fit": skill_model.zone_fit(predicted),
+                    "confidence": pp.confidence,
                 }
             )
 
-    # score candidates: weak patterns first, then pattern order.
+    # score candidates: weak patterns first, then pattern order, with a bonus
+    # for problems inside the target difficulty band. The band only nudges the
+    # order and only as far as we trust theta — a cold user has no evidence,
+    # so their ordering is unchanged.
     def score(c: dict) -> float:
-        return (100.0 - c["mastery"]) + c["order"] * 0.1
+        base = (100.0 - c["mastery"]) + c["order"] * 0.1
+        return base - 20.0 * c["zone_fit"] * c["confidence"]
 
     candidates.sort(key=score)
     recommendations = []
@@ -506,6 +611,7 @@ def recommend_next(
                 "pattern_key": c["pattern_key"],
                 "pattern_name": c["pattern_name"],
                 "mastery": c["mastery"],
+                "predicted_solve_rate": round(c["predicted_solve_rate"], 4),
                 "reason": _reason(c, progress),
             }
         )
@@ -521,8 +627,148 @@ def _reason(c: dict, progress: dict[str, PatternProgress]) -> str:
     return f"Next up in {c['pattern_name']} to keep the momentum."
 
 
+# ---- Candidate intents (C4): one interpretable policy per learning goal. ----
+# All intents reuse recommend_next / get_review_due and respect the same
+# eligibility: unlocked patterns, unsolved, solvable. No duplicated
+# candidate-generation logic.
+INTENTS = ("balanced", "skill", "retention", "transfer", "exploration")
+
+
+def _as_rec(slug: str, problems: dict, progress: dict[str, PatternProgress]) -> dict | None:
+    pattern_key = SLUG_TO_PATTERN.get(slug)
+    if pattern_key is None:
+        return None
+    p = problems.get(slug)
+    if p is None or not (p.starter_code and p.test_cases):
+        return None
+    pp = progress.get(pattern_key)
+    if pp is None:
+        return None
+    pattern_name = PATTERN_BY_KEY.get(pattern_key, {}).get("name", pattern_key)
+    c = {"slug": slug, "pattern_key": pattern_key,
+         "pattern_name": pattern_name, "mastery": pp.mastery}
+    return {"slug": slug, "pattern_key": pattern_key, "pattern_name": pattern_name,
+            "mastery": pp.mastery, "reason": _reason(c, progress)}
+
+
+def generate_candidates(
+    db: Session,
+    user: User,
+    solved_by_problem: dict[str, bool],
+    progress: dict[str, PatternProgress],
+    problems: dict,
+    intent: str = "balanced",
+    limit: int = 12,
+) -> list[dict]:
+    """Intent-aware candidate generation over the existing heuristic pool."""
+    if intent not in INTENTS:
+        intent = "balanced"
+    base = recommend_next(db, user, solved_by_problem, progress)
+    if intent == "skill":
+        return base[:limit]
+
+    if intent == "retention":
+        # Spaced revision first (friction solves due), then skill backlog.
+        due = get_review_due(db, user, limit=limit)
+        out, seen = [], set()
+        for d in due:
+            if d["slug"] in seen or solved_by_problem.get(d["slug"], False):
+                continue
+            rec = _as_rec(d["slug"], problems, progress)
+            if rec is None:
+                continue
+            rec["reason"] = (
+                f"Revision due — solved {d['hints_used']} hint(s) in "
+                f"{d['attempts']} attempt(s); spaced recall locks it in."
+            )
+            rec["intent"] = "retention"
+            out.append(rec)
+            seen.add(d["slug"])
+        for r in base:
+            if r["slug"] not in seen and len(out) < limit:
+                out.append({**r, "intent": "skill"})
+        return out[:limit]
+
+    if intent == "transfer":
+        # New problems in patterns whose prerequisites are solid (>=60%).
+        ready = [
+            k for k, pp in progress.items()
+            if pp.mastery >= 60 and pp.solved > 0
+        ]
+        unlocked = _unlocked_patterns(progress)
+        out = []
+        for r in base:
+            pat = PATTERN_BY_KEY.get(r["pattern_key"], {})
+            prereqs = pat.get("prerequisites", [])
+            if prereqs and all(p in ready for p in prereqs):
+                out.append({**r, "intent": "transfer",
+                            "reason": f"Apply your {r['pattern_name']} foundations to a new challenge."})
+        for r in base:  # backfill with skill picks
+            if r["slug"] not in {o["slug"] for o in out} and len(out) < limit:
+                out.append({**r, "intent": "skill"})
+        return out[:limit]
+
+    if intent == "exploration":
+        # Limited exposure to untouched patterns (max 3), then skill backlog.
+        fresh = [r for r in base if progress[r["pattern_key"]].solved == 0][:3]
+        out = [{**r, "intent": "exploration",
+                "reason": f"Explore {r['pattern_name']} — a new pattern to broaden your range."}
+               for r in fresh]
+        for r in base:
+            if r["slug"] not in {o["slug"] for o in out} and len(out) < limit:
+                out.append({**r, "intent": "skill"})
+        return out[:limit]
+
+    # balanced: skill order with retention injection (every 4th slot) and
+    # bounded exploration (first fresh pick appended when present).
+    due = get_review_due(db, user, limit=3)
+    due_recs = []
+    for d in due:
+        rec = _as_rec(d["slug"], problems, progress)
+        if rec is not None and not solved_by_problem.get(d["slug"], False):
+            rec["intent"] = "retention"
+            due_recs.append(rec)
+    out, di = [], 0
+    for i, r in enumerate(base):
+        if due_recs and (i + 1) % 4 == 0 and di < len(due_recs):
+            if due_recs[di]["slug"] not in {o["slug"] for o in out}:
+                out.append(due_recs[di])
+                di += 1
+                continue
+        out.append({**r, "intent": "skill"})
+        if len(out) >= limit:
+            break
+    return out[:limit]
+
+
+def explain_recommendation(
+    rec: dict, progress: dict[str, PatternProgress], review_due_slugs: set[str] | None = None
+) -> str:
+    """Lightweight explanation from real selection signals only.
+
+    Never fabricates feature importance or causal claims: every sentence is
+    backed by the progress map, the intent tag, or review-due membership.
+    """
+    if review_due_slugs and rec["slug"] in review_due_slugs:
+        return "Needs revision — you solved this with friction before; recall now to retain it."
+    if rec.get("intent") == "transfer":
+        return f"Ready to transfer — your prerequisites for {rec['pattern_name']} are solid."
+    if rec.get("intent") == "exploration":
+        return f"Adds variety — a first step into {rec['pattern_name']}."
+    if rec.get("intent") == "retention":
+        return f"Spaced revision in {rec['pattern_name']} to lock in past learning."
+    pp = progress.get(rec.get("pattern_key", ""), None)
+    if pp is not None:
+        if pp.solved == 0:
+            return f"Reasonable next step — kick off {rec['pattern_name']}."
+        if pp.mastery < 60:
+            return f"Targets a weak spot — {rec['pattern_name']} is {pp.mastery:.0f}% mastered."
+        return f"Next step in {rec['pattern_name']} to keep the momentum."
+    return "Reasonable next step from your roadmap."
+
+
 def get_recommendations(
-    db: Session, user: User, explain: bool = False
+    db: Session, user: User, explain: bool = False, intent: str = "balanced"
 ) -> list[dict]:
     """Hybrid recommendations: heuristic candidates, ML re-rank when available.
 
@@ -531,6 +777,11 @@ def get_recommendations(
     ranker artifact exists AND the user has enough logged history, candidates
     are re-scored by the model; otherwise the heuristic order stands. The
     response shape never changes — only the ordering and the ``model`` tag.
+
+    ``intent`` selects the candidate policy (balanced/skill/retention/
+    transfer/exploration). Each request logs a fail-safe
+    ``recommendation_opportunity`` row; the client reports actually-rendered
+    items via POST /roadmap/impressions (generated != exposed).
     """
     (
         problems,
@@ -539,7 +790,11 @@ def get_recommendations(
         hints_by_problem,
         progress,
     ) = _build_user_state(db, user)
-    recommendations = recommend_next(db, user, solved_by_problem, progress)
+    if intent not in INTENTS:
+        intent = "balanced"
+    recommendations = generate_candidates(
+        db, user, solved_by_problem, progress, problems, intent=intent
+    )
 
     model_tag = "heuristic-v1"
     try:
@@ -560,6 +815,23 @@ def get_recommendations(
         logger.debug("ML re-rank abstained; serving heuristic order", exc_info=True)
         scores = {}
 
+    # Fail-safe opportunity log (telemetry never breaks recommendations).
+    opportunity_id = None
+    try:
+        from app.services import telemetry as _telemetry
+
+        opportunity_id = _telemetry.create_opportunity(
+            db, user, model_tag, len(recommendations)
+        )
+    except Exception:
+        logger.debug("opportunity logging abstained", exc_info=True)
+
+    review_slugs: set[str] = set()
+    try:
+        review_slugs = {d["slug"] for d in get_review_due(db, user, limit=10)}
+    except Exception:
+        pass
+
     out = []
     for r in recommendations:
         p = problems.get(r["slug"])
@@ -569,7 +841,11 @@ def get_recommendations(
             "difficulty": p.difficulty.value if p else "MEDIUM",
             "solvable": bool(p and p.starter_code and p.test_cases),
             "model": model_tag,
+            "intent": r.get("intent", intent),
+            "explanation": explain_recommendation(r, progress, review_slugs),
         }
+        if opportunity_id is not None:
+            item["opportunity_id"] = str(opportunity_id)
         if explain and r["slug"] in scores:
             item["score"] = round(scores[r["slug"]], 4)
         out.append(item)
@@ -670,9 +946,12 @@ def get_review_due(db: Session, user: User, older_than_days: int = 7, limit: int
 def get_activity(db: Session, user: User, days: int = 140) -> dict:
     """Accepted submissions counted per calendar day for the roadmap heatmap.
 
-    Returns a dict { "days": [{"date": "YYYY-MM-DD", "count": int}, ...] } covering
+    Returns a dict { "days": [{"date": "YYYY-MM-DD", "count": int,
+    "problems": [{"slug", "title", "difficulty"}]}, ...] } covering
     the trailing `days` days (oldest to newest) so the frontend can render a
-    submission calendar where each day the user solved shows up as a tile.
+    submission calendar where each day the user solved shows up as a tile,
+    with the solved questions available for hover details. ``problems`` is
+    deduplicated per day and sorted by title; empty days carry [].
     """
     from datetime import datetime, timedelta, timezone
 
@@ -692,9 +971,35 @@ def get_activity(db: Session, user: User, days: int = 140) -> dict:
     )
     counts = {str(day): int(n) for day, n in rows}
 
+    window_start = datetime.combine(start, datetime.min.time()).replace(tzinfo=timezone.utc)
+    submitted_utc = func.timezone("UTC", Submission.submitted_at)
+    per_day: dict[str, dict[str, dict]] = {}
+    for sub, problem in (
+        db.query(Submission, Problem)
+        .join(Problem, Problem.id == Submission.problem_id)
+        .filter(
+            Submission.user_id == user.id,
+            Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.test_session_id.is_(None),
+            submitted_utc >= window_start,
+        )
+        .all()
+    ):
+        ts = sub.submitted_at
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        key = ts.date().isoformat()
+        bucket = per_day.setdefault(key, {})
+        bucket[problem.slug] = {
+            "slug": problem.slug,
+            "title": problem.title,
+            "difficulty": problem.difficulty.value,
+        }
+
     out = []
     for offset in range(days):
         d = start + timedelta(days=offset)
         key = d.isoformat()
-        out.append({"date": key, "count": counts.get(key, 0)})
+        solved = sorted(per_day.get(key, {}).values(), key=lambda p: p["title"])
+        out.append({"date": key, "count": counts.get(key, 0), "problems": solved})
     return {"days": out}

@@ -1,0 +1,9 @@
+# Never ship the local venv / caches into the Render image.
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+# Training corpora stay out; only the served ranker files are copied.
+artifacts/
+!artifacts/ranker.txt
+!artifacts/ranker_meta.json

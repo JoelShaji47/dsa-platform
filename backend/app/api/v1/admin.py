@@ -27,6 +27,17 @@ class TestCaseIn(BaseModel):
     is_hidden: bool = False
 
 
+class ApproachIn(BaseModel):
+    """One rung of the solution ladder (brute force -> optimal, ordered)."""
+
+    name: str = Field(min_length=1, max_length=80)
+    idea: str = Field(min_length=10)
+    time_complexity: str = Field(min_length=1, max_length=40)
+    space_complexity: str = Field(min_length=1, max_length=40)
+    tradeoff: str | None = Field(default=None, max_length=400)
+    trace_key: str | None = Field(default=None, max_length=220)
+
+
 class ProblemPatch(BaseModel):
     title: str | None = Field(default=None, max_length=200)
     description: str | None = None
@@ -40,6 +51,7 @@ class ProblemPatch(BaseModel):
     companies: list[str] | None = None
     editorial_url: str | None = Field(default=None, max_length=500)
     video_url: str | None = Field(default=None, max_length=500)
+    approaches: list[ApproachIn] | None = None
     is_published: bool | None = None
 
 
@@ -52,6 +64,7 @@ class ProblemCreate(BaseModel):
     starter_code: dict[str, str] = {}
     test_cases: list[TestCaseIn] = []
     pattern_key: str | None = Field(default=None, max_length=60)
+    approaches: list[ApproachIn] = []
     is_published: bool = False
 
 
@@ -76,6 +89,7 @@ def _serialize(p: Problem) -> dict:
         "companies": p.companies or [],
         "editorial_url": p.editorial_url,
         "video_url": p.video_url,
+        "approaches": p.approaches or [],
         "is_published": p.is_published,
         "solvable": bool(p.starter_code and p.test_cases),
     }
@@ -195,6 +209,8 @@ def patch_problem(
     for field, value in data.items():
         if field == "test_cases":
             value = [t.model_dump() if isinstance(t, TestCaseIn) else t for t in value]
+        elif field == "approaches":
+            value = [a.model_dump() if isinstance(a, ApproachIn) else a for a in value]
         setattr(problem, field, value)
     db.commit()
     db.refresh(problem)
@@ -221,6 +237,7 @@ def create_problem(
         starter_code=payload.starter_code,
         test_cases=[t.model_dump() for t in payload.test_cases],
         pattern_key=payload.pattern_key,
+        approaches=[a.model_dump() for a in payload.approaches],
         is_published=payload.is_published,
     )
     db.add(problem)

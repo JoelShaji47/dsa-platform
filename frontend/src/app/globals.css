@@ -1,3 +1,7 @@
+@import "@fontsource/outfit/300.css";
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/500.css";
+@import "@fontsource/outfit/600.css";
 @import "@fontsource/chakra-petch/400.css";
 @import "@fontsource/chakra-petch/500.css";
 @import "@fontsource/chakra-petch/600.css";
@@ -11,15 +15,18 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-paper: #edf1f7;
-  --color-paper-deep: #e2e8f2;
-  --color-ink: #16233b;
-  --color-ink-soft: #45536f;
-  --color-ink-faint: #8593ab;
-  --color-gold: #c9a227;
-  --color-gold-deep: #96760f;
-  --color-quest: #2e7d5b;
-  --color-rust: #b04a32;
+  /* Calm UI: warm bone paper, softened slate ink, sage + sand + clay. */
+  --color-paper: #f7f5f0;
+  --color-paper-deep: #ede9dd;
+  --color-ink: #3b4753;
+  --color-ink-soft: #66727e;
+  --color-ink-faint: #9aa3ad;
+  --color-gold: #b9975b;
+  --color-gold-deep: #8f713f;
+  --color-quest: #6e9e8b;
+  --color-quest-deep: #47715f;
+  --color-rust: #c08568;
+  --color-rust-deep: #9c5c3d;
   --color-arena: #0e1526;
   --color-arena-panel: #151f34;
   --color-arena-raised: #1b2740;
@@ -27,37 +34,37 @@
   --color-arena-text: #dce3f2;
   --color-arena-dim: #93a1bd;
 
-  --font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --shadow-card: 0 1px 2px rgb(22 35 59 / 0.05), 0 8px 24px -12px rgb(22 35 59 / 0.18);
-  --shadow-lift: 0 2px 4px rgb(22 35 59 / 0.06), 0 18px 36px -16px rgb(22 35 59 / 0.28);
-  --shadow-glow: 0 0 0 1px rgb(201 162 39 / 0.35), 0 10px 30px -12px rgb(201 162 39 / 0.25);
+  --shadow-card: 0 1px 2px rgb(59 71 83 / 0.04), 0 12px 32px -20px rgb(59 71 83 / 0.14);
+  --shadow-lift: 0 2px 6px rgb(59 71 83 / 0.05), 0 20px 44px -24px rgb(59 71 83 / 0.18);
+  --shadow-glow: 0 0 0 1px rgb(185 151 91 / 0.25), 0 10px 30px -16px rgb(185 151 91 / 0.18);
 }
 
-/* ── shadcn tokens, bridged to the CodeQuest paper palette ──────────────── */
+/* ── shadcn tokens, bridged to the calm bone palette ──────────────────── */
 :root {
-  --radius: 0.625rem;
-  --background: #edf1f7;
-  --foreground: #16233b;
-  --card: #ffffff;
-  --card-foreground: #16233b;
-  --popover: #ffffff;
-  --popover-foreground: #16233b;
-  --primary: #16233b;
-  --primary-foreground: #ffffff;
-  --secondary: #e2e8f2;
-  --secondary-foreground: #16233b;
-  --muted: #e2e8f2;
-  --muted-foreground: #8593ab;
-  --accent: #f4e9c8;
-  --accent-foreground: #96760f;
-  --destructive: #b04a32;
+  --radius: 0.875rem;
+  --background: #f7f5f0;
+  --foreground: #3b4753;
+  --card: #fdfcf9;
+  --card-foreground: #3b4753;
+  --popover: #fdfcf9;
+  --popover-foreground: #3b4753;
+  --primary: #3b4753;
+  --primary-foreground: #f7f5f0;
+  --secondary: #ede9dd;
+  --secondary-foreground: #3b4753;
+  --muted: #ede9dd;
+  --muted-foreground: #9aa3ad;
+  --accent: #e4ece7;
+  --accent-foreground: #4e7a6b;
+  --destructive: #c08568;
   --destructive-foreground: #ffffff;
-  --border: #d9e0ec;
-  --input: #d9e0ec;
-  --ring: #c9a227;
+  --border: #e2dccf;
+  --input: #e2dccf;
+  --ring: #7ca793;
 }
 
 @theme inline {
@@ -86,33 +93,37 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ── Dark mode: flip the paper/ink system + shadcn tokens ────── */
+/* ── Dark mode: soft charcoal, never OLED black ────── */
 html[data-theme="dark"] {
-  --color-paper: #0b0d12;
-  --color-paper-deep: #141927;
-  --color-ink: #e6ebf4;
-  --color-ink-soft: #aab6c9;
-  --color-ink-faint: #67748a;
-  --color-gold: #d4af37;
-  --color-gold-deep: #d4af37;
+  --color-paper: #20242a;
+  --color-paper-deep: #262b32;
+  --color-ink: #d9dee4;
+  --color-ink-soft: #a7b0ba;
+  --color-ink-faint: #6e7780;
+  --color-gold: #c6a468;
+  --color-gold-deep: #c6a468;
+  /* Sage and clay are legible as text on charcoal, but the deep variants hold a
+     wider margin (6.5:1 / 6.3:1 on cards) for small labels and icons. */
+  --color-quest-deep: #7fbba8;
+  --color-rust-deep: #d6a183;
 
-  --background: #0b0d12;
-  --foreground: #e6ebf4;
-  --card: #141927;
-  --card-foreground: #e6ebf4;
-  --popover: #141927;
-  --popover-foreground: #e6ebf4;
-  --primary: #e6ebf4;
-  --primary-foreground: #0b0d12;
-  --secondary: #1d2333;
-  --secondary-foreground: #e6ebf4;
-  --muted: #1d2333;
-  --muted-foreground: #67748a;
-  --accent: #2a2410;
-  --accent-foreground: #d4af37;
-  --border: #232c42;
-  --input: #232c42;
-  --ring: #d4af37;
+  --background: #20242a;
+  --foreground: #d9dee4;
+  --card: #262b32;
+  --card-foreground: #d9dee4;
+  --popover: #262b32;
+  --popover-foreground: #d9dee4;
+  --primary: #d9dee4;
+  --primary-foreground: #20242a;
+  --secondary: #2e343c;
+  --secondary-foreground: #d9dee4;
+  --muted: #2e343c;
+  --muted-foreground: #6e7780;
+  --accent: #2c3a34;
+  --accent-foreground: #86b3a2;
+  --border: #343b43;
+  --input: #343b43;
+  --ring: #86b3a2;
 }
 
 html[data-theme="dark"] .panel {
@@ -237,11 +248,11 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   }
 
   ::selection {
-    background-color: rgb(201 162 39 / 0.3);
+    background-color: rgb(110 158 139 / 0.25);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-gold);
+    outline: 2px solid var(--color-quest);
     outline-offset: 2px;
     border-radius: 6px;
   }
@@ -265,8 +276,8 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   }
 
   .panel {
-    border-radius: 1rem;
-    border: 1px solid rgb(22 35 59 / 0.09);
+    border-radius: 1.25rem;
+    border: 1px solid rgb(59 71 83 / 0.08);
     background-color: var(--color-card);
     box-shadow: var(--shadow-card);
   }
@@ -285,6 +296,42 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
     border: 1px solid var(--color-arena-line);
     background-color: var(--color-arena-panel);
     box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.55);
+  }
+
+  /* ── Tier worlds (Leagues) ─────────────────────────────────────────────
+     The four --tier-* properties are set inline on the Leagues page root from
+     leagues-theme.ts, so a whole colour world is applied with classes and the
+     light/dark choice stays in CSS instead of a JS branch per component.
+     Text colours use `deep` on light surfaces and `light` on dark ones; both
+     are measured >= 4.5:1 (see the ratios in leagues-theme.ts). */
+  .tier-text {
+    color: var(--tier-deep);
+  }
+
+  html[data-theme="dark"] .tier-text {
+    color: var(--tier-light);
+  }
+
+  /* The saturated hero field. Fixed in both themes — it is the tier's world,
+     not a themed surface — so every band colour is calibrated for white text
+     and its children can rely on white regardless of theme. */
+  .tier-band {
+    background-color: var(--tier-band);
+    color: #fff;
+  }
+
+  /* Pale accents (Gold, Silver) need an edge to read as a shape on paper. */
+  .tier-swatch {
+    background-color: var(--tier-accent);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+  }
+
+  .tier-rail {
+    background-color: var(--tier-accent);
+  }
+
+  .tier-soft {
+    background-color: color-mix(in srgb, var(--tier-accent) 10%, transparent);
   }
 
   .btn {
@@ -317,7 +364,7 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   }
 
   .btn-ink:hover:not(:disabled) {
-    background-color: #1e3050;
+    background-color: #4a5663;
   }
 
   .btn-quest {
@@ -347,8 +394,8 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
 
   .field:focus {
     outline: none;
-    border-color: var(--color-gold);
-    box-shadow: 0 0 0 3px rgb(201 162 39 / 0.22);
+    border-color: var(--color-quest);
+    box-shadow: 0 0 0 3px rgb(110 158 139 / 0.18);
   }
 
   .atlas-bg {
@@ -356,30 +403,48 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   }
 
   .roadmap-canvas {
-    background-color: #1e1e1e;
+    background-color: #fbfaf6;
+    background-image: radial-gradient(rgb(59 71 83 / 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
   }
 
-  /* Thin gold connection branch from a parent node toward its children. */
+  /* Soft sage connection branch from a parent node toward its children. */
   .roadmap-edge {
     fill: none;
-    stroke: #d4a72c;
+    stroke: #8fb3a4;
     stroke-width: 1.4;
     stroke-linecap: round;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 
-  /* Compact dark roadmap node card. */
+  /* Calm paper roadmap node card. */
   .roadmap-node {
-    border-radius: 11px;
-    background-color: #252525;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
-    color: #f5f5f5;
+    border-radius: 14px;
+    background-color: #ffffff;
+    border: 1px solid rgb(59 71 83 / 0.1);
+    box-shadow: 0 1px 2px rgb(59 71 83 / 0.05), 0 10px 24px -16px rgb(59 71 83 / 0.18);
+    color: var(--color-ink);
   }
 
   .roadmap-node:hover {
-    border-color: rgb(212 167 44 / 0.55);
-    box-shadow: 0 4px 16px rgb(0 0 0 / 0.55);
+    border-color: rgb(110 158 139 / 0.5);
+    box-shadow: 0 2px 4px rgb(59 71 83 / 0.06), 0 14px 30px -16px rgb(59 71 83 / 0.22);
+  }
+
+  html[data-theme="dark"] .roadmap-canvas {
+    background-color: #23282f;
+    background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  }
+
+  html[data-theme="dark"] .roadmap-node {
+    background-color: #2a3038;
+    border-color: rgb(255 255 255 / 0.08);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25), 0 10px 24px -16px rgb(0 0 0 / 0.5);
+    color: var(--color-ink);
+  }
+
+  html[data-theme="dark"] .roadmap-node:hover {
+    border-color: rgb(134 179 162 / 0.5);
   }
 
   .arena-bg {
@@ -444,6 +509,14 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Calm numerals: smooth Outfit figures with tabular alignment for stats. */
+.stat-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.01em;
 }
 
 /* ── League motion (CSS-only Aceternity-style effects) ────── */
@@ -647,4 +720,176 @@ html[data-theme="light"] .dockview-theme-cq .dv-tabs-and-actions-container {
 
 .dockview-theme-cq .dv-activegroup-visiblepanel-tab {
   box-shadow: inset 0 2px 0 #2e7d5b;
+}
+
+/* ── Sleek theme-aware scrollbars ────────────────────────────────
+   Native color-scheme first (so unstyled lanes still match the theme),
+   then slim rounded thumbs tinted from the palette. Hover warms to gold,
+   the theme accent, instead of the default chunky gray. */
+:root {
+  color-scheme: light;
+  --scroll-thumb: rgb(22 35 59 / 0.22);
+  --scroll-thumb-hover: rgb(150 118 15 / 0.55);
+  --scroll-track: transparent;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --scroll-thumb: rgb(230 235 244 / 0.16);
+  --scroll-thumb-hover: rgb(212 175 55 / 0.55);
+  --scroll-track: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.18s ease-out;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Calm UI: quiet the luxe layer — no glow, no grain, breath-only motion ── */
+.lux-shell {
+  padding: 0.375rem;
+  border-radius: 1.75rem;
+  background: rgb(59 71 83 / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(59 71 83 / 0.05);
+}
+
+html[data-theme="dark"] .lux-shell {
+  background: rgb(255 255 255 / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+.lux-core {
+  border-radius: calc(1.75rem - 0.375rem);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
+  overflow: hidden;
+}
+
+.lux-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 500;
+  border: 1px solid rgb(110 158 139 / 0.3);
+  background: rgb(110 158 139 / 0.08);
+  color: var(--color-quest);
+}
+
+.fluid-ease {
+  transition-timing-function: ease-out;
+}
+
+.btn-island {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 999px;
+  padding: 0.65rem 0.65rem 0.65rem 1.5rem;
+  font-weight: 500;
+  transition: transform 0.3s ease-out,
+    background-color 0.3s ease-out,
+    box-shadow 0.3s ease-out;
+}
+
+.btn-island:active {
+  transform: scale(0.99);
+}
+
+.btn-island-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.05);
+  transition: transform 0.3s ease-out;
+}
+
+html[data-theme="dark"] .btn-island-icon {
+  background: rgb(255 255 255 / 0.1);
+}
+
+.group:hover .btn-island-icon {
+  transform: translate(4px, -4px) scale(1.05);
+}
+
+/* Scroll interpolation: barely-there breath. */
+.reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  will-change: transform, opacity;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Fixed film-grain overlay: disabled in Calm UI. */
+.lux-grain {
+  display: none;
+}
+
+/* Ethereal orbs: disabled in Calm UI — the paper map breathes on its own. */
+.lux-orb {
+  display: none;
+}
+
+/* Progress fill animates via transform (GPU) instead of width. */
+.lux-meter-fill {
+  transform-origin: left center;
+  transition: transform 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .btn-island,
+  .btn-island-icon,
+  .lux-meter-fill {
+    transition: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *::-webkit-scrollbar-thumb {
+    transition: none;
+  }
 }

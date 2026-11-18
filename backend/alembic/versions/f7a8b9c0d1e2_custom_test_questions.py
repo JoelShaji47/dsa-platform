@@ -21,8 +21,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_constraint(
-        'uq_test_problem_difficulty', 'test_problems', type_='unique'
+    # IF EXISTS: some environments already dropped this constraint by hand
+    # before the migration landed, so a plain drop_constraint aborts there.
+    op.execute(
+        'ALTER TABLE test_problems '
+        'DROP CONSTRAINT IF EXISTS uq_test_problem_difficulty'
     )
 
 

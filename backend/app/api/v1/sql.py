@@ -31,6 +31,7 @@ from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, award_xp, update_streak
 from app.services.grader import RUN_VISIBLE_CASE_LIMIT
 from app.services.judge0 import Judge0Error
+from app.services.rate_limit import JUDGE_RUN_LIMITER, JUDGE_SUBMIT_LIMITER
 from app.services.sql_grader import SQLValidationError, build_sql_source, grade_sql
 from app.services.tutor import has_used_hints
 
@@ -162,6 +163,7 @@ async def run_sql(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResultOut:
+    JUDGE_RUN_LIMITER.check(current_user.id)
     problem = _sql_problem_or_404(db, slug)
     _require_sql(payload)
     try:
@@ -213,6 +215,7 @@ async def run_sql_custom_cases(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResultOut:
+    JUDGE_RUN_LIMITER.check(current_user.id)
     _sql_problem_or_404(db, slug)
     try:
         build_sql_source(payload.source_code)
@@ -262,6 +265,7 @@ async def submit_sql(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SubmissionResultOut:
+    JUDGE_SUBMIT_LIMITER.check(current_user.id)
     problem = _sql_problem_or_404(db, slug)
     _require_sql(payload)
     try:

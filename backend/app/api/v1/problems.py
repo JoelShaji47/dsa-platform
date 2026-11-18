@@ -26,6 +26,7 @@ from app.services.activity import RUN, SUBMIT, log_event
 from app.services.gamification import award_new_badges, log_xp, score_solve, update_streak
 from app.services.grader import ModeError, build_source, function_modes_for, RUN_VISIBLE_CASE_LIMIT, grade_code, truncate_output
 from app.services.judge0 import Judge0Error, submit
+from app.services.rate_limit import JUDGE_RUN_LIMITER, JUDGE_SUBMIT_LIMITER
 from app.services.tutor import has_used_hints
 
 router = APIRouter(prefix="/problems", tags=["problems"])
@@ -120,6 +121,7 @@ def get_problem(
         companies=problem.companies or [],
         editorial_url=problem.editorial_url,
         video_url=problem.video_url,
+        approaches=problem.approaches or [],
         function_modes=function_modes_for(problem),
         function_starter=problem.function_starter or {},
     )
@@ -179,6 +181,7 @@ async def run_code(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResultOut:
+    JUDGE_RUN_LIMITER.check(current_user.id)
     problem = _get_problem_or_404(db, slug)
     visible_cases = [
         case
@@ -246,6 +249,7 @@ async def run_custom_cases(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResultOut:
+    JUDGE_RUN_LIMITER.check(current_user.id)
     problem = _get_problem_or_404(db, slug)
 
     try:
@@ -302,6 +306,7 @@ async def custom_run(
 ) -> CustomRunOut:
     """Run the user's code against their own stdin. Exploratory only — not
     graded, stored, or scored."""
+    JUDGE_RUN_LIMITER.check(current_user.id)
     try:
         result = await submit(
             payload.source_code, payload.language.value, payload.stdin
@@ -335,6 +340,7 @@ async def submit_solution(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SubmissionResultOut:
+    JUDGE_SUBMIT_LIMITER.check(current_user.id)
     problem = _get_problem_or_404(db, slug)
 
     try:
@@ -437,6 +443,19 @@ async def submit_solution(
     )
     db.commit()
     db.refresh(submission)
+
+    # Layer 1: update the student model from this graded submission. This is
+    # derived state — record_outcome is fail-safe, so a modelling error can
+    # never break a submission that has already been committed.
+    from app.services import skill_model
+
+    skill_model.record_outcome(
+        db,
+        current_user,
+        problem,
+        solved=result.status == SubmissionStatus.ACCEPTED,
+        hinted=has_used_hints(db, current_user.id, problem.id),
+    )
 
     log_event(
         db,

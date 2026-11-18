@@ -1,4 +1,5 @@
 from app.seeds.data_arrays import ARRAY_PROBLEMS
+from app.seeds.data_approaches import APPROACHES
 from app.seeds.data_authored import AUTHORED_PROBLEMS
 from app.seeds.data_graphs_dp import GRAPHS_DP
 from app.seeds.data_linked_stack import LINKED_STACK
@@ -38,8 +39,14 @@ for _problem in _PROBLEMS_RAW:
     if _slug in _seen_slugs:
         continue
     _seen_slugs.add(_slug)
+    # Solution ladders are authored separately (data_approaches.py) and attach
+    # to the deduplicated winner, so the ladder can be edited independently of
+    # the statement/test-case authoring files.
+    _ladder = APPROACHES.get(_slug)
+    if _ladder:
+        _problem["approaches"] = [a.model_dump() for a in _ladder]
     PROBLEMS.append(_problem)
 
-del _PROBLEMS_RAW, _seen_slugs, _problem, _slug
+del _PROBLEMS_RAW, _seen_slugs, _problem, _ladder, _slug
 
 __all__ = ["PROBLEMS"]

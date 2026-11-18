@@ -26,6 +26,7 @@ from app.schemas.test import (
 )
 from app.services.grader import RUN_VISIBLE_CASE_LIMIT, grade_code
 from app.services.judge0 import Judge0Error
+from app.services.rate_limit import JUDGE_RUN_LIMITER, JUDGE_SUBMIT_LIMITER
 from app.services.sql_grader import SQLValidationError, grade_sql
 from app.services.test_generator import (
     SLOTS,
@@ -322,6 +323,7 @@ async def run_question(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResultOut:
+    JUDGE_RUN_LIMITER.check(current_user.id)
     session = _require_active(db, _get_session(db, session_id, current_user.id))
     question = _get_question(db, session.id, question_id)
     problem = question.problem
@@ -375,6 +377,7 @@ async def run_custom_cases(
 ) -> RunResultOut:
     """Grade code against the user's edited sample cases. Exploratory only:
     the draft is saved but attempts, status and scoring are untouched."""
+    JUDGE_RUN_LIMITER.check(current_user.id)
     session = _require_active(db, _get_session(db, session_id, current_user.id))
     question = _get_question(db, session.id, question_id)
 
@@ -422,6 +425,7 @@ async def submit_question(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TestSubmitOut:
+    JUDGE_SUBMIT_LIMITER.check(current_user.id)
     session = _require_active(db, _get_session(db, session_id, current_user.id))
     question = _get_question(db, session.id, question_id)
     problem = question.problem

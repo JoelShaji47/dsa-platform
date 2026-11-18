@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum, String, Text, func, text
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,10 +51,22 @@ class Problem(Base):
     )
     editorial_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    # Publishing gate: unpublished problems are invisible in library/roadmap/
+    # Ordered solution ladder (cheapest first): idea, complexity, and the
+    # visualizer key that animates the step when a trace exists.
+    approaches: Mapped[list] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    # Published gate: unpublished problems are invisible in library/roadmap/
     # solve (admin preview only). Seeds always write True.
     is_published: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=text("true")
+    )
+    # Learned IRT difficulty logit (Layer 1 student model). NULL until the
+    # problem has been graded at least once, in which case the difficulty
+    # band prior is used instead. ``difficulty_n`` counts observations.
+    difficulty_b: Mapped[float | None] = mapped_column(Float, nullable=True)
+    difficulty_n: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -57,6 +57,10 @@ export interface DockValue {
   fetchReview: () => void;
   runAnalyze: () => void;
   focusConsole: () => void;
+  /** Switch to the Visualize tab and play `traceKey` (an approach's trace). */
+  focusVisualize: (traceKey: string) => void;
+  /** Trace currently selected from the approach ladder, if any. */
+  vizTraceKey: string | null;
   coachMessages: CoachMessage[];
   coachLoading: boolean;
   coachProvider: string | null;

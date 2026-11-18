@@ -1,14 +1,27 @@
 "use client";
 
-import CodeMirror from "@uiw/react-codemirror";
-import { python } from "@codemirror/lang-python";
-import { cpp } from "@codemirror/lang-cpp";
-import { java } from "@codemirror/lang-java";
-import { oneDark } from "@codemirror/theme-one-dark";
+import Editor from "@monaco-editor/react";
 import { useTheme } from "@/context/theme-context";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Language, ProblemDetail, RunMode } from "@/lib/types";
 
-const EXTS: Record<Language, () => unknown> = { python, cpp, java };
+const MONACO_LANG: Record<Language, string> = {
+  python: "python",
+  cpp: "cpp",
+  java: "java",
+};
+
+const LANG_LABEL: Record<Language, string> = {
+  python: "Python",
+  cpp: "C++",
+  java: "Java",
+};
 
 export default function EditorCell({
   lang,
@@ -18,6 +31,7 @@ export default function EditorCell({
   runCount,
   onCode,
   onModeChange,
+  onLangChange,
 }: {
   lang: Language;
   mode: RunMode;
@@ -26,6 +40,7 @@ export default function EditorCell({
   runCount: number;
   onCode: (v: string) => void;
   onModeChange: (m: RunMode) => void;
+  onLangChange: (l: Language) => void;
 }) {
   const theme = useTheme();
   const dark = theme === "dark";
@@ -41,11 +56,23 @@ export default function EditorCell({
         >
           In [{runCount + 1}]
         </span>
-        <span
-          className={`font-mono text-[11px] ${dark ? "text-gray-600" : "text-ink-faint"}`}
-        >
-          {lang}
-        </span>
+        <Select value={lang} onValueChange={(v) => onLangChange(v as Language)}>
+          <SelectTrigger
+            aria-label="Language"
+            className={`h-7 w-[118px] gap-1 border-0 bg-transparent px-1.5 font-mono text-[11px] shadow-none focus:ring-0 ${
+              dark ? "text-gray-300" : "text-ink-soft"
+            }`}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(LANG_LABEL) as Language[]).map((l) => (
+              <SelectItem key={l} value={l} className="font-mono text-xs">
+                {LANG_LABEL[l]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span
           className={`ml-auto flex gap-0.5 rounded-md border p-0.5 ${
             dark ? "border-white/10 bg-[#252540]" : "border-ink/10 bg-paper-deep"
@@ -88,14 +115,40 @@ export default function EditorCell({
         </span>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
-        <CodeMirror
-          value={code}
+        <Editor
           height="100%"
-          style={{ fontSize: "14px", height: "100%" }}
-          theme={dark ? oneDark : "light"}
-          extensions={[(EXTS[lang]?.() ?? python()) as never]}
-          onChange={(value: string) => onCode(value)}
-          basicSetup={{ tabSize: 4 }}
+          language={MONACO_LANG[lang]}
+          value={code}
+          theme={dark ? "vs-dark" : "vs"}
+          onChange={(value) => onCode(value ?? "")}
+          loading={
+            <div
+              className={`flex h-full items-center justify-center text-xs ${
+                dark ? "text-gray-500" : "text-ink-faint"
+              }`}
+            >
+              Loading editor…
+            </div>
+          }
+          options={{
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            fontLigatures: true,
+            minimap: { enabled: false },
+            smoothScrolling: true,
+            padding: { top: 12 },
+            tabSize: 4,
+            insertSpaces: true,
+            scrollBeyondLastLine: false,
+            renderLineHighlight: "all",
+            automaticLayout: true,
+            stickyScroll: { enabled: false },
+            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            guides: { bracketPairs: true },
+            bracketPairColorization: { enabled: true },
+          }}
         />
       </div>
     </section>

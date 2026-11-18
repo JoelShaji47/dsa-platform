@@ -23,6 +23,18 @@ class TestCaseOut(BaseModel):
     expected_output: str
 
 
+class ApproachOut(BaseModel):
+    """One rung of the solution ladder, cheapest approach first."""
+
+    name: str
+    idea: str
+    time_complexity: str
+    space_complexity: str
+    tradeoff: str | None = None
+    # Visualizer registry key when this rung has a step-by-step trace.
+    trace_key: str | None = None
+
+
 class ProblemDetail(BaseModel):
     id: uuid.UUID
     title: str
@@ -44,3 +56,5 @@ class ProblemDetail(BaseModel):
     companies: list[str] = []
     editorial_url: str | None = None
     video_url: str | None = None
+    # Ordered solution ladder (brute force -> optimal). Empty when unauthored.
+    approaches: list[ApproachOut] = []

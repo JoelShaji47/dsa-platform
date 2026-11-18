@@ -7,9 +7,6 @@ import { ArrowLeft, Brain, Loader2, Play, Send } from "lucide-react";
 import { DockviewReact } from "dockview-react";
 import type { DockviewApi, DockviewReadyEvent } from "dockview-core";
 import "./dockview-base.css";
-import { python } from "@codemirror/lang-python";
-import { cpp } from "@codemirror/lang-cpp";
-import { java } from "@codemirror/lang-java";
 import client from "@/lib/api";
 import { useSolveSession } from "@/lib/telemetry";
 import { ThemeToggle } from "@/context/theme-context";
@@ -34,16 +31,11 @@ import {
   CodeTabPanel,
   ConsoleTabPanel,
   DescriptionTabPanel,
+  ApproachesTabPanel,
   SubmissionsTabPanel,
   VisualizeTabPanel,
 } from "./dock-panels";
 import { DIFFICULTY_STYLE, errDetail } from "./status-utils";
-
-const LANGS: { key: Language; label: string; ext: () => unknown }[] = [
-  { key: "python", label: "Python", ext: python },
-  { key: "cpp", label: "C++", ext: cpp },
-  { key: "java", label: "Java", ext: java },
-];
 
 const DOCK_COMPONENTS = {
   description: DescriptionTabPanel,
@@ -52,9 +44,17 @@ const DOCK_COMPONENTS = {
   console: ConsoleTabPanel,
   coach: CoachTabPanel,
   visualize: VisualizeTabPanel,
+  approaches: ApproachesTabPanel,
 };
 
-type MobileTab = "problem" | "code" | "console" | "coach" | "submissions" | "visualize";
+type MobileTab =
+  | "problem"
+  | "code"
+  | "console"
+  | "coach"
+  | "submissions"
+  | "approaches"
+  | "visualize";
 
 const MOBILE_TABS: { id: MobileTab; label: string }[] = [
   { id: "problem", label: "Problem" },
@@ -62,6 +62,7 @@ const MOBILE_TABS: { id: MobileTab; label: string }[] = [
   { id: "console", label: "Console" },
   { id: "coach", label: "Coach" },
   { id: "submissions", label: "Submissions" },
+  { id: "approaches", label: "Approaches" },
   { id: "visualize", label: "Visualize" },
 ];
 
@@ -107,6 +108,8 @@ export default function SolveClient() {
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>("problem");
+  // Trace picked from the approach ladder; null = the problem's own default.
+  const [vizTraceKey, setVizTraceKey] = useState<string | null>(null);
 
   // Solve-session telemetry: start/heartbeat/finish (fire-and-forget).
   useSolveSession(slug);
@@ -120,6 +123,7 @@ export default function SolveClient() {
         setProblem(res.data);
         setUnavailable(!res.data.solvable);
         setCode(res.data.starter_code?.python ?? "");
+        setVizTraceKey(null);
         setPageStatus("ok");
         return client.get<HintMetaOut>(`/problems/${slug}/hints`);
       })
@@ -198,6 +202,22 @@ export default function SolveClient() {
     } catch {
     }
   }, [dockApi, isMobile]);
+
+  // Approach ladder handoff: pin the chosen trace, then surface the player.
+  const focusVisualize = useCallback(
+    (traceKey: string) => {
+      setVizTraceKey(traceKey);
+      if (isMobile) {
+        setMobileTab("visualize");
+        return;
+      }
+      try {
+        dockApi?.getPanel("visualize")?.focus();
+      } catch {
+      }
+    },
+    [dockApi, isMobile]
+  );
 
   const editableCases: EditableCase[] = useMemo(
     () =>
@@ -519,6 +539,12 @@ export default function SolveClient() {
       component: "visualize",
       position: { referencePanel: "description", direction: "within" },
     });
+    api.addPanel({
+      id: "approaches",
+      title: "Approaches",
+      component: "approaches",
+      position: { referencePanel: "visualize", direction: "within" },
+    });
     try {
       // Coach lands selected — put Code back on top, keep focus on description.
       api.getPanel("code")?.api.setActive();
@@ -578,6 +604,8 @@ export default function SolveClient() {
     fetchReview,
     runAnalyze,
     focusConsole,
+    focusVisualize,
+    vizTraceKey,
     coachMessages,
     coachLoading,
     coachProvider,
@@ -688,21 +716,6 @@ export default function SolveClient() {
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-2">
             <ThemeToggle dark />
-            <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
-              {LANGS.map((l) => (
-                <button
-                  key={l.key}
-                  onClick={() => handleLangChange(l.key)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    lang === l.key
-                      ? "bg-white/10 text-gray-100"
-                      : "text-gray-500 hover:text-gray-300"
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
             <button
               onClick={openCoach}
               title="Open coach"
@@ -731,27 +744,7 @@ export default function SolveClient() {
         </header>
       )}
 
-      {/* ── Mobile: language row + panel switcher ────────────── */}
-      {isMobile && (
-        <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#0e1119] px-3 py-1.5">
-          <div className="flex gap-0.5 rounded-lg border border-white/10 bg-[#252540] p-0.5">
-            {LANGS.map((l) => (
-              <button
-                key={l.key}
-                onClick={() => handleLangChange(l.key)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  lang === l.key
-                    ? "bg-white/10 text-gray-100"
-                    : "text-gray-500 hover:text-gray-300"
-                }`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* ── Mobile: panel switcher (language lives on the Code tab) ── */}
       {isMobile && (
         <nav className="flex shrink-0 border-b border-white/10 bg-[#0e1119]">
           {MOBILE_TABS.map((t) => {
@@ -814,6 +807,11 @@ export default function SolveClient() {
             {mobileTab === "submissions" && (
               <div className="h-full">
                 <SubmissionsTabPanel />
+              </div>
+            )}
+            {mobileTab === "approaches" && (
+              <div className="h-full">
+                <ApproachesTabPanel />
               </div>
             )}
             {mobileTab === "visualize" && (

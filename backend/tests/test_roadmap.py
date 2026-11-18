@@ -240,3 +240,26 @@ def test_activity_marks_day_after_solving(monkeypatch):
     days = client.get("/api/v1/roadmap/activity", headers=headers).json()["days"]
     # Today must show an accepted submission.
     assert days[-1]["count"] >= 1
+
+
+def test_activity_day_lists_solved_questions(monkeypatch):
+    stub_grader(monkeypatch)
+    headers = make_user_and_token()
+
+    res = client.post(
+        "/api/v1/problems/two-sum/submit",
+        headers=headers,
+        json={"source_code": "print('x')", "language": "python"},
+    )
+    assert res.json()["status"] == "ACCEPTED"
+
+    days = client.get("/api/v1/roadmap/activity", headers=headers).json()["days"]
+    today = next(d for d in days if d["date"] == datetime.now(timezone.utc).date().isoformat())
+    assert today["count"] >= 1
+    slugs = [p["slug"] for p in today["problems"]]
+    assert "two-sum" in slugs
+    entry = next(p for p in today["problems"] if p["slug"] == "two-sum")
+    assert entry["title"]
+    assert entry["difficulty"] in ("EASY", "MEDIUM", "HARD")
+    # Empty days carry an empty list, not a missing key.
+    assert next(d for d in days if d["count"] == 0)["problems"] == []

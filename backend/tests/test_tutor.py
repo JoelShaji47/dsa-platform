@@ -237,9 +237,9 @@ def post_analyze(headers, slug="two-sum", code="def f(): pass", language="python
 def reset_analyze_rate():
     from app.api.v1 import tutor as tutor_api
 
-    tutor_api._analyze_hits.clear()
+    tutor_api._ANALYZE_LIMITER.reset()
     yield
-    tutor_api._analyze_hits.clear()
+    tutor_api._ANALYZE_LIMITER.reset()
 
 
 def test_analyze_requires_auth():
@@ -316,8 +316,8 @@ def test_analyze_rate_limited(monkeypatch):
     install_llm_mock(monkeypatch)
     from app.api.v1 import tutor as tutor_api
 
-    assert tutor_api._ANALYZE_LIMIT == 6
-    for _ in range(tutor_api._ANALYZE_LIMIT):
+    assert tutor_api._ANALYZE_LIMITER.limit == 6
+    for _ in range(tutor_api._ANALYZE_LIMITER.limit):
         assert post_analyze(headers).status_code == 200
     assert post_analyze(headers).status_code == 429
 
