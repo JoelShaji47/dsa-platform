@@ -1,12 +1,15 @@
 # Recommender (ML) — owner guide
 
-Hybrid: heuristic candidates + LightGBM LambdaRank re-rank.
-Response shape is backward compatible (only additive fields); ordering +
-`model` tag change when ML is live.
+Two-stage hybrid: heuristic + CF recall → LightGBM LambdaRank re-rank →
+epsilon-greedy exploration. Response shape is backward compatible (only
+additive fields); ordering + `model` tag change when ML is live.
 
 ## Files
-- `app/ml/features.py` — schema v2, 27 cols (21 legacy + 6 `ls_*`
-  learner-state). Two training tasks (below); one shared serving builder.
+- `app/ml/retrieval.py` — §4a collaborative filtering: implicit user × problem
+  SVD factors (`retrieval.npz`), policy-filtered recall, fail-open cold start.
+- `app/ml/features.py` — schema v2, 32 cols (26 context/interaction +
+  6 `ls_*` learner-state). Two training tasks (below); one shared serving
+  builder.
 - `app/ml/train.py` — group-aware time split, NDCG@5/10, Precision@5,
   coverage, diversity, cold-start slices, heuristic-vs-ML comparison,
   atomic artifact save with schema validation + backup.
@@ -14,8 +17,9 @@ Response shape is backward compatible (only additive fields); ordering +
   mtime-based reload, SQL-aggregated priors (60s cache).
 - `app/services/roadmap.py` — `recommend_next()` heuristic pool,
   `generate_candidates()` intents (balanced/skill/retention/transfer/
-  exploration), `get_recommendations()` hybrid + opportunity log,
-  `explain_recommendation()` supported-signal explanations.
+  exploration), `get_recommendations()` two-stage hybrid + CF recall +
+  exploration + opportunity log, `explain_recommendation()` supported-signal
+  explanations.
 - `app/services/learner_state.py` — PFA-style per-(user, pattern) state:
   mastery, uncertainty, retention_risk, friction, trend, transfer,
   evidence counts, review priority. Graded outcomes
@@ -25,22 +29,26 @@ Response shape is backward compatible (only additive fields); ordering +
 - `app/services/activity.py` + `app/models/interaction.py` — run/submit/
   hint/review telemetry. Never breaks requests (rollback + swallow).
 - `scripts/train_recommender.py` — ETL → features → rank → evaluate →
-  `eval_report.json`. Prefers the impression task when usable.
-- `tests/test_recommender.py` + `tests/test_ml_personalization.py` —
-  groups, leakage, eval, fallback, telemetry auth, learner state, compat.
+  `eval_report.json`, and independently refreshes `retrieval.npz`. Prefers
+  the impression task when usable.
+- `tests/test_recommender.py` + `tests/test_ml_personalization.py` +
+  `tests/test_retrieval_exploration.py` — groups, leakage, eval, fallback,
+  telemetry auth, learner state, CF/exploration, compat.
 
 ## Data flow
-1. `GET /roadmap/recommendations?intent=balanced` → heuristic candidates
-   (unlocked, unsolved, solvable) → ML re-rank when artifact schema matches
-   and user has ≥3 submissions → items carry `model`, `intent`,
-   `explanation`, `opportunity_id` (+`score` with `?explain=true`).
+1. `GET /roadmap/recommendations?intent=balanced&pattern=...` → heuristic
+   candidates (unlocked, unsolved, solvable) + CF neighbours → ML re-rank
+   when artifact schema matches and user has ≥3 submissions → optional
+   epsilon-greedy slot (`ML_EXPLORATION_EPSILON`, default 0.1) → items carry
+   `model`, `intent`, `explanation`, `opportunity_id` (+`score` with
+   `?explain=true`, `candidate_source` for CF/exploration picks).
 2. Client reports rendered items → `POST /roadmap/impressions`
    (generated ≠ exposed; duplicates idempotent).
 3. Solve work → `POST /roadmap/sessions` → heartbeats (120s idle cap) →
    `finish` reconciles counters from submissions/hints/events.
 4. Nightly `train_recommender.py`: impression frame (one query per
    opportunity, as-of features, delayed labels, 14d window) preferred;
-   legacy engagement frame otherwise.
+   retrieval factors train from the submission log regardless.
 
 ## Feature semantics (schema v2)
 - `u_*`, `p_*`, `ls_*`: temporal — events strictly before the row cutoff
@@ -74,11 +82,14 @@ Same code path for training (as_of=cutoff) and serving.
 
 ## Train
 `DATABASE_URL=... .venv/bin/python scripts/train_recommender.py` from `backend/`
+- Always attempts the CF retrieval artifact first (≥20 distinct submission
+  pairs): saves `backend/artifacts/retrieval.npz` + `retrieval_meta.json`.
 - exit 0 = saved `backend/artifacts/ranker.txt` + `ranker_meta.json`
   (gitignored, never commit) + `eval_report.json` with the heuristic-vs-ML
-  head-to-head on identical held-out candidates.
-- exit 2 = not enough data (≥20 rows, ≥2 queries with a solve and label
-  variation); heuristic stays live, safe on fresh DB.
+  head-to-head on identical held-out candidates (includes retrieval meta).
+- exit 2 = not enough impression data (≥20 rows, ≥2 queries with a solve and
+  label variation); the ranker stays heuristic, but retrieval is still safe to
+  use. Safe on a fresh DB.
 - After retrain: `infer.clear_cache()` is called by the script; the server
   also reloads on mtime change. Last-known-good backup kept as
   `ranker.txt.bak` / `ranker_meta.json.bak`.

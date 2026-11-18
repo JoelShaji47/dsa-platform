@@ -633,6 +633,11 @@ def _reason(c: dict, progress: dict[str, PatternProgress]) -> str:
 # candidate-generation logic.
 INTENTS = ("balanced", "skill", "retention", "transfer", "exploration")
 
+# Two-stage hybrid knobs (docs/ml-recommendation-plan.md §4a/§4c).
+MAX_RECOMMENDATIONS = 12
+RETRIEVAL_CANDIDATES = 6
+DEFAULT_EXPLORATION_EPSILON = 0.1
+
 
 def _as_rec(slug: str, problems: dict, progress: dict[str, PatternProgress]) -> dict | None:
     pattern_key = SLUG_TO_PATTERN.get(slug)
@@ -659,11 +664,19 @@ def generate_candidates(
     problems: dict,
     intent: str = "balanced",
     limit: int = 12,
+    pattern: str | None = None,
 ) -> list[dict]:
-    """Intent-aware candidate generation over the existing heuristic pool."""
+    """Intent-aware candidate generation over the existing heuristic pool.
+
+    ``pattern`` scopes the drill to one roadmap block; filtering happens on the
+    full ranked pool *before* the top-``limit`` truncation, so a drill is never
+    emptied just because the pattern's candidates fell outside the global top.
+    """
     if intent not in INTENTS:
         intent = "balanced"
     base = recommend_next(db, user, solved_by_problem, progress)
+    if pattern is not None:
+        base = [r for r in base if r["pattern_key"] == pattern]
     if intent == "skill":
         return base[:limit]
 
@@ -676,6 +689,8 @@ def generate_candidates(
                 continue
             rec = _as_rec(d["slug"], problems, progress)
             if rec is None:
+                continue
+            if pattern is not None and rec["pattern_key"] != pattern:
                 continue
             rec["reason"] = (
                 f"Revision due — solved {d['hints_used']} hint(s) in "
@@ -741,6 +756,132 @@ def generate_candidates(
     return out[:limit]
 
 
+def _eligible_slugs(
+    problems: dict,
+    solved_by_problem: dict[str, bool],
+    progress: dict[str, PatternProgress],
+    pattern: str | None = None,
+) -> list[str]:
+    """Stable, policy-legal recall pool: unlocked, unsolved, solvable."""
+    unlocked = _unlocked_patterns(progress)
+    out = []
+    for slug, problem in problems.items():
+        pattern_key = SLUG_TO_PATTERN.get(slug)
+        if pattern_key is None or pattern_key not in unlocked:
+            continue
+        if pattern is not None and pattern_key != pattern:
+            continue
+        if solved_by_problem.get(slug, False):
+            continue
+        if not (problem.starter_code and problem.test_cases):
+            continue
+        order = PATTERN_BY_KEY.get(pattern_key, {}).get("order", 99)
+        out.append((order, slug))
+    out.sort()
+    return [slug for _, slug in out]
+
+
+def _retrieval_recommendations(
+    db: Session,
+    user: User,
+    problems: dict,
+    solved_by_problem: dict[str, bool],
+    progress: dict[str, PatternProgress],
+    existing: set[str],
+    limit: int = RETRIEVAL_CANDIDATES,
+    pattern: str | None = None,
+) -> list[dict]:
+    """§4a: collaborative-filtering recall, constrained by roadmap policy."""
+    from app.ml import retrieval as _retrieval
+
+    eligible = set(
+        _eligible_slugs(problems, solved_by_problem, progress, pattern=pattern)
+    )
+    if not eligible:
+        return []
+    rows = _retrieval.retrieve_candidates(
+        db,
+        user.id,
+        limit=limit,
+        eligible_slugs=eligible,
+        exclude_slugs=existing,
+    )
+    out = []
+    for slug, score in rows:
+        rec = _as_rec(slug, problems, progress)
+        if rec is None:
+            continue
+        rec.update(
+            {
+                "intent": "skill",
+                "candidate_source": "cf",
+                "retrieval_score": round(float(score), 4),
+            }
+        )
+        out.append(rec)
+    return out
+
+
+def _exploration_epsilon() -> float:
+    import os
+
+    raw = os.environ.get("ML_EXPLORATION_EPSILON")
+    if raw is None:
+        return DEFAULT_EXPLORATION_EPSILON
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_EXPLORATION_EPSILON
+    return min(max(value, 0.0), 1.0)
+
+
+def _maybe_explore(
+    user: User,
+    problems: dict,
+    solved_by_problem: dict[str, bool],
+    progress: dict[str, PatternProgress],
+    chosen: set[str],
+    intent: str,
+    epsilon: float | None = None,
+    pattern: str | None = None,
+) -> dict | None:
+    """§4c: epsilon-greedy exploration for one eligible surprise pick.
+
+    Stable per (user, day, intent) so a learner does not see the recommended
+    list reshuffle on every poll, while still guaranteeing fresh items a
+    share of exposure.
+    """
+    import random
+    from datetime import date
+
+    eps = _exploration_epsilon() if epsilon is None else epsilon
+    if eps <= 0.0:
+        return None
+    pool = [
+        slug
+        for slug in _eligible_slugs(
+            problems, solved_by_problem, progress, pattern=pattern
+        )
+        if slug not in chosen
+    ]
+    if not pool:
+        return None
+    rng = random.Random(f"explore:{user.id}:{date.today().isoformat()}:{intent}")
+    if rng.random() >= eps:
+        return None
+    rec = _as_rec(rng.choice(pool), problems, progress)
+    if rec is None:
+        return None
+    rec.update(
+        {
+            "intent": "exploration",
+            "candidate_source": "exploration",
+            "reason": f"Explore {rec['pattern_name']} — broaden your range today.",
+        }
+    )
+    return rec
+
+
 def explain_recommendation(
     rec: dict, progress: dict[str, PatternProgress], review_due_slugs: set[str] | None = None
 ) -> str:
@@ -751,6 +892,8 @@ def explain_recommendation(
     """
     if review_due_slugs and rec["slug"] in review_due_slugs:
         return "Needs revision — you solved this with friction before; recall now to retain it."
+    if rec.get("candidate_source") == "cf":
+        return f"Similar learners advanced here — a natural next step in {rec['pattern_name']}."
     if rec.get("intent") == "transfer":
         return f"Ready to transfer — your prerequisites for {rec['pattern_name']} are solid."
     if rec.get("intent") == "exploration":
@@ -768,15 +911,20 @@ def explain_recommendation(
 
 
 def get_recommendations(
-    db: Session, user: User, explain: bool = False, intent: str = "balanced"
+    db: Session,
+    user: User,
+    explain: bool = False,
+    intent: str = "balanced",
+    pattern: str | None = None,
 ) -> list[dict]:
-    """Hybrid recommendations: heuristic candidates, ML re-rank when available.
+    """Two-stage recommendations: heuristic + CF recall, ML rank, explore.
 
-    The heuristic always generates the candidate pool (top unsolved, unlocked),
-    so cold users and fresh deploys get sensible results. When a trained
-    ranker artifact exists AND the user has enough logged history, candidates
-    are re-scored by the model; otherwise the heuristic order stands. The
-    response shape never changes — only the ordering and the ``model`` tag.
+    Stage 1 builds a policy-legal pool (unlocked, unsolved, solvable) from the
+    heuristic and, for balanced/skill intents, adds collaborative-filtering
+    neighbours the heuristic missed. Stage 2 lets the LambdaRank model re-score
+    the union when an artifact exists AND the user has enough logged history;
+    otherwise the heuristic order stands (CF fills only the tail). Finally an
+    epsilon-greedy exploration slot may replace the lowest-ranked item.
 
     ``intent`` selects the candidate policy (balanced/skill/retention/
     transfer/exploration). Each request logs a fail-safe
@@ -792,9 +940,29 @@ def get_recommendations(
     ) = _build_user_state(db, user)
     if intent not in INTENTS:
         intent = "balanced"
-    recommendations = generate_candidates(
-        db, user, solved_by_problem, progress, problems, intent=intent
+    heuristic_recs = generate_candidates(
+        db, user, solved_by_problem, progress, problems, intent=intent, pattern=pattern
     )
+
+    # Stage 1b (§4a): widen recall with collaborative-filtering candidates.
+    # The ranker below is the stage-2 fine scorer; the roadmap policy (unlocked,
+    # unsolved, solvable) still constrains every retrieved slug.
+    retrieved_recs: list[dict] = []
+    if intent in ("balanced", "skill"):
+        try:
+            retrieved_recs = _retrieval_recommendations(
+                db,
+                user,
+                problems,
+                solved_by_problem,
+                progress,
+                {r["slug"] for r in heuristic_recs},
+                pattern=pattern,
+            )
+        except Exception:
+            logger.debug("CF retrieval abstained", exc_info=True)
+
+    recommendations = heuristic_recs + retrieved_recs
 
     model_tag = "heuristic-v1"
     try:
@@ -811,9 +979,40 @@ def get_recommendations(
             recommendations.sort(
                 key=lambda r: (-scores.get(r["slug"], 0.0), order[r["slug"]])
             )
+            recommendations = recommendations[:MAX_RECOMMENDATIONS]
     except Exception:
         logger.debug("ML re-rank abstained; serving heuristic order", exc_info=True)
         scores = {}
+
+    if not scores and retrieved_recs:
+        # No stage-2 scorer: still expose recall, but never let CF crowd out
+        # the whole heuristic core.
+        budget = max(0, MAX_RECOMMENDATIONS - len(retrieved_recs))
+        recommendations = (heuristic_recs[:budget] + retrieved_recs)[
+            :MAX_RECOMMENDATIONS
+        ]
+    elif not scores:
+        recommendations = recommendations[:MAX_RECOMMENDATIONS]
+
+    # Stage 2b (§4c): epsilon-greedy exploration. Replaces the lowest-ranked
+    # slot so the list length and ranked core stay intact. Explicit intent
+    # requests (retention/transfer/exploration) keep their policy untouched.
+    try:
+        explored = None
+        if intent in ("balanced", "skill"):
+            explored = _maybe_explore(
+                user,
+                problems,
+                solved_by_problem,
+                progress,
+                {r["slug"] for r in recommendations},
+                intent,
+                pattern=pattern,
+            )
+        if explored is not None:
+            recommendations = recommendations[: MAX_RECOMMENDATIONS - 1] + [explored]
+    except Exception:
+        logger.debug("exploration abstained", exc_info=True)
 
     # Fail-safe opportunity log (telemetry never breaks recommendations).
     opportunity_id = None

@@ -28,6 +28,15 @@ def monday(n_weeks_ago=0):
 
 
 def test_board_seeds_cohort_and_ranks_by_week_xp():
+    from app.models.league import League
+
+    # Hermetic week: stale empty cohorts from earlier runs would otherwise
+    # absorb each new user into a different league and shrink this cohort.
+    with SessionLocal() as db:
+        db.query(League).filter(League.week_start >= leagues.week_start()).delete(
+            synchronize_session=False
+        )
+        db.commit()
     h1, u1 = register()
     h2, _ = register()
     # Anchor to the exact window the endpoint computes. A bare "now - 1 day"

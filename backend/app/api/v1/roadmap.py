@@ -53,10 +53,9 @@ def recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
-    recs = get_recommendations(db, current_user, explain=explain, intent=intent)
-    if pattern is not None:
-        # Weak-pattern drill: top picks constrained to one pattern.
-        recs = [r for r in recs if r.get("pattern_key") == pattern]
+    recs = get_recommendations(
+        db, current_user, explain=explain, intent=intent, pattern=pattern
+    )
     return {"recommendations": recs}
 
 

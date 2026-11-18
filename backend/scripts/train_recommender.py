@@ -24,7 +24,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.db.session import SessionLocal
-from app.ml import infer
+from app.ml import infer, retrieval
 from app.ml.features import (
     FEATURE_COLUMNS,
     build_impression_training_frame,
@@ -40,6 +40,24 @@ from app.ml.train import (
 
 def main() -> int:
     with SessionLocal() as db:
+        # §4a retrieval is independent of the ranker task: it only needs the
+        # submission log, so train it even when impression data is still thin.
+        retrieval_meta = None
+        try:
+            retrieval_meta = retrieval.train_and_save(db)
+            if retrieval_meta:
+                print(
+                    "retrieval: "
+                    f"{retrieval_meta['version']} "
+                    f"({retrieval_meta['n_users']} users x "
+                    f"{retrieval_meta['n_items']} items, "
+                    f"k={retrieval_meta['n_components']})"
+                )
+            else:
+                print("retrieval: SKIP (not enough submission interactions)")
+        except Exception as exc:  # retrieval must never block the ranker
+            print(f"retrieval: SKIP ({exc})")
+
         imp_frame = build_impression_training_frame(db)
 
     task = "impression"
@@ -97,6 +115,7 @@ def main() -> int:
         "trained_at": meta["trained_at"],
         "metrics": metrics,
         "comparison": comparison,
+        "retrieval": retrieval_meta,
     }
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     (ARTIFACT_DIR / "eval_report.json").write_text(json.dumps(report, indent=2))

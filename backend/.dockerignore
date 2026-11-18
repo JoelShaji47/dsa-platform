@@ -7,3 +7,5 @@ __pycache__/
 artifacts/
 !artifacts/ranker.txt
 !artifacts/ranker_meta.json
+!artifacts/retrieval.npz
+!artifacts/retrieval_meta.json

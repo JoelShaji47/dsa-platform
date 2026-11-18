@@ -1,27 +1,37 @@
-# ML Recommendation Plan — IMPLEMENTED (hybrid)
+# ML Recommendation Plan — IMPLEMENTED (two-stage hybrid)
 
-Status: live as a hybrid. The heuristic still generates candidates and serves
-cold users; a LightGBM LambdaRank model re-ranks candidates when a trained
-artifact exists AND the user has ≥3 logged submissions.
+Status: live as a two-stage hybrid with exploration.
 
-Serving: `GET /roadmap/recommendations?explain=true` returns each item with
-`model` (`heuristic-v1` | `ml-YYYYMMDD-HHMM`) and, with `explain`, the raw
-`score`. The daily question draws from the same ranked pool, so it improves
-automatically once the model is live.
+- **Stage 1 (recall)**: the heuristic generates the policy-legal pool (unlocked,
+  unsolved, solvable) and collaborative filtering (truncated SVD over the
+  implicit submission matrix) adds neighbourhood candidates the heuristic
+  misses. Artifact: `backend/artifacts/retrieval.npz`.
+- **Stage 2 (ranking)**: a LightGBM LambdaRank model re-ranks that union when a
+  trained artifact exists AND the user has ≥3 logged submissions.
+- **Exploration**: epsilon-greedy (`ML_EXPLORATION_EPSILON`, default `0.1`)
+  replaces the lowest-ranked slot with one eligible surprise pick, stable per
+  learner/day/intent.
 
-Pipeline: `interaction_events` telemetry (run/submit/hint/review) →
-`app/ml/features.py` (21 features, engaged-solve labels 2/1/0) →
-`scripts/train_recommender.py` (time-split validation, NDCG@10/Precision@5) →
-`backend/artifacts/ranker.txt` → `app/ml/infer.py` (abstains safely to the
-heuristic on missing artifact, feature mismatch, or errors).
+Cold users (no submissions / no artifact) still get the heuristic order. The
+response shape never changes; each item carries `model`
+(`heuristic-v1` | `ml-YYYYMMDD-HHMM`) and, with `explain`, the raw `score` plus
+`candidate_source` (`cf` / `exploration` when applicable).
+
+Serving: `GET /roadmap/recommendations?explain=true`. The daily question draws
+from the same ranked pool, so it improves automatically once the model is live.
+
+Pipeline: `interaction_events` telemetry → `app/ml/retrieval.py` (CF factors) +
+`app/ml/features.py` (32 features) → `scripts/train_recommender.py`
+(time-split validation, NDCG@10/Precision@5) → `backend/artifacts/ranker.txt`
+and `retrieval.npz` → `app/ml/infer.py` + `app/ml/retrieval.py` (both abstain
+safely to the heuristic on missing artifacts, schema mismatch, or errors).
 
 First training (local dev data, 477 rows / 230 users): NDCG@10 0.8,
 Precision@5 0.8 on the time-split holdout. Retrain nightly/weekly as real
-behavioral data accumulates; the script exits 2 (heuristic stays live) when
-data is insufficient.
+behavioral data accumulates; the script exits 2 (ranker stays heuristic) when
+data is insufficient but still refreshes the retrieval artifact when it can.
 
-Original design notes below — §4b (learning-to-rank) was built, §4a/§4c
-remain future work (MF retrieval, epsilon-greedy exploration).
+Original design notes below are kept for context; §4a, §4b and §4c are built.
 
 ---
 
@@ -90,22 +100,28 @@ From `Submissions`, `Attempts`, and hint logs:
 ## 4. Model options
 
 ### 4a. Collaborative filtering (matrix factorization) — baseline
-- Users × solved-matrix; SVD / implicit MF (`implicit`, `scipy`).
-- Cold-start problem: unseen users/problems get topic/difficulty priors.
-- Good for "users who solved X also solve Y" but weak at injecting effort signals.
+- **Implemented** in `app/ml/retrieval.py`: implicit user × problem matrix
+  (clean accept 1.0, hinted accept 0.7, attempt 0.2) factorised with
+  `TruncatedSVD` (32 components, no new dependency).
+- Cold-start: unknown users/items get no CF candidates and the heuristic pool
+  stands; every retrieved slug is still filtered by the roadmap policy.
+- Artifact `retrieval.npz` is trained by `scripts/train_recommender.py`
+  independently of the ranker's data gate.
 
 ### 4b. Learning-to-rank (gradient boosting) — recommended primary
-- `lightgbm`/`xgboost` ranker over the (user, problem) feature rows above.
+- `lightgbm` LambdaRank over the (user, problem) feature rows above.
 - Target: pairwise ranking loss preferring *engaged solves* (e.g. solved with 0–1 hints, 1–3
   attempts) over solved-with-many-hints or unsolved.
 - Naturally consumes all table features + item embeddings.
 - Cold-start handled by feature fallback to topic/difficulty averages.
 
 ### 4c. Two-stage hybrid (recommended production shape)
-1. **Retrieval/coarse**: candidate generation from (a) topic under-mastery (recall), (b) MF
-   similarity (personalization), (c) roadmap prerequisite frontier (curriculum).
-2. **Ranking/fine**: gradient-boosting ranker scores the candidates with the full feature set.
-3. **Exploration**: epsilon-greedy / Thompson-like mix so cold items still get surfaced.
+1. **Retrieval/coarse**: heuristic policy (topic under-mastery, DAG frontier,
+   solvable) **plus** CF neighbourhood recall.
+2. **Ranking/fine**: gradient-boosting ranker scores the union with the full
+   feature set.
+3. **Exploration**: epsilon-greedy mix (`ML_EXPLORATION_EPSILON`, default 0.1)
+   so cold items still get surfaced; stable per learner/day/intent.
 
 ---
 
@@ -139,11 +155,12 @@ From `Submissions`, `Attempts`, and hint logs:
 
 ---
 
-## 7. Open questions / next steps (needs `question` tool)
+## 7. Decisions (formerly open questions)
 
-1. Should the model be trained **offline** (batch, artifacts) or **online** (per-request, e.g.
-   kNN/embedding lookup)? Batch is simpler and cacheable; online is more reactive.
-2. Which target maximizes the product goal — solve-rate, engagement, or retention? This changes the
-   label definition and the ranker objective.
-3. Is acquiring a rich **attempt/hint log** (currently only submissions are rich) worth a small
-   schema/logging change before data collection improves?
+1. **Offline batch** training with artifacts (`ranker.txt`, `retrieval.npz`) —
+   simpler, cacheable, and retrained nightly/weekly. No per-request training.
+2. Target stays the leak-free **impression task** (engage → accept 2 / 1 / 0),
+   with clicked/dismissed as label columns, not features. Legacy engagement rows
+   are never shipped because their label leaks through contemporaneous features.
+3. Attempt/hint telemetry is already logged (`interaction_events`, `hint_usage`,
+   `recommendation_impressions`); the retrain runs once enough impressions exist.

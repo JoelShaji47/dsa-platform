@@ -111,6 +111,7 @@ Run from `backend/` with the venv active:
 | `python scripts/verify_seeds.py` | Verify seeded test cases compile and pass against reference solutions |
 | `python scripts/verify_neetcode_tests.py` | Verify NeetCode test-case correctness for key Array/Hashing problems |
 | `python scripts/check_starters.py` | Compile-check every starter block (Python locally, C++ via Judge0) |
+| `python scripts/train_recommender.py` | Retrain the CF retrieval + LambdaRank artifacts (exits 2 when data is thin; heuristic stays live) |
 
 ## Tests
 

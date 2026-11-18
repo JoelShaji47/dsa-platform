@@ -754,22 +754,41 @@ def test_candidate_feature_rows_cold_user_no_crash():
         # p_solve_at_cutoff = sigmoid(theta - b), zone_fit in [0, 1].
         assert r["u_theta_pattern"] == 0.0
         assert r["u_confidence_pattern"] == 0.0
-        assert -1.0 <= r["p_b_learned"] <= 1.0
+        # p_b_learned is a difficulty logit, not a probability: learned values
+        # may legitimately drift outside the [-1, 1] difficulty-band priors.
+        assert np.isfinite(r["p_b_learned"])
         assert 0.0 <= r["p_solve_at_cutoff"] <= 1.0
         assert 0.0 <= r["p_zone_fit"] <= 1.0
 
 
-def test_serving_uses_ml_model_when_history_exists(monkeypatch):
+def test_serving_uses_ml_model_when_history_exists(monkeypatch, tmp_path):
     """get_recommendations re-ranks with the ML model for users with history.
 
     Creates a user, gives them accepted submissions, replays the skill model
     to populate skill_estimates, then verifies the recommendations response
-    carries the ML model tag (not heuristic-v1).
+    carries the ML model tag (not heuristic-v1). Trains a throwaway booster
+    into ``tmp_path`` so the test does not depend on a developer's local
+    ``artifacts/`` directory (which is gitignored).
     """
+    from app.ml.features import FEATURE_SCHEMA_VERSION
+    from app.ml import train as train_module
     from app.models.enums import SubmissionStatus
     from app.models.problem import Problem
     from app.models.submission import Submission
     from app.services.skill_model import replay
+
+    booster, _ = train_frame(_frame())
+    model_path = tmp_path / "ranker.txt"
+    booster.save_model(str(model_path))
+    meta = {
+        "version": "ml-test",
+        "features": FEATURE_COLUMNS,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
+    }
+    monkeypatch.setattr(infer, "MODEL_PATH", model_path)
+    monkeypatch.setattr(infer, "load_meta", lambda: meta)
+    monkeypatch.setattr(train_module, "MODEL_PATH", model_path)
+    infer.clear_cache()
 
     headers, uid = make_test_user()
     uid = uuid.UUID(str(uid))
@@ -795,11 +814,14 @@ def test_serving_uses_ml_model_when_history_exists(monkeypatch):
         replay(db)
         db.commit()
 
-    body = client.get("/api/v1/roadmap/recommendations", headers=headers).json()
-    recs = body["recommendations"]
-    assert recs, "user with history should get recommendations"
-    # ML artifact exists on disk (trained earlier) -> model tag should be ML.
-    ml_recs = [r for r in recs if r.get("model", "").startswith("ml-")]
-    assert len(ml_recs) == len(recs), (
-        f"expected all ML-ranked, got models: {sorted({r.get('model') for r in recs})}"
-    )
+    try:
+        body = client.get("/api/v1/roadmap/recommendations", headers=headers).json()
+        recs = body["recommendations"]
+        assert recs, "user with history should get recommendations"
+        ml_recs = [r for r in recs if r.get("model", "").startswith("ml-")]
+        assert len(ml_recs) == len(recs), (
+            "expected all ML-ranked, got models: "
+            f"{sorted({r.get('model') for r in recs})}"
+        )
+    finally:
+        infer.clear_cache()
