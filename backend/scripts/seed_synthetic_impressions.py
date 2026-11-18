@@ -8,10 +8,15 @@ ranker artifact.
 
 Idempotent: re-running deletes the synthetic users' opportunities, impressions
 and submissions before re-inserting.
+
+Usage (from backend/):
+    DATABASE_URL="..." .venv/bin/python scripts/seed_synthetic_impressions.py \\
+        --users 20 --opps 6 --imps 8 --seed 7
 """
 
 from __future__ import annotations
 
+import argparse
 import random
 import sys
 import uuid
@@ -31,24 +36,14 @@ from app.models.submission import Submission
 from app.models.telemetry import RecommendationImpression, RecommendationOpportunity
 from app.models.user import User
 
-USERS = 5
-OPPORTUNITIES_PER_USER = 4
-IMPRESSIONS_PER_OPPORTUNITY = 6
-ACCEPT_RATE = 0.30      # share of impressions backed by an accepted submission
-CLICK_RATE = 0.25       # share clicked (no accept)
-DISMISS_RATE = 0.20     # share dismissed (no accept, no click)
-
-RNG = random.Random(20261118)
-
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _seed_db(db: Session) -> list[User]:
-    """Create (or refresh) the synthetic users and return them."""
+def _seed_db(db: Session, n_users: int, rng: random.Random) -> list[User]:
     users: list[User] = []
-    for i in range(USERS):
+    for i in range(n_users):
         uid = uuid.uuid4()
         user = User(
             id=uid,
@@ -66,7 +61,6 @@ def _seed_db(db: Session) -> list[User]:
 
 
 def _clear_synthetic(db: Session, users: list[User]) -> None:
-    """Remove synthetic opportunities/impressions/submissions (idempotent re-run)."""
     ids = [u.id for u in users]
     db.query(RecommendationImpression).filter(
         RecommendationImpression.user_id.in_(ids)
@@ -81,7 +75,7 @@ def _clear_synthetic(db: Session, users: list[User]) -> None:
     db.commit()
 
 
-def _pick_problems(db: Session, n: int) -> list:
+def _pick_problems(db: Session, n: int, rng: random.Random) -> list:
     solvable = (
         db.query(Problem)
         .filter(
@@ -91,30 +85,43 @@ def _pick_problems(db: Session, n: int) -> list:
         )
         .all()
     )
-    RNG.shuffle(solvable)
+    rng.shuffle(solvable)
     return solvable[:n]
 
 
-def _seed(db: Session, users: list[User]) -> int:
-    """Insert synthetic opportunities + impressions; return impression count."""
-    problems = _pick_problems(db, 60)
+def _seed(
+    db: Session,
+    users: list[User],
+    *,
+    opps_per_user: int,
+    imps_per_opp: int,
+    accept_rate: float,
+    click_rate: float,
+    dismiss_rate: float,
+    rng: random.Random,
+) -> dict[str, int]:
+    """Insert synthetic opportunities + impressions; return counters."""
+    problems = _pick_problems(db, max(60, imps_per_opp * 3), rng)
     if len(problems) < 8:
         raise RuntimeError("not enough solvable problems in catalog")
 
-    total_impressions = 0
+    counters = {"opportunities": 0, "impressions": 0, "accepts": 0,
+                "clicks": 0, "dismisses": 0, "none": 0}
+
     for user in users:
-        for _ in range(OPPORTUNITIES_PER_USER):
+        for _ in range(opps_per_user):
             opp = RecommendationOpportunity(
                 user_id=user.id,
                 model_version="heuristic-v1-synthetic",
                 feature_schema_version=2,
-                candidate_count=IMPRESSIONS_PER_OPPORTUNITY,
+                candidate_count=imps_per_opp,
             )
             db.add(opp)
             db.flush()
+            counters["opportunities"] += 1
 
-            base = _now() - timedelta(days=RNG.uniform(0, 10))
-            picked = RNG.sample(problems, IMPRESSIONS_PER_OPPORTUNITY)
+            base = _now() - timedelta(days=rng.uniform(0, 10))
+            picked = rng.sample(problems, min(imps_per_opp, len(problems)))
             for rank, problem in enumerate(picked):
                 imp_created = base + timedelta(minutes=rank * 5)
                 imp = RecommendationImpression(
@@ -127,35 +134,72 @@ def _seed(db: Session, users: list[User]) -> int:
                 )
                 db.add(imp)
                 db.flush()
-                total_impressions += 1
+                counters["impressions"] += 1
 
-                roll = RNG.random()
-                if roll < ACCEPT_RATE:
+                roll = rng.random()
+                if roll < accept_rate:
+                    # Clean accept: single submission, no hints -> relevance 2.
                     sub = Submission(
                         user_id=user.id,
                         problem_id=problem.id,
                         code="synthetic:accepted",
                         language="python",
                         status=SubmissionStatus.ACCEPTED,
-                        submitted_at=imp_created + timedelta(minutes=RNG.uniform(5, 60)),
+                        submitted_at=imp_created
+                        + timedelta(minutes=rng.uniform(5, 60)),
                         test_session_id=None,
                     )
                     db.add(sub)
-                elif roll < ACCEPT_RATE + CLICK_RATE:
-                    imp.clicked_at = imp_created + timedelta(minutes=RNG.uniform(1, 30))
-                elif roll < ACCEPT_RATE + CLICK_RATE + DISMISS_RATE:
-                    imp.dismissed_at = imp_created + timedelta(minutes=RNG.uniform(1, 30))
+                    counters["accepts"] += 1
+                elif roll < accept_rate + click_rate:
+                    imp.clicked_at = imp_created + timedelta(
+                        minutes=rng.uniform(1, 30)
+                    )
+                    counters["clicks"] += 1
+                elif roll < accept_rate + click_rate + dismiss_rate:
+                    imp.dismissed_at = imp_created + timedelta(
+                        minutes=rng.uniform(1, 30)
+                    )
+                    counters["dismisses"] += 1
+                else:
+                    counters["none"] += 1
 
     db.commit()
-    return total_impressions
+    return counters
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--users", type=int, default=5,
+                    help="synthetic users to create")
+    ap.add_argument("--opps", type=int, default=4,
+                    help="opportunities per user")
+    ap.add_argument("--imps", type=int, default=6,
+                    help="impressions per opportunity")
+    ap.add_argument("--accept-rate", type=float, default=0.30)
+    ap.add_argument("--click-rate", type=float, default=0.25)
+    ap.add_argument("--dismiss-rate", type=float, default=0.20)
+    ap.add_argument("--seed", type=int, default=20261118)
+    args = ap.parse_args()
+
+    total = args.accept_rate + args.click_rate + args.dismiss_rate
+    if total > 1.0:
+        ap.error("accept + click + dismiss rates must sum to <= 1.0")
+
+    rng = random.Random(args.seed)
     with SessionLocal() as db:
-        users = _seed_db(db)
+        users = _seed_db(db, args.users, rng)
         _clear_synthetic(db, users)
-        n = _seed(db, users)
-    print(f"seeded {n} synthetic impressions across {USERS} users")
+        counters = _seed(
+            db, users,
+            opps_per_user=args.opps,
+            imps_per_opp=args.imps,
+            accept_rate=args.accept_rate,
+            click_rate=args.click_rate,
+            dismiss_rate=args.dismiss_rate,
+            rng=rng,
+        )
+    print("seeded:", counters, f"(seed={args.seed})")
 
 
 if __name__ == "__main__":
