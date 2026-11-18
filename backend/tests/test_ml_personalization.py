@@ -651,3 +651,155 @@ def test_impression_frame_theta_columns_vary_with_cutoff():
         assert late["u_theta_pattern"] > early["u_theta_pattern"], (
             "theta after an accepted solve should be higher than before it"
         )
+
+
+# ---- Layer 3: serving/train parity and cold-start ----
+
+def test_candidate_feature_rows_parity_train_equals_frame():
+    """candidate_feature_rows(as_of=T) matches build_impression_training_frame.
+
+    The shared train/serve builder must produce identical features for the
+    same (user, problem, cutoff) so the served model sees what it trained on.
+    """
+    from app.ml.features import build_impression_training_frame, candidate_feature_rows
+    from app.models.problem import Problem
+    from app.models.submission import Submission
+    from app.models.telemetry import (
+        RecommendationImpression,
+        RecommendationOpportunity,
+    )
+    from app.services.skill_model import skill_state_as_of
+
+    headers, uid = make_test_user()
+    uid = uuid.UUID(str(uid))
+    cutoff = datetime(2026, 1, 5, tzinfo=timezone.utc)
+    with SessionLocal() as db:
+        problem = (
+            db.query(Problem)
+            .filter(Problem.slug == "two-sum", Problem.is_published.is_(True))
+            .one()
+        )
+        db.add(
+            Submission(
+                user_id=uid,
+                problem_id=problem.id,
+                code="accepted",
+                language="python",
+                status=SubmissionStatus.ACCEPTED,
+                submitted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                test_session_id=None,
+            )
+        )
+        # Impression exactly at cutoff -> frame row uses as_of=cutoff.
+        opp = RecommendationOpportunity(
+            user_id=uid, model_version="test", candidate_count=1
+        )
+        db.add(opp)
+        db.flush()
+        db.add(
+            RecommendationImpression(
+                opportunity_id=opp.id,
+                user_id=uid,
+                problem_id=problem.id,
+                rank=0,
+                rendered=True,
+                model_version="test",
+                created_at=cutoff,
+            )
+        )
+        db.commit()
+
+        frame = build_impression_training_frame(db)
+        row = frame[frame["slug"] == problem.slug].iloc[0]
+
+        # Direct serving-path call with the same cutoff.
+        direct = candidate_feature_rows(
+            db, uid, [problem.slug], as_of=cutoff,
+            problems_by_slug={p.slug: p for p in db.query(Problem).all()},
+        )[0]
+
+        for col in ("u_theta_pattern", "u_confidence_pattern", "p_b_learned",
+                    "p_solve_at_cutoff", "p_zone_fit"):
+            assert abs(float(row[col]) - float(direct[col])) < 1e-9, (
+                f"{col} mismatch: frame={row[col]} direct={direct[col]}"
+            )
+
+
+def test_candidate_feature_rows_cold_user_no_crash():
+    """Serving path (as_of=None) must not crash for a user with no history.
+
+    A brand-new user has no skill_estimates, no submissions — the builder
+    should return neutral defaults, not raise.
+    """
+    from app.ml.features import candidate_feature_rows
+    from app.models.problem import Problem
+
+    headers, uid = make_test_user()
+    uid = uuid.UUID(str(uid))
+    with SessionLocal() as db:
+        problem = (
+            db.query(Problem)
+            .filter(Problem.slug == "two-sum", Problem.is_published.is_(True))
+            .one()
+        )
+        # No skill_estimates, no submissions for this user.
+        rows = candidate_feature_rows(
+            db, uid, [problem.slug], as_of=None,
+            problems_by_slug={p.slug: p for p in db.query(Problem).all()},
+        )
+        assert len(rows) == 1
+        r = rows[0]
+        # Cold user: no theta evidence -> 0.0 theta, 0.0 confidence.
+        # b_learned falls back to the problem's learned difficulty (or prior),
+        # p_solve_at_cutoff = sigmoid(theta - b), zone_fit in [0, 1].
+        assert r["u_theta_pattern"] == 0.0
+        assert r["u_confidence_pattern"] == 0.0
+        assert -1.0 <= r["p_b_learned"] <= 1.0
+        assert 0.0 <= r["p_solve_at_cutoff"] <= 1.0
+        assert 0.0 <= r["p_zone_fit"] <= 1.0
+
+
+def test_serving_uses_ml_model_when_history_exists(monkeypatch):
+    """get_recommendations re-ranks with the ML model for users with history.
+
+    Creates a user, gives them accepted submissions, replays the skill model
+    to populate skill_estimates, then verifies the recommendations response
+    carries the ML model tag (not heuristic-v1).
+    """
+    from app.models.enums import SubmissionStatus
+    from app.models.problem import Problem
+    from app.models.submission import Submission
+    from app.services.skill_model import replay
+
+    headers, uid = make_test_user()
+    uid = uuid.UUID(str(uid))
+    with SessionLocal() as db:
+        # Give the user accepted submissions across three patterns.
+        for slug in ("two-sum", "valid-anagram", "remove-element"):
+            problem = (
+                db.query(Problem)
+                .filter(Problem.slug == slug, Problem.is_published.is_(True))
+                .one()
+            )
+            db.add(
+                Submission(
+                    user_id=uid,
+                    problem_id=problem.id,
+                    code="accepted",
+                    language="python",
+                    status=SubmissionStatus.ACCEPTED,
+                    submitted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    test_session_id=None,
+                )
+            )
+        replay(db)
+        db.commit()
+
+    body = client.get("/api/v1/roadmap/recommendations", headers=headers).json()
+    recs = body["recommendations"]
+    assert recs, "user with history should get recommendations"
+    # ML artifact exists on disk (trained earlier) -> model tag should be ML.
+    ml_recs = [r for r in recs if r.get("model", "").startswith("ml-")]
+    assert len(ml_recs) == len(recs), (
+        f"expected all ML-ranked, got models: {sorted({r.get('model') for r in recs})}"
+    )
