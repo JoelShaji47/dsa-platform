@@ -57,6 +57,7 @@ from app.models.submission import Submission
 from app.models.user import User
 from app.models.xp_event import XpEvent
 from app.services.activity import REVIEW, RUN
+from app.services import skill_model
 
 FEATURE_SCHEMA_VERSION = 2
 
@@ -85,6 +86,13 @@ LEGACY_FEATURE_COLUMNS = [
     "p_solvable",
     "p_accept_rate",
     "p_popularity",
+    # skill model (Layer 3): user ability theta and problem difficulty b,
+    # both computed as-of the feature cutoff so training never sees the future.
+    "u_theta_pattern",
+    "u_confidence_pattern",
+    "p_b_learned",
+    "p_solve_at_cutoff",
+    "p_zone_fit",
 ]
 
 LEARNER_STATE_COLUMNS = [
@@ -118,6 +126,8 @@ DEFAULTS: dict[str, float] = {
     "i_revisits": 0.0, "i_reviews": 0.0,
     "p_diff_ord": 1.0, "p_pattern_order": 99.0, "p_solvable": 0.0,
     "p_accept_rate": 0.5, "p_popularity": 0.0,
+    "u_theta_pattern": 0.0, "u_confidence_pattern": 0.0,
+    "p_b_learned": 0.0, "p_solve_at_cutoff": 0.5, "p_zone_fit": 0.0,
     "ls_mastery": 0.0, "ls_uncertainty": 1.0, "ls_retention_risk": 0.0,
     "ls_friction": 0.0, "ls_trend": 0.0, "ls_review_priority": 0.0,
 }
@@ -576,6 +586,21 @@ def candidate_feature_rows(
     if user is None:
         return []
 
+    # Skill-model theta / b as-of ``now`` (serving: current persisted state;
+    # training: replay <= cutoff so the ranker never sees future evidence).
+    theta_map: dict[tuple, tuple[float, int]] = {}
+    b_map: dict[UUID, tuple[float, int]] = {}
+    if as_of is not None:
+        theta_map, b_map = skill_model.skill_state_as_of(db, as_of)
+    else:
+        from app.models.skill_estimate import SkillEstimate
+
+        for est in db.query(SkillEstimate).filter(
+            SkillEstimate.user_id == user_id
+        ).all():
+            theta_map[(est.user_id, est.pattern_key)] = (est.theta, est.n)
+
+
     # User's own history cut at `now` (serving: full history; training: <= T).
     subs = (
         db.query(Submission)
@@ -765,6 +790,35 @@ def candidate_feature_rows(
                 "p_solvable": float(1 if (problem.starter_code and problem.test_cases) else 0),
                 "p_accept_rate": float(acc.get(problem.id, 0.5)),
                 "p_popularity": float(pop.get(problem.id, 0.0)),
+                # Skill model (Layer 3): user ability and problem difficulty
+                # as-of the feature cutoff (no leakage).
+                "u_theta_pattern": float(theta_map.get((user_id, pattern), (0.0, 0))[0]),
+                "u_confidence_pattern": float(
+                    skill_model.confidence(theta_map.get((user_id, pattern), (0.0, 0))[1])
+                ),
+                "p_b_learned": float(
+                    b_map.get(problem.id, (skill_model.difficulty_of(problem), 0))[0]
+                ),
+                "p_solve_at_cutoff": float(
+                    skill_model.p_solve(
+                        theta_map.get((user_id, pattern), (0.0, 0))[0],
+                        b_map.get(
+                            problem.id,
+                            (skill_model.difficulty_of(problem), 0),
+                        )[0],
+                    )
+                ),
+                "p_zone_fit": float(
+                    skill_model.zone_fit(
+                        skill_model.p_solve(
+                            theta_map.get((user_id, pattern), (0.0, 0))[0],
+                            b_map.get(
+                                problem.id,
+                                (skill_model.difficulty_of(problem), 0),
+                            )[0],
+                        )
+                    )
+                ),
                 **{k: float(v) for k, v in ls_row.items()},
             }
         )

@@ -508,3 +508,146 @@ def test_migration_single_head_and_tables_exist():
         for table in ("recommendation_opportunities", "recommendation_impressions",
                       "solve_sessions"):
             assert table in names
+
+
+# ---- Layer 3: theta as-of cutoff (no leakage) ----
+
+def test_theta_as_of_cutoff_has_no_future_leakage():
+    """theta at cutoff T must reflect only submissions <= T.
+
+    A submission after T must not move theta at T. This is the core
+    anti-leakage guarantee for training the ranker on impression cutoffs.
+    """
+    from app.models.problem import Problem
+    from app.models.submission import Submission
+    from app.services.skill_model import skill_state_as_of
+
+    headers, uid = make_test_user()
+    uid = uuid.UUID(str(uid))
+    with SessionLocal() as db:
+        problem = (
+            db.query(Problem)
+            .filter(Problem.slug == "two-sum", Problem.is_published.is_(True))
+            .one()
+        )
+        # Submission at day 0: accepted -> moves theta up.
+        db.add(
+            Submission(
+                user_id=uid,
+                problem_id=problem.id,
+                code="accepted",
+                language="python",
+                status=SubmissionStatus.ACCEPTED,
+                submitted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                test_session_id=None,
+            )
+        )
+        # Submission at day 10: rejected -> should NOT affect theta at day 5.
+        db.add(
+            Submission(
+                user_id=uid,
+                problem_id=problem.id,
+                code="rejected",
+                language="python",
+                status=SubmissionStatus.WRONG_ANSWER,
+                submitted_at=datetime(2026, 1, 10, tzinfo=timezone.utc),
+                test_session_id=None,
+            )
+        )
+        db.commit()
+
+        # Theta at day 5: only the day-0 accept counts.
+        theta_map_5, _ = skill_state_as_of(
+            db, datetime(2026, 1, 5, tzinfo=timezone.utc)
+        )
+        theta_at_5, n_at_5 = theta_map_5[(uid, problem.pattern_key)]
+
+        # Theta at day 15: both submissions count.
+        theta_map_15, _ = skill_state_as_of(
+            db, datetime(2026, 1, 15, tzinfo=timezone.utc)
+        )
+        theta_at_15, n_at_15 = theta_map_15[(uid, problem.pattern_key)]
+
+        assert n_at_5 == 1, "day-5 cutoff should see exactly 1 submission"
+        assert n_at_15 == 2, "day-15 cutoff should see 2 submissions"
+        assert theta_at_5 > theta_at_15, (
+            "the later rejection should lower theta; theta at day 5 "
+            f"({theta_at_5:.3f}) must exceed theta at day 15 ({theta_at_15:.3f})"
+        )
+
+
+def test_impression_frame_theta_columns_vary_with_cutoff():
+    """build_impression_training_frame produces per-cutoff theta values.
+
+    Two impressions for the same (user, problem) at different cutoffs should
+    carry different u_theta_pattern when a submission lands between them.
+    """
+    from app.ml.features import build_impression_training_frame
+    from app.models.problem import Problem
+    from app.models.submission import Submission
+    from app.models.telemetry import (
+        RecommendationImpression,
+        RecommendationOpportunity,
+    )
+
+    headers, uid = make_test_user()
+    uid = uuid.UUID(str(uid))
+    with SessionLocal() as db:
+        problem = (
+            db.query(Problem)
+            .filter(Problem.slug == "two-sum", Problem.is_published.is_(True))
+            .one()
+        )
+        opp1 = RecommendationOpportunity(
+            user_id=uid, model_version="test", candidate_count=1
+        )
+        opp2 = RecommendationOpportunity(
+            user_id=uid, model_version="test", candidate_count=1
+        )
+        db.add_all([opp1, opp2])
+        db.flush()
+        # Impression at day 1 (before any submission).
+        db.add(
+            RecommendationImpression(
+                opportunity_id=opp1.id,
+                user_id=uid,
+                problem_id=problem.id,
+                rank=0,
+                rendered=True,
+                model_version="test",
+                created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            )
+        )
+        # Impression at day 10 (after an accepted submission at day 5).
+        db.add(
+            Submission(
+                user_id=uid,
+                problem_id=problem.id,
+                code="accepted",
+                language="python",
+                status=SubmissionStatus.ACCEPTED,
+                submitted_at=datetime(2026, 1, 5, tzinfo=timezone.utc),
+                test_session_id=None,
+            )
+        )
+        db.add(
+            RecommendationImpression(
+                opportunity_id=opp2.id,
+                user_id=uid,
+                problem_id=problem.id,
+                rank=0,
+                rendered=True,
+                model_version="test",
+                created_at=datetime(2026, 1, 10, tzinfo=timezone.utc),
+            )
+        )
+        db.commit()
+
+        frame = build_impression_training_frame(db)
+        rows = frame[frame["slug"] == problem.slug]
+        assert len(rows) == 2
+        early = rows[rows["cutoff_at"] <= "2026-01-05"].iloc[0]
+        late = rows[rows["cutoff_at"] > "2026-01-05"].iloc[0]
+        assert late["u_theta_pattern"] > early["u_theta_pattern"], (
+            "theta after an accepted solve should be higher than before it"
+        )

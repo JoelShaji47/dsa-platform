@@ -335,6 +335,68 @@ def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
 
 
+def skill_state_as_of(db: Session, cutoff: datetime) -> tuple[dict, dict]:
+    """Replay submissions <= ``cutoff`` and return (theta_map, b_map).
+
+    Pure — does not mutate any rows. Used by the impression training frame to
+    compute theta / b *as-of* each impression's cutoff, so the ranker never
+    trains on future student-model state (no leakage).
+
+    Returns:
+        theta_map: {(user_id, pattern_key): (theta, n)} — ability + count
+                   for every (user, pattern) with observations <= cutoff.
+        b_map: {problem_id: (b, n_problem)} — learned difficulty + count
+               for every problem with submissions <= cutoff.
+    """
+    from app.models.hint import HintUsage
+    from app.models.problem import Problem
+    from app.models.submission import Submission
+
+    cutoff = _aware(cutoff)
+
+    problems = {p.id: p for p in db.query(Problem).all()}
+
+    hint_times: dict[tuple, list[datetime]] = defaultdict(list)
+    for user_id, problem_id, used_at in db.query(
+        HintUsage.user_id, HintUsage.problem_id, HintUsage.used_at
+    ).filter(HintUsage.used_at <= cutoff).all():
+        hint_times[(user_id, problem_id)].append(_aware(used_at))
+    for times in hint_times.values():
+        times.sort()
+
+    theta_map: dict[tuple, tuple[float, int]] = {}
+    b_map: dict[UUID, tuple[float, int]] = {}
+
+    submissions = (
+        db.query(Submission)
+        .filter(
+            Submission.test_session_id.is_(None),
+            Submission.submitted_at <= cutoff,
+        )
+        .order_by(Submission.submitted_at, Submission.id)
+        .all()
+    )
+
+    for s in submissions:
+        problem = problems.get(s.problem_id)
+        if problem is None or not problem.pattern_key:
+            continue
+        hinted = _hinted_before(
+            hint_times.get((s.user_id, s.problem_id), []), s.submitted_at
+        )
+        key = (s.user_id, problem.pattern_key)
+        theta, n = theta_map.get(key, (0.0, 0))
+        b, n_prob = b_map.get(
+            s.problem_id, (prior_b(problem.difficulty), 0)
+        )
+        y = solve_credit(s.status == SubmissionStatus.ACCEPTED, hinted)
+        theta, b = apply_observation(theta, n, b, n_prob, y)
+        theta_map[key] = (theta, n + 1)
+        b_map[s.problem_id] = (b, n_prob + 1)
+
+    return theta_map, b_map
+
+
 def _hinted_before(times: list[datetime], when: datetime) -> bool:
     """True when a hint was used at or before ``when`` (times pre-sorted)."""
     if not times:

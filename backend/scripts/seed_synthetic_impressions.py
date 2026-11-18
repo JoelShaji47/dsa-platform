@@ -60,8 +60,15 @@ def _seed_db(db: Session, n_users: int, rng: random.Random) -> list[User]:
     return users
 
 
-def _clear_synthetic(db: Session, users: list[User]) -> None:
-    ids = [u.id for u in users]
+def _clear_synthetic(db: Session) -> None:
+    """Remove synthetic opportunities/impressions/submissions
+    (idempotent re-run). Users are purged separately in main()."""
+    synthetic_user_ids = (
+        db.query(User.id).filter(User.email.like("synthetic_user_%@example.invalid")).all()
+    )
+    ids = [uid for (uid,) in synthetic_user_ids]
+    if not ids:
+        return
     db.query(RecommendationImpression).filter(
         RecommendationImpression.user_id.in_(ids)
     ).delete(synchronize_session=False)
@@ -188,8 +195,13 @@ def main() -> None:
 
     rng = random.Random(args.seed)
     with SessionLocal() as db:
+        # Purge synthetic users from any previous run so re-runs are clean.
+        db.query(User).filter(
+            User.email.like("synthetic_user_%@example.invalid")
+        ).delete(synchronize_session=False)
+        db.commit()
         users = _seed_db(db, args.users, rng)
-        _clear_synthetic(db, users)
+        _clear_synthetic(db)
         counters = _seed(
             db, users,
             opps_per_user=args.opps,
