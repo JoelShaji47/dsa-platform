@@ -9,8 +9,9 @@ timestamps needed to reconstruct recommendation opportunities and outcomes.
   via ``POST /roadmap/impressions``; server-side generation alone is NOT an
   impression (A3/B1: distinguish generated vs exposed).
 - ``RecommendationImpression``: one row per exposed (opportunity, problem)
-  with displayed rank, source pool, model + feature-schema versions.
-  Unique (opportunity_id, problem_id) makes client retries idempotent.
+  with displayed rank, source pool, model + feature-schema versions, plus
+  explicit learner feedback (``clicked_at`` / ``dismissed_at``, first action
+  wins). Unique (opportunity_id, problem_id) makes client retries idempotent.
 - ``SolveSession``: one row per learner work session on a problem, linking
   work to submissions/hints/impressions. Counters reconcile against the
   canonical submission/hint records at finish time. Active seconds use a
@@ -91,6 +92,16 @@ class RecommendationImpression(Base):
     model_version: Mapped[str] = mapped_column(String(60))
     feature_schema_version: Mapped[int] = mapped_column(Integer, default=2)
     rendered: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Explicit learner feedback on the exposure. Both are NULL until the
+    # learner acts; the first action wins (see telemetry.record_feedback), so
+    # a row is never both clicked and dismissed. Kept off the feature matrix:
+    # they happen after the ranking decision and would leak into training.
+    clicked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    dismissed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

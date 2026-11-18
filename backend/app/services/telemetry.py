@@ -31,6 +31,9 @@ from app.services.activity import REVIEW, RUN
 
 logger = logging.getLogger(__name__)
 
+# Actions the client may report on an exposed recommendation.
+FEEDBACK_ACTIONS = ("click", "dismiss")
+
 
 def create_opportunity(
     db: Session,
@@ -102,6 +105,65 @@ def record_impressions(
             db.rollback()
             logger.debug("impression logging failed", exc_info=True)
     return recorded
+
+
+def record_feedback(
+    db: Session, user: User, opportunity_id: UUID, problem_slug: str, action: str
+) -> dict:
+    """Record explicit feedback on one exposed recommendation.
+
+    ``action`` is ``"click"`` or ``"dismiss"``. The first action wins: a
+    dismissed card can never later become a click (and vice versa), so the
+    label is unambiguous. Idempotent retries report ``applied=False`` instead
+    of raising or double-writing.
+
+    Raises PermissionError (wrong owner), LookupError (unknown slug or no
+    impression for that opportunity/problem) and ValueError (bad action) —
+    the API maps those to 404/400.
+    """
+    if action not in FEEDBACK_ACTIONS:
+        raise ValueError(f"action must be one of {FEEDBACK_ACTIONS}")
+    opp = db.get(RecommendationOpportunity, opportunity_id)
+    if opp is None or opp.user_id != user.id:
+        raise PermissionError("opportunity not found")
+    problem = db.query(Problem).filter(Problem.slug == problem_slug).first()
+    if problem is None:
+        raise LookupError("problem not found")
+    imp = (
+        db.query(RecommendationImpression)
+        .filter(
+            RecommendationImpression.opportunity_id == opp.id,
+            RecommendationImpression.problem_id == problem.id,
+        )
+        .first()
+    )
+    if imp is None:
+        # Feedback on something never exposed: refuse rather than invent an
+        # impression, otherwise click-through rate gets a free denominator.
+        raise LookupError("impression not found")
+
+    applied = False
+    if imp.clicked_at is None and imp.dismissed_at is None:
+        now = datetime.now(timezone.utc)
+        if action == "click":
+            imp.clicked_at = now
+        else:
+            imp.dismissed_at = now
+        try:
+            db.commit()
+            applied = True
+        except Exception:
+            db.rollback()
+            logger.debug("impression feedback write failed", exc_info=True)
+        db.refresh(imp)
+
+    return {
+        "slug": problem.slug,
+        "action": action,
+        "applied": applied,
+        "clicked": imp.clicked_at is not None,
+        "dismissed": imp.dismissed_at is not None,
+    }
 
 
 def start_session(

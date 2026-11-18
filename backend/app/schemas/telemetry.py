@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -13,6 +14,14 @@ class ImpressionItem(BaseModel):
 class ImpressionsIn(BaseModel):
     opportunity_id: UUID
     items: list[ImpressionItem] = Field(max_length=50)
+
+
+class ImpressionFeedbackIn(BaseModel):
+    """Explicit feedback on one exposed recommendation."""
+
+    opportunity_id: UUID
+    slug: str
+    action: Literal["click", "dismiss"]
 
 
 class SessionStartIn(BaseModel):

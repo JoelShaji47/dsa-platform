@@ -24,6 +24,7 @@ from app.schemas.test import (
     TestSubmitOut,
     TopicAvailability,
 )
+from app.services.activity import TEST_SUBMIT, failure_summary, log_event
 from app.services.grader import RUN_VISIBLE_CASE_LIMIT, grade_code
 from app.services.judge0 import Judge0Error
 from app.services.rate_limit import JUDGE_RUN_LIMITER, JUDGE_SUBMIT_LIMITER
@@ -489,6 +490,24 @@ async def submit_question(
     question.submitted_at = _now()
     db.add(submission)
     db.commit()
+
+    # Timed-test outcomes are a separate signal: graded under a clock, with a
+    # different failure profile from practice. Logged under their own event
+    # name so training can weight or exclude them deliberately.
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=problem.id,
+        event=TEST_SUBMIT,
+        meta={
+            "test_session_id": str(session.id),
+            "language": payload.language.value,
+            "status": result.status.value,
+            "passed": question.passed,
+            "attempts": question.attempts,
+            **failure_summary(submit_results),
+        },
+    )
 
     return TestSubmitOut(
         problem_id=question.problem_id,

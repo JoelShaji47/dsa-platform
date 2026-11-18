@@ -7,6 +7,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.telemetry import (
+    ImpressionFeedbackIn,
     ImpressionsIn,
     SessionFinishIn,
     SessionStartIn,
@@ -80,6 +81,31 @@ def log_impressions(
     except PermissionError:
         raise HTTPException(status_code=404, detail="opportunity not found")
     return {"recorded": n}
+
+
+@router.post("/impressions/feedback")
+def log_impression_feedback(
+    body: ImpressionFeedbackIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Record a click or dismissal on an already-exposed recommendation.
+
+    First action wins; retries are idempotent (``applied: false``). Feedback
+    for a pair that was never impressed is rejected rather than fabricated.
+    """
+    from app.services import telemetry as _telemetry
+
+    try:
+        return _telemetry.record_feedback(
+            db, current_user, body.opportunity_id, body.slug, body.action
+        )
+    except PermissionError:
+        raise HTTPException(status_code=404, detail="opportunity not found")
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/sessions")

@@ -22,7 +22,13 @@ from app.schemas.submission import (
     VisibleTestResult,
 )
 from app.schemas.test import CustomCaseIn
-from app.services.activity import RUN, SUBMIT, log_event
+from app.services.activity import (
+    OPEN,
+    RUN,
+    SUBMIT,
+    failure_summary,
+    log_event,
+)
 from app.services.gamification import award_new_badges, log_xp, score_solve, update_streak
 from app.services.grader import ModeError, build_source, function_modes_for, RUN_VISIBLE_CASE_LIMIT, grade_code, truncate_output
 from app.services.judge0 import Judge0Error, submit
@@ -99,6 +105,19 @@ def get_problem(
         )
 
     solved_ids = _solved_problem_ids(db, current_user.id)
+    # Opening the problem is its own funnel step: it separates "never exposed
+    # / never interested" from "opened but abandoned before a first run".
+    # Dwell time comes from SolveSession heartbeats, not from this event.
+    log_event(
+        db,
+        user_id=current_user.id,
+        problem_id=problem.id,
+        event=OPEN,
+        meta={
+            "solved": problem.id in solved_ids,
+            "pattern_key": problem.pattern_key,
+        },
+    )
     visible_cases = [
         case for case in problem.test_cases if not case.get("is_hidden", False)
     ]
@@ -210,7 +229,12 @@ async def run_code(
         user_id=current_user.id,
         problem_id=problem.id,
         event=RUN,
-        meta={"language": payload.language.value, "status": result.status.value, "mode": payload.mode},
+        meta={
+            "language": payload.language.value,
+            "status": result.status.value,
+            "mode": payload.mode,
+            **failure_summary(result.test_results),
+        },
     )
 
     return RunResultOut(
@@ -467,6 +491,7 @@ async def submit_solution(
             "status": result.status.value,
             "passed": result.status == SubmissionStatus.ACCEPTED,
             "mode": payload.mode,
+            **failure_summary(result.test_results),
         },
     )
 

@@ -28,7 +28,6 @@ from app.ml import infer
 from app.ml.features import (
     FEATURE_COLUMNS,
     build_impression_training_frame,
-    build_training_frame,
 )
 from app.ml.train import (
     ARTIFACT_DIR,
@@ -42,19 +41,22 @@ from app.ml.train import (
 def main() -> int:
     with SessionLocal() as db:
         imp_frame = build_impression_training_frame(db)
-        legacy_frame = build_training_frame(db)
 
-    task = "legacy-engagement"
-    frame = legacy_frame
-    if len(imp_frame) >= 20:
-        try:
-            # Prefer the leak-free task only if it passes the data gate.
-            from app.ml.train import _check_frame
+    task = "impression"
+    frame = imp_frame
 
-            _check_frame(imp_frame)
-            frame, task = imp_frame, "impression"
-        except InsufficientData as exc:
-            print(f"impression task not usable ({exc}); falling back to legacy")
+    # The leak-free impression task is the only trainable artifact we will ship.
+    # The legacy engagement frame (query_id == user_id, outcomes from the same
+    # session the recommendation was served in) leaks the label through
+    # contemporaneous interaction features — refusing to train on it keeps the
+    # served model honest even when impression data is still thin.
+    try:
+        from app.ml.train import _check_frame
+
+        _check_frame(frame)
+    except InsufficientData as exc:
+        print(f"SKIP: not enough impression data ({exc}); heuristic remains in service")
+        return 2
 
     print(f"task: {task}")
     print(f"training rows: {len(frame)} across {frame['user_id'].nunique() if len(frame) else 0} users")

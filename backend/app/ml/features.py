@@ -460,6 +460,7 @@ def build_impression_training_frame(
 
     empty_cols = FEATURE_COLUMNS + [
         LABEL_COLUMN, GROUP_COLUMN, QUERY_COLUMN, CUTOFF_COLUMN, "slug", "censored",
+        "clicked", "dismissed",
     ]
 
     impressions = (
@@ -504,8 +505,19 @@ def build_impression_training_frame(
             .all()
         )
         hints_in_window = sum(1 for h in hints_after if as_of < _aware(h.used_at) <= as_of + window)
+        clicked = bool(imp.clicked_at)
+        dismissed = bool(imp.dismissed_at)
+
+        # Label ladder (highest signal wins). Clicked/dismissed are post-decision
+        # signals — valid labels, never features (see FEATURE_COLUMNS).
         if accepted:
             relevance = 2 if (hints_in_window <= 1 and len(in_window) <= 3) else 1
+            censored = False
+        elif clicked:
+            relevance = 1  # engaged with the card but did not solve
+            censored = False
+        elif dismissed:
+            relevance = 0  # explicitly rejected the recommendation
             censored = False
         elif elapsed:
             relevance = 0
@@ -527,6 +539,8 @@ def build_impression_training_frame(
                 LABEL_COLUMN: relevance,
                 CUTOFF_COLUMN: as_of,
                 "censored": censored,
+                "clicked": float(clicked),
+                "dismissed": float(dismissed),
             }
         )
     if not rows:
