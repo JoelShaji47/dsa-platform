@@ -12,7 +12,9 @@ LANGUAGE_IDS = {
 MEMORY_LIMITS_KB = {
     "python": 256000,
     "cpp": 256000,
-    "java": 4096000,
+    # RapidAPI cloud Judge0 caps memory at 2048000 KB; the 4096000 value
+    # was for self-hosted Docker where MAX_MEMORY_LIMIT could be raised.
+    "java": 2048000,
 }
 
 STATUS_CODES = {
