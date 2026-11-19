@@ -534,6 +534,8 @@ function MonthCalendar({ activity }: { activity: ActivityDay[] | null }) {
   );
 }
 
+const SHOW_RECOMMENDER_TEST = process.env.NODE_ENV === "development";
+
 interface RecommenderProbe {
   slug: string;
   title: string;
@@ -1039,7 +1041,7 @@ export default function RoadmapClient() {
                 </Reveal>
               )}
 
-              <RecommenderTest />
+              {SHOW_RECOMMENDER_TEST && <RecommenderTest />}
 
               <MonthCalendar activity={activity} />
 
