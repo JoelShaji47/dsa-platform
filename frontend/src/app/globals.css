@@ -639,6 +639,40 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
 }
 
 .dockview-theme-cq {
+  --dv-background-color: #f7f5f0;
+  --dv-group-view-background-color: #fdfcf9;
+  --dv-tabs-and-actions-background-color: #fdfcf9;
+  --dv-activegroup-visiblepanel-tab-background-color: var(--color-paper-deep);
+  --dv-activegroup-visiblepanel-tab-color: var(--color-ink);
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-color: var(--color-ink-faint);
+  --dv-inactivegroup-visiblepanel-tab-background-color: #ffffff;
+  --dv-inactivegroup-visiblepanel-tab-color: var(--color-ink-soft);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--color-ink-faint);
+  --dv-tab-divider-color: rgb(22 35 59 / 0.08);
+  --dv-separator-border: transparent;
+  --dv-active-sash-color: #6e9e8b;
+  --dv-active-sash-transition-duration: 0.15s;
+  --dv-drag-over-background-color: rgb(46 125 91 / 0.12);
+  --dv-drag-over-border: 2px solid #6e9e8b;
+  --dv-tabs-container-height: 38px;
+  --dv-tab-font-size: 12px;
+  --dv-icon-hover-background-color: rgb(22 35 59 / 0.06);
+  --dv-floating-box-shadow: 0 24px 64px -16px rgb(22 35 59 / 0.35);
+}
+
+/* Matte-black rounded cards around every dock group */
+.dock-root {
+  background-color: #f7f5f0;
+  padding: 10px;
+}
+
+html[data-theme="dark"] .dock-root {
+  background-color: var(--color-paper);
+}
+
+html[data-theme="dark"] .dockview-theme-cq {
   --dv-background-color: #0b0d12;
   --dv-group-view-background-color: #131722;
   --dv-tabs-and-actions-background-color: #131722;
@@ -651,54 +685,19 @@ html[data-theme="light"] .hover\:bg-white\/5:hover {
   --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
   --dv-inactivegroup-hiddenpanel-tab-color: #67748a;
   --dv-tab-divider-color: rgb(255 255 255 / 0.06);
-  --dv-separator-border: transparent;
-  --dv-active-sash-color: #2e7d5b;
-  --dv-active-sash-transition-duration: 0.15s;
   --dv-drag-over-background-color: rgb(46 125 91 / 0.22);
   --dv-drag-over-border: 2px solid #2e7d5b;
-  --dv-tabs-container-height: 38px;
-  --dv-tab-font-size: 12px;
   --dv-icon-hover-background-color: rgb(255 255 255 / 0.07);
   --dv-floating-box-shadow: 0 24px 64px -16px rgb(0 0 0 / 0.7);
 }
 
-/* Matte-black rounded cards around every dock group */
-.dock-root {
-  background-color: #0b0d12;
-  padding: 10px;
+html[data-theme="dark"] .dockview-theme-cq .dv-groupview {
+  border: 1px solid rgb(255 255 255 / 0.07);
+  box-shadow: 0 12px 32px -18px rgb(0 0 0 / 0.8);
 }
 
-html[data-theme="light"] .dock-root {
-  background-color: var(--color-paper-deep);
-}
-
-html[data-theme="light"] .dockview-theme-cq {
-  --dv-background-color: var(--color-paper-deep);
-  --dv-group-view-background-color: #ffffff;
-  --dv-tabs-and-actions-background-color: #ffffff;
-  --dv-activegroup-visiblepanel-tab-background-color: var(--color-paper-deep);
-  --dv-activegroup-visiblepanel-tab-color: var(--color-ink);
-  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
-  --dv-activegroup-hiddenpanel-tab-color: var(--color-ink-faint);
-  --dv-inactivegroup-visiblepanel-tab-background-color: #ffffff;
-  --dv-inactivegroup-visiblepanel-tab-color: var(--color-ink-soft);
-  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
-  --dv-inactivegroup-hiddenpanel-tab-color: var(--color-ink-faint);
-  --dv-tab-divider-color: rgb(22 35 59 / 0.08);
-  --dv-drag-over-background-color: rgb(46 125 91 / 0.12);
-  --dv-icon-hover-background-color: rgb(22 35 59 / 0.06);
-  --dv-floating-box-shadow: 0 24px 64px -16px rgb(22 35 59 / 0.35);
-}
-
-html[data-theme="light"] .dockview-theme-cq .dv-groupview {
-  border: 1px solid rgb(22 35 59 / 0.09);
-  box-shadow:
-    0 1px 2px rgb(22 35 59 / 0.05),
-    0 8px 24px -12px rgb(22 35 59 / 0.18);
-}
-
-html[data-theme="light"] .dockview-theme-cq .dv-tabs-and-actions-container {
-  border-bottom: 1px solid rgb(22 35 59 / 0.08);
+html[data-theme="dark"] .dockview-theme-cq .dv-tabs-and-actions-container {
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
 }
 
 .dockview-theme-cq .dv-groupview {

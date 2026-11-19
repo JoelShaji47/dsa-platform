@@ -40,6 +40,12 @@ export const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   HARD: "text-red-400",
 };
 
+export const DIFFICULTY_CHIP_MAP: Record<Difficulty, string> = {
+  EASY: "border-quest/40 bg-quest/10 text-quest",
+  MEDIUM: "border-gold/50 bg-gold/10 text-gold-deep",
+  HARD: "border-rust/40 bg-rust/10 text-rust",
+};
+
 const STATUS_KEY_LABELS: Record<string, string> = {
   ACCEPTED: "Accepted",
   WRONG_ANSWER: "Wrong Answer",
