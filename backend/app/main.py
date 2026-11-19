@@ -106,10 +106,9 @@ _ML_TEST_PAGE = """<!doctype html>
     box-shadow: 0 20px 60px rgba(0,0,0,.4); }
   h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.03em; }
   p { margin: 0; color: #9ea7b3; line-height: 1.5; }
-  button { width: 100%; margin-top: 20px; padding: 14px 18px; border: 0;
+  .button { display: block; width: 100%; margin-top: 20px; padding: 14px 18px;
     border-radius: 12px; background: #f4f1ea; color: #111318; font: inherit;
-    font-weight: 700; cursor: pointer; }
-  button:disabled { opacity: .6; cursor: wait; }
+    font-weight: 700; text-align: center; text-decoration: none; }
   pre { margin: 18px 0 0; padding: 16px; border-radius: 12px;
     background: #0b0c0f; border: 1px solid rgba(255,255,255,.08);
     color: #c9d1d9; font-size: 13px; line-height: 1.5; white-space: pre-wrap;
@@ -121,28 +120,11 @@ _ML_TEST_PAGE = """<!doctype html>
 <main>
   <p class="hint">DSA Platform &middot; deployment check</p>
   <h1>Recommender model</h1>
-  <p>Click the button to ask the API which model is loaded.</p>
-  <button id="run" type="button">Test model</button>
-  <pre id="out">Waiting for test&hellip;</pre>
+  <p>This is the live status returned by the API.</p>
+  <a class="button" href="/ml-test">Refresh model status</a>
+  <pre>__MODEL_JSON__</pre>
   <p class="hint">Public health check. It never exposes user data.</p>
 </main>
-<script>
-  const out = document.getElementById("out");
-  const btn = document.getElementById("run");
-  btn.addEventListener("click", async () => {
-    btn.disabled = true;
-    out.textContent = "Testing...";
-    try {
-      const res = await fetch("/health/ml", { cache: "no-store" });
-      const data = await res.json();
-      out.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-      out.textContent = "Request failed: " + err;
-    } finally {
-      btn.disabled = false;
-    }
-  });
-</script>
 </body>
 </html>
 """
@@ -150,4 +132,8 @@ _ML_TEST_PAGE = """<!doctype html>
 
 @app.get("/ml-test", response_class=HTMLResponse, include_in_schema=False)
 def ml_test_page() -> str:
-    return _ML_TEST_PAGE
+    import json
+    from html import escape
+
+    payload = escape(json.dumps(ml_health_check(), indent=2))
+    return _ML_TEST_PAGE.replace("__MODEL_JSON__", payload)
