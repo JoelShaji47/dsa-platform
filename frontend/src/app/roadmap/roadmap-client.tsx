@@ -534,6 +534,125 @@ function MonthCalendar({ activity }: { activity: ActivityDay[] | null }) {
   );
 }
 
+interface RecommenderProbe {
+  slug: string;
+  title: string;
+  model?: string;
+  candidate_source?: string;
+}
+
+type ProbeStatus = "idle" | "loading" | "ok" | "empty" | "error";
+
+function RecommenderTest() {
+  const [status, setStatus] = useState<ProbeStatus>("idle");
+  const [model, setModel] = useState<string | null>(null);
+  const [count, setCount] = useState(0);
+  const [cfCount, setCfCount] = useState(0);
+  const [topTitle, setTopTitle] = useState<string | null>(null);
+
+  const run = () => {
+    setStatus("loading");
+    client
+      .get<{ recommendations: RecommenderProbe[] }>("/roadmap/recommendations", {
+        params: { explain: true },
+      })
+      .then((res) => {
+        const recs = res.data?.recommendations ?? [];
+        if (recs.length === 0) {
+          setStatus("empty");
+          return;
+        }
+        setModel(recs[0]?.model ?? "heuristic-v1");
+        setCount(recs.length);
+        setCfCount(recs.filter((r) => r.candidate_source === "cf").length);
+        setTopTitle(recs[0]?.title ?? null);
+        setStatus("ok");
+      })
+      .catch(() => setStatus("error"));
+  };
+
+  const live = status === "ok" && !!model && model !== "heuristic-v1";
+  const busy = status === "loading";
+
+  return (
+    <Reveal delay={210}>
+      <div className="lux-shell">
+        <div className="lux-core panel border-0 p-5">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="lux-eyebrow fluid-ease">Recommender</p>
+              <p className="mt-2 text-[12px] text-ink-faint">
+                Check which ranking model is serving you right now.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={run}
+              disabled={busy}
+              className="fluid-ease inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-ink/30 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {busy ? (
+                <Loader2 size={13} strokeWidth={1.5} className="animate-spin" />
+              ) : (
+                <Sparkles size={13} strokeWidth={1.5} />
+              )}
+              {status === "idle"
+                ? "Test model"
+                : busy
+                  ? "Testing"
+                  : "Test again"}
+            </button>
+          </div>
+
+          <div className="mt-3 min-h-[38px]" aria-live="polite">
+            {status === "ok" && (
+              <div className="rounded-xl border border-ink/10 bg-paper px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      live ? "bg-quest" : "bg-gold"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "text-[12px] font-semibold",
+                      live ? "text-quest" : "text-gold-deep"
+                    )}
+                  >
+                    {live ? "ML live" : "Heuristic only"}
+                  </span>
+                  <span className="ml-auto stat-num text-[10px] text-ink-faint">
+                    {count} picks · {cfCount} CF
+                  </span>
+                </div>
+                <p className="mt-1.5 truncate stat-num text-[11px] text-ink-soft">
+                  {model}
+                </p>
+                {topTitle && (
+                  <p className="mt-0.5 truncate text-[11px] text-ink-faint">
+                    Top pick: {topTitle}
+                  </p>
+                )}
+              </div>
+            )}
+            {status === "empty" && (
+              <p className="text-[12px] text-ink-faint">
+                The recommender returned no eligible picks.
+              </p>
+            )}
+            {status === "error" && (
+              <p className="text-[12px] text-rust">
+                Could not reach the recommender. Try again.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
 export default function RoadmapClient() {
   const { user } = useAuth();
   const [roadmap, setRoadmap] = useState<RoadmapData | null>(null);
@@ -919,6 +1038,8 @@ export default function RoadmapClient() {
                 </div>
                 </Reveal>
               )}
+
+              <RecommenderTest />
 
               <MonthCalendar activity={activity} />
 
