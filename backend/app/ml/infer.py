@@ -109,6 +109,11 @@ def artifact_compatible() -> bool:
     )
 
 
+def artifact_loaded() -> bool:
+    """True when the ranker file exists and LightGBM can actually load it."""
+    return _load_booster() is not None
+
+
 def _global_priors(db: Session) -> dict:
     """Aggregate (popularity, accept-rate) per problem in SQL, cached 60s."""
     now = time.monotonic()
