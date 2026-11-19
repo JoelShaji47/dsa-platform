@@ -1,0 +1,14 @@
+{
+  "version": "cf-20261119-1019",
+  "trained_at": "2026-11-19T10:19:09.058351+00:00",
+  "schema_version": 1,
+  "n_interactions": 245,
+  "n_users": 20,
+  "n_items": 58,
+  "n_components": 19,
+  "weights": {
+    "clean_accept": 1.0,
+    "hinted_accept": 0.7,
+    "attempt": 0.2
+  }
+}

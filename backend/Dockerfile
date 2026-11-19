@@ -22,6 +22,9 @@ RUN pip install -r requirements.txt
 COPY alembic.ini alembic.ini
 COPY alembic/ alembic/
 COPY app/ app/
+# Trained recommender artifacts are gitignored but force-added for deployment;
+# .dockerignore whitelists only the served model files.
+COPY artifacts/ artifacts/
 
 EXPOSE 8000
 
