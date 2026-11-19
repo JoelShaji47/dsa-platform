@@ -425,7 +425,18 @@ public class Main {
             {"input": "2\n", "expected_output": "2", "is_hidden": True},
             {"input": "45\n", "expected_output": "1836311903", "is_hidden": True},
         ],
+    
+    'function_starter': {
+        'python': 'def solve(n: int) -> int:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint solve(int n) {\n    // ===== YOUR CODE HERE =====\n    return 0;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int solve(int n) {\n        // ===== YOUR CODE HERE =====\n        return 0;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\nn = int(sys.stdin.readline().strip())\n', 'suffix': 'print(solve(n))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    cout << solve(n) << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(new Solution().solve(n));\n    }\n}\n'}
+    },
+},
     {
         "title": "Unique Paths",
         "slug": "unique-paths",

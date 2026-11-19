@@ -15,14 +15,36 @@ NEETCODE_150: list[dict] = [
         "topic": 'ARRAY',
         "category": 'Arrays & Hashing',
         "description": '# Contains Duplicate\n\n## Statement\nA classic easy problem in the "Arrays & Hashing" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(nums: list[int]) -> bool:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nbool solve(vector<int>& nums) {\n    // ===== YOUR CODE HERE =====\n    return false;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public boolean solve(int[] nums) {\n        // ===== YOUR CODE HERE =====\n        return false;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit()\nn = int(data[0])\nnums = [int(x) for x in data[1:1 + n]]\n', 'suffix': 'print("true" if solve(nums) else "false")\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<int> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << (solve(nums) ? "true" : "false") << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();\n        System.out.println(new Solution().solve(nums) ? "true" : "false");\n    }\n}\n'}
+    },
+},
     {
         "title": 'Valid Anagram',
         "slug": 'valid-anagram',
         "difficulty": 'EASY',
         "topic": 'ARRAY',
         "category": 'Arrays & Hashing',
+    
+    'function_starter': {
+        'python': 'def solve(s: str, t: str) -> bool:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nbool solve(string s, string t) {\n    // ===== YOUR CODE HERE =====\n    return false;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public boolean solve(String s, String t) {\n        // ===== YOUR CODE HERE =====\n        return false;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\nlines = sys.stdin.read().splitlines()\ns = lines[0] if lines else ""\nt = lines[1] if len(lines) > 1 else ""\n', 'suffix': 'print("true" if solve(s, t) else "false")\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    string s, t;\n    cin >> s >> t;\n    cout << (solve(s, t) ? "true" : "false") << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.next();\n        String t = sc.next();\n        System.out.println(new Solution().solve(s, t) ? "true" : "false");\n    }\n}\n'}
+    },
+},
     {
         "title": 'Two Sum',
         "slug": 'two-sum',
@@ -82,7 +104,18 @@ NEETCODE_150: list[dict] = [
         "difficulty": 'EASY',
         "topic": 'ARRAY',
         "category": 'Two Pointers',
+    
+    'function_starter': {
+        'python': 'def solve(s: str) -> bool:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nbool solve(string s) {\n    // ===== YOUR CODE HERE =====\n    return false;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public boolean solve(String s) {\n        // ===== YOUR CODE HERE =====\n        return false;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ns = sys.stdin.readline().rstrip("\\n")\n', 'suffix': 'print("true" if solve(s) else "false")\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    string s;\n    getline(cin, s);\n    cout << (solve(s) ? "true" : "false") << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.nextLine();\n        System.out.println(new Solution().solve(s) ? "true" : "false");\n    }\n}\n'}
+    },
+},
     {
         "title": 'Two Sum II - Input Array Is Sorted',
         "slug": 'two-sum-ii-input-array-is-sorted',
@@ -122,7 +155,18 @@ NEETCODE_150: list[dict] = [
         "topic": 'STRING',
         "category": 'Sliding Window',
         "description": '# Best Time to Buy and Sell Stock\n\n## Statement\nA classic easy problem in the "Sliding Window" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(prices: list[int]) -> int:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint solve(vector<int>& prices) {\n    // ===== YOUR CODE HERE =====\n    return 0;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int solve(int[] prices) {\n        // ===== YOUR CODE HERE =====\n        return 0;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit()\nn = int(data[0])\nprices = [int(x) for x in data[1:1 + n]]\n', 'suffix': 'print(solve(prices))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<int> prices(n);\n    for (int i = 0; i < n; i++) cin >> prices[i];\n    cout << solve(prices) << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] prices = new int[n];\n        for (int i = 0; i < n; i++) prices[i] = sc.nextInt();\n        System.out.println(new Solution().solve(prices));\n    }\n}\n'}
+    },
+},
     {
         "title": 'Longest Substring Without Repeating Characters',
         "slug": 'longest-substring-without-repeating-characters',
@@ -777,7 +821,18 @@ NEETCODE_150: list[dict] = [
         "difficulty": 'EASY',
         "topic": 'DP',
         "category": '1-D Dynamic Programming',
+    
+    'function_starter': {
+        'python': 'def solve(n: int) -> int:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint solve(int n) {\n    // ===== YOUR CODE HERE =====\n    return 0;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int solve(int n) {\n        // ===== YOUR CODE HERE =====\n        return 0;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\nn = int(sys.stdin.readline().strip())\n', 'suffix': 'print(solve(n))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    cout << solve(n) << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(new Solution().solve(n));\n    }\n}\n'}
+    },
+},
     {
         "title": 'Min Cost Climbing Stairs',
         "slug": 'min-cost-climbing-stairs',
@@ -1083,7 +1138,18 @@ NEETCODE_150: list[dict] = [
         "topic": 'ARRAY',
         "category": 'Math & Geometry',
         "description": '# Happy Number\n\n## Statement\nA classic easy problem in the "Math & Geometry" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(n: int) -> bool:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nbool solve(int n) {\n    // ===== YOUR CODE HERE =====\n    return false;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public boolean solve(int n) {\n        // ===== YOUR CODE HERE =====\n        return false;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\nn = int(sys.stdin.readline().strip())\n', 'suffix': 'print("true" if solve(n) else "false")\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    cout << (solve(n) ? "true" : "false") << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(new Solution().solve(n) ? "true" : "false");\n    }\n}\n'}
+    },
+},
     {
         "title": 'Plus One',
         "slug": 'plus-one',
@@ -1091,7 +1157,18 @@ NEETCODE_150: list[dict] = [
         "topic": 'ARRAY',
         "category": 'Math & Geometry',
         "description": '# Plus One\n\n## Statement\nA classic easy problem in the "Math & Geometry" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(digits: list[int]) -> list[int]:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nvector<int> solve(vector<int>& digits) {\n    // ===== YOUR CODE HERE =====\n    return {};\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int[] solve(int[] digits) {\n        # ===== YOUR CODE HERE =====\n        return new int[0];\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit()\nn = int(data[0])\ndigits = [int(x) for x in data[1:1 + n]]\n', 'suffix': 'print(" ".join(map(str, solve(digits))))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<int> digits(n);\n    for (int i = 0; i < n; i++) cin >> digits[i];\n    vector<int> ans = solve(digits);\n    for (size_t i = 0; i < ans.size(); i++) {\n        if (i) cout << " ";\n        cout << ans[i];\n    }\n    cout << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] digits = new int[n];\n        for (int i = 0; i < n; i++) digits[i] = sc.nextInt();\n        int[] ans = new Solution().solve(digits);\n        for (int i = 0; i < ans.length; i++) {\n            if (i > 0) System.out.print(" ");\n            System.out.print(ans[i]);\n        }\n        System.out.println();\n    }\n}\n'}
+    },
+},
     {
         "title": 'Pow(x, n)',
         "slug": 'powx-n',
@@ -1123,7 +1200,18 @@ NEETCODE_150: list[dict] = [
         "topic": 'ARRAY',
         "category": 'Bit Manipulation',
         "description": '# Single Number\n\n## Statement\nA classic easy problem in the "Bit Manipulation" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(nums: list[int]) -> int:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint solve(vector<int>& nums) {\n    // ===== YOUR CODE HERE =====\n    return 0;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int solve(int[] nums) {\n        // ===== YOUR CODE HERE =====\n        return 0;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit()\nn = int(data[0])\nnums = [int(x) for x in data[1:1 + n]]\n', 'suffix': 'print(solve(nums))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<int> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << solve(nums) << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();\n        System.out.println(new Solution().solve(nums));\n    }\n}\n'}
+    },
+},
     {
         "title": 'Number of 1 Bits',
         "slug": 'number-of-1-bits',
@@ -1155,7 +1243,18 @@ NEETCODE_150: list[dict] = [
         "topic": 'ARRAY',
         "category": 'Bit Manipulation',
         "description": '# Missing Number\n\n## Statement\nA classic easy problem in the "Bit Manipulation" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(nums: list[int]) -> int:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint solve(vector<int>& nums) {\n    // ===== YOUR CODE HERE =====\n    return 0;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int solve(int[] nums) {\n        // ===== YOUR CODE HERE =====\n        return 0;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit()\nn = int(data[0])\nnums = [int(x) for x in data[1:1 + n]]\n', 'suffix': 'print(solve(nums))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int n;\n    if (!(cin >> n)) return 0;\n    vector<int> nums(n);\n    for (int i = 0; i < n; i++) cin >> nums[i];\n    cout << solve(nums) << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) nums[i] = sc.nextInt();\n        System.out.println(new Solution().solve(nums));\n    }\n}\n'}
+    },
+},
     {
         "title": 'Sum of Two Integers',
         "slug": 'sum-of-two-integers',
@@ -1171,7 +1270,18 @@ NEETCODE_150: list[dict] = [
         "topic": 'ARRAY',
         "category": 'Bit Manipulation',
         "description": '# Reverse Integer\n\n## Statement\nA classic medium problem in the "Bit Manipulation" category of the NeetCode 150 interview prep list. Read the problem statement and constraints, identify the underlying algorithmic pattern, then implement an efficient solution.\n\n## Note\nThis problem is part of the curated study catalog and is queued for full authoring (example inputs, constraints, and runnable starter code).',
+    
+    'function_starter': {
+        'python': 'def solve(x: int) -> int:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nint solve(int x) {\n    // ===== YOUR CODE HERE =====\n    return 0;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public int solve(int x) {\n        // ===== YOUR CODE HERE =====\n        return 0;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\nx = int(sys.stdin.readline().strip())\n', 'suffix': 'print(solve(x))\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    int x;\n    if (!(cin >> x)) return 0;\n    cout << solve(x) << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int x = sc.nextInt();\n        System.out.println(new Solution().solve(x));\n    }\n}\n'}
+    },
+},
 ]
 
 # Enrich catalog-only entries with fully-authored content (description, starter
