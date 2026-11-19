@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
+import { ToastProvider } from "@/context/toast-context";
 import ServerWakeGate from "@/components/server-wake-gate";
+import { ErrorToaster } from "@/components/error-toaster";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,7 +30,13 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <ServerWakeGate>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <ToastProvider>
+                {children}
+                <ErrorToaster />
+                <Toaster />
+              </ToastProvider>
+            </AuthProvider>
           </ServerWakeGate>
         </ThemeProvider>
       </body>

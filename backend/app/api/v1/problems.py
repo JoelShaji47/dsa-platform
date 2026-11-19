@@ -31,7 +31,11 @@ from app.services.activity import (
 )
 from app.services.gamification import award_new_badges, log_xp, score_solve, update_streak
 from app.services.grader import ModeError, build_source, function_modes_for, RUN_VISIBLE_CASE_LIMIT, grade_code, truncate_output
-from app.services.judge0 import Judge0Error, submit
+from app.services.judge0 import (
+    Judge0BudgetExhausted,
+    Judge0Error,
+    submit,
+)
 from app.services.rate_limit import JUDGE_RUN_LIMITER, JUDGE_SUBMIT_LIMITER
 from app.services.tutor import has_used_hints
 
@@ -219,6 +223,10 @@ async def run_code(
         result = await grade_code(
             source, payload.language.value, visible_cases
         )
+    except Judge0BudgetExhausted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
+        )
     except Judge0Error as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
@@ -289,6 +297,10 @@ async def run_custom_cases(
     ]
     try:
         result = await grade_code(source, payload.language.value, cases)
+    except Judge0BudgetExhausted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
+        )
     except Judge0Error as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
@@ -335,6 +347,10 @@ async def custom_run(
         result = await submit(
             payload.source_code, payload.language.value, payload.stdin
         )
+    except Judge0BudgetExhausted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
+        )
     except Judge0Error as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
@@ -377,6 +393,10 @@ async def submit_solution(
     try:
         result = await grade_code(
             source, payload.language.value, problem.test_cases
+        )
+    except Judge0BudgetExhausted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
         )
     except Judge0Error as exc:
         raise HTTPException(

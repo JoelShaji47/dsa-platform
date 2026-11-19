@@ -1,4 +1,5 @@
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
+import { onError } from "@/context/toast-context";
 
 const client = axios.create({
   baseURL: "/api/v1",
@@ -15,18 +16,28 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, redirect to login (no Supabase session refresh needed).
+// On 401, redirect to login (no Supabase session refresh needed). Any other
+// failure is surfaced as a toast so users are never left guessing.
 client.interceptors.response.use(
   (res) => res,
   (error) => {
     if (
       typeof window !== "undefined" &&
-      axios.isAxiosError(error) &&
+      isAxiosError(error) &&
       error.response?.status === 401 &&
       !window.location.pathname.startsWith("/login")
     ) {
       localStorage.removeItem("token");
       window.location.href = "/login";
+      return Promise.reject(error);
+    }
+    const msg =
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      error.message ||
+      "Request failed.";
+    if (typeof window !== "undefined" && onError) {
+      onError(msg);
     }
     return Promise.reject(error);
   }

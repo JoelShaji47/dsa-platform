@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,7 @@ from app.schemas.profile import (
     ProfileUser,
     SolvedCounts,
 )
+from app.schemas.user import UserUpdate
 from app.services.gamification import list_user_badges
 from app.services.leagues import tier_name
 from app.services.roadmap import get_activity
@@ -140,4 +141,32 @@ def my_profile(
             for session in sessions
         ],
         badges=list_user_badges(db, current_user),
+    )
+
+
+@router.patch("/me", response_model=ProfileUser)
+def update_my_profile(
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProfileUser:
+    """Update the current user's display username."""
+    if payload.username != current_user.username:
+        taken = (
+            db.query(User)
+            .filter(User.username == payload.username, User.id != current_user.id)
+            .first()
+        )
+        if taken:
+            raise HTTPException(status_code=409, detail="Username already taken")
+    current_user.username = payload.username
+    db.commit()
+    db.refresh(current_user)
+    return ProfileUser(
+        username=current_user.username,
+        xp=current_user.xp,
+        current_streak=current_user.current_streak,
+        league_tier=current_user.league_tier,
+        league_name=tier_name(current_user.league_tier),
+        created_at=current_user.created_at,
     )
