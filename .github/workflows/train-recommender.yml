@@ -1,0 +1,106 @@
+name: Train Recommender
+
+on:
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: train-recommender
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install libgomp1 (LightGBM runtime)
+        run: sudo apt-get update && sudo apt-get install -y libgomp1
+
+      - name: Check DATABASE_URL is configured
+        id: check-env
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Install dependencies
+        if: steps.check-env.outputs.skipped == 'false'
+        run: pip install -r backend/requirements.txt
+
+      - name: Train recommender
+        id: train
+        if: steps.check-env.outputs.skipped == 'false'
+        run: |
+          set +e
+          python scripts/train_recommender.py
+          code=$?
+          if [ $code -eq 2 ]; then
+            echo "status=insufficient-data" >> "$GITHUB_OUTPUT"
+            exit 0
+          elif [ $code -ne 0 ]; then
+            echo "status=error" >> "$GITHUB_OUTPUT"
+            exit 1
+          else
+            echo "status=trained" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recommender-eval-report
+          path: backend/artifacts/eval_report.json
+          if-no-files-found: ignore
+
+      - name: Stage recommender artifacts
+        if: steps.train.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f \
+            backend/artifacts/ranker.txt \
+            backend/artifacts/ranker_meta.json \
+            backend/artifacts/retrieval.npz \
+            backend/artifacts/retrieval_meta.json
+
+      - name: Commit recommender artifacts if changed
+        id: commit
+        if: steps.train.outcome == 'success'
+        run: |
+          if git diff --cached --quiet; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore(ml): refresh recommender artifacts"
+            git push
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Render redeploy
+        if: steps.commit.outputs.committed == 'true'
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+          fi
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
