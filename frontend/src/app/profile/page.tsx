@@ -17,6 +17,7 @@ import { DifficultyChip, TopBar, UserChip } from "@/components/shell";
 import { Coin } from "@/components/coin";
 import { formatClock, topicLabel } from "@/components/arena/status-styles";
 import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/context/toast-context";
 import client from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -186,13 +187,36 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileOut | null>(null);
   const [tab, setTab] = useState<Tab>("submissions");
+  const [editing, setEditing] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     client
       .get<ProfileOut>("/profile")
-      .then((res) => setProfile(res.data))
+      .then((res) => {
+        setProfile(res.data);
+        setNewUsername(res.data.user.username);
+      })
       .catch(() => {});
   }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = newUsername.trim();
+    if (!value || value === profile?.user.username) {
+      setEditing(false);
+      return;
+    }
+    setEditing(false);
+    try {
+      await client.patch<{ username: string }>("/profile/me", { username: value });
+      toast({ title: "Username updated", description: "Your display name has been changed." });
+    } catch {
+      // The API interceptor already surfaces a toast; just let the user retry.
+      setEditing(true);
+    }
+  };
 
   const earnedCount = profile?.badges.filter((b) => b.earned).length ?? 0;
 
@@ -217,14 +241,50 @@ export default function ProfilePage() {
                   <h1 className="mt-1.5 font-display text-4xl font-bold tracking-tight text-ink">
                     {profile.user.username}
                   </h1>
+                  {editing && (
+                    <form onSubmit={handleSave} className="mt-3 flex flex-wrap items-end gap-2">
+                      <input
+                        autoFocus
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value)}
+                        className="input input-bordered w-full sm:w-48"
+                        placeholder="Username"
+                        maxLength={30}
+                      />
+                      <button type="submit" className="btn btn-ink px-4">
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(false)}
+                        className="btn btn-ghost px-4"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  )}
                   <p className="mt-1 flex items-center gap-2 text-[1.05rem] text-ink-soft">
                     <Swords size={16} className="text-gold-deep" />
                     {profile.user.league_name} · Tier {profile.user.league_tier}
                   </p>
                 </div>
-                <Link href="/roadmap" className="btn btn-ink px-5 py-3 text-base">
-                  Back to roadmap
-                </Link>
+                <div className="flex items-end gap-2">
+                  {!editing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewUsername(profile.user.username);
+                        setEditing(true);
+                      }}
+                      className="btn btn-outline px-4 py-3 text-sm"
+                    >
+                      Edit username
+                    </button>
+                  )}
+                  <Link href="/roadmap" className="btn btn-ink px-5 py-3 text-base">
+                    Back to roadmap
+                  </Link>
+                </div>
               </section>
 
               <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">

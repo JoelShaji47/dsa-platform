@@ -95,7 +95,18 @@ public class Main {
             {"input": "aa\naa\n", "expected_output": "true", "is_hidden": True},
             {"input": "abcba\nabcbc\n", "expected_output": "false", "is_hidden": True},
         ],
+    
+    'function_starter': {
+        'python': 'def solve(s: str, t: str) -> bool:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nbool solve(string s, string t) {\n    // ===== YOUR CODE HERE =====\n    return false;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public boolean solve(String s, String t) {\n        // ===== YOUR CODE HERE =====\n        return false;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\nlines = sys.stdin.read().splitlines()\ns = lines[0] if lines else ""\nt = lines[1] if len(lines) > 1 else ""\n', 'suffix': 'print("true" if solve(s, t) else "false")\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    string s, t;\n    cin >> s >> t;\n    cout << (solve(s, t) ? "true" : "false") << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.next();\n        String t = sc.next();\n        System.out.println(new Solution().solve(s, t) ? "true" : "false");\n    }\n}\n'}
+    },
+},
     {
         "title": "Valid Palindrome",
         "slug": "valid-palindrome",
@@ -187,7 +198,18 @@ public class Main {
             {"input": "0P\n", "expected_output": "false", "is_hidden": True},
             {"input": "12321\n", "expected_output": "true", "is_hidden": True},
         ],
+    
+    'function_starter': {
+        'python': 'def solve(s: str) -> bool:\n    # ===== YOUR CODE HERE =====\n    pass',
+        'cpp': '#include <bits/stdc++.h>\nusing namespace std;\n\nbool solve(string s) {\n    // ===== YOUR CODE HERE =====\n    return false;\n}',
+        'java': 'import java.util.*;\n\nclass Solution {\n    public boolean solve(String s) {\n        // ===== YOUR CODE HERE =====\n        return false;\n    }\n}'
     },
+    'function_driver': {
+        'python': {'prefix': 'import sys\n\ns = sys.stdin.readline().rstrip("\\n")\n', 'suffix': 'print("true" if solve(s) else "false")\n'},
+        'cpp': {'prefix': '', 'suffix': 'int main() {\n    string s;\n    getline(cin, s);\n    cout << (solve(s) ? "true" : "false") << "\\n";\n    return 0;\n}\n'},
+        'java': {'prefix': '', 'suffix': '\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.nextLine();\n        System.out.println(new Solution().solve(s) ? "true" : "false");\n    }\n}\n'}
+    },
+},
     {
         "title": "Longest Substring Without Repeating Characters",
         "slug": "longest-substring-without-repeating-characters",

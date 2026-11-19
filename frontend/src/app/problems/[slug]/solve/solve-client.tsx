@@ -35,7 +35,7 @@ import {
   SubmissionsTabPanel,
   VisualizeTabPanel,
 } from "./dock-panels";
-import { DIFFICULTY_STYLE, errDetail } from "./status-utils";
+import { DIFFICULTY_CHIP_MAP, errDetail } from "./status-utils";
 
 const DOCK_COMPONENTS = {
   description: DescriptionTabPanel,
@@ -660,66 +660,66 @@ export default function SolveClient() {
     <div
       className={
         isMobile
-          ? "flex h-[100dvh] flex-col bg-[#0b0d12]"
-          : "flex h-screen flex-col bg-[#0b0d12]"
+          ? "flex h-[100dvh] flex-col bg-[#f7f5f0]"
+          : "flex h-screen flex-col bg-[#f7f5f0]"
       }
     >
       {/* ── Top bar ──────────────────────────────────────────── */}
       {isMobile ? (
-        <header className="flex h-11 shrink-0 items-center gap-2 border-b border-white/10 bg-[#0e1119] px-2">
+        <header className="flex h-11 shrink-0 items-center gap-2 border-b border-ink/8 bg-paper/85 backdrop-blur-md px-2">
           <Link
             href="/problems"
             aria-label="Back to library"
-            className="rounded-md p-1.5 text-gray-400 transition-colors hover:text-gray-200"
+            className="rounded-md p-1.5 text-ink-soft transition-colors hover:text-ink"
           >
             <ArrowLeft size={17} />
           </Link>
-          <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-100">
+          <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
             {problem.title}
           </h1>
           <span
             className={`shrink-0 text-[11px] font-medium ${
-              DIFFICULTY_STYLE[problem.difficulty as Difficulty]
+              DIFFICULTY_CHIP_MAP[problem.difficulty as Difficulty]
             }`}
           >
             {problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()}
           </span>
           {problem.solved && (
-            <span className="shrink-0 rounded-md border border-emerald-500/50 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
+            <span className="shrink-0 rounded-md border border-quest/40 bg-quest/10 px-1.5 py-0.5 text-[10px] font-medium text-quest">
               Solved
             </span>
           )}
-          <ThemeToggle dark />
+          <ThemeToggle />
         </header>
       ) : (
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-[#0e1119] px-4">
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-ink/8 bg-paper/85 backdrop-blur-md px-4">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href="/problems"
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-400 transition-colors hover:text-gray-200"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-ink-soft transition-colors hover:text-ink"
             >
               <ArrowLeft size={15} />
               Library
             </Link>
-            <span className="h-4 w-px bg-white/10" />
-            <h1 className="truncate text-sm font-semibold text-gray-100">
+            <span className="h-4 w-px border-ink/12" />
+            <h1 className="truncate text-sm font-semibold text-ink">
               {problem.title}
             </h1>
-            <span className={`text-xs font-medium ${DIFFICULTY_STYLE[problem.difficulty as Difficulty]}`}>
+            <span className={`text-xs font-medium ${DIFFICULTY_CHIP_MAP[problem.difficulty as Difficulty]}`}>
               {problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()}
             </span>
             {problem.solved && (
-              <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+              <span className="rounded-md border border-quest/40 bg-quest/10 px-2 py-0.5 text-xs font-medium text-quest">
                 Solved
               </span>
             )}
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-2">
-            <ThemeToggle dark />
+            <ThemeToggle />
             <button
               onClick={openCoach}
               title="Open coach"
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100"
+              className="btn btn-outline size-sm px-3 py-1.5 text-xs"
             >
               <Brain size={13} />
               Coach
@@ -727,7 +727,7 @@ export default function SolveClient() {
             <button
               onClick={run}
               disabled={running || submitting}
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
+              className="btn btn-ink size-sm px-3 py-1.5 text-xs"
             >
               {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
               Run
@@ -735,7 +735,7 @@ export default function SolveClient() {
             <button
               onClick={submit}
               disabled={running || submitting}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+              className="btn btn-quest size-sm px-3 py-1.5 text-xs"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
               Submit
@@ -746,7 +746,7 @@ export default function SolveClient() {
 
       {/* ── Mobile: panel switcher (language lives on the Code tab) ── */}
       {isMobile && (
-        <nav className="flex shrink-0 border-b border-white/10 bg-[#0e1119]">
+        <nav className="flex shrink-0 border-b border-ink/8 bg-paper/85 backdrop-blur-md">
           {MOBILE_TABS.map((t) => {
             const active = mobileTab === t.id;
             return (
@@ -755,15 +755,15 @@ export default function SolveClient() {
                 onClick={() => setMobileTab(t.id)}
                 aria-current={active ? "page" : undefined}
                 className={`relative min-w-0 flex-1 truncate px-1 py-2.5 text-[11px] font-medium transition-colors ${
-                  active ? "text-gray-100" : "text-gray-500 hover:text-gray-300"
+                  active ? "text-ink" : "text-ink-soft hover:text-ink"
                 }`}
               >
                 {t.label}
                 {t.id === "console" && runCount > 0 && !active && (
-                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-quest" />
                 )}
                 {active && (
-                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-emerald-500" />
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-quest" />
                 )}
               </button>
             );
@@ -842,13 +842,13 @@ export default function SolveClient() {
       {/* ── Mobile: thumb-reachable actions ──────────────────── */}
       {isMobile && (
         <footer
-          className="flex shrink-0 items-center gap-2 border-t border-white/10 bg-[#0e1119] px-3 py-2"
+          className="flex shrink-0 items-center gap-2 border-t border-ink/8 bg-paper/85 backdrop-blur-md px-3 py-2"
           style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
         >
           <button
             onClick={run}
             disabled={running || submitting}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-[#252540] px-3 py-2.5 text-sm font-medium text-gray-200 transition-colors hover:border-white/20 hover:text-gray-100 disabled:opacity-50"
+            className="btn btn-ink flex-1 size-sm px-3 py-2.5 text-xs"
           >
             {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
             Run
@@ -856,7 +856,7 @@ export default function SolveClient() {
           <button
             onClick={submit}
             disabled={running || submitting}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+            className="btn btn-quest flex-1 size-sm px-3 py-2.5 text-xs"
           >
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             Submit

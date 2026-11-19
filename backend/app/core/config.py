@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     JUDGE0_API_KEY29: str = ""
     JUDGE0_API_KEY30: str = ""
 
+    # Per-key daily budget ceiling for RapidAPI Judge0 calls. One code run can
+    # fire several Judge0 calls (one per test case), so cap total key usage to
+    # avoid exhausting a paid/free monthly quota. Set to 0 to disable the
+    # per-key budget guard (unlimited rotation). Default is conservative.
+    JUDGE0_DAILY_BUDGET_PER_KEY: int = 90
+
     # Gemini (hints + reviews use GEMINI_API_KEY; chat uses rotation below)
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.6-flash"

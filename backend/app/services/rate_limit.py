@@ -19,6 +19,8 @@ from collections.abc import Hashable
 
 from fastapi import HTTPException, status
 
+from app.core.config import settings
+
 # Every limiter registers itself so tests (and operators) can reset them all
 # without importing each call site.
 _registry: list["SlidingWindowLimiter"] = []
@@ -54,6 +56,27 @@ class SlidingWindowLimiter:
             hits.append(now)
             self._hits[bucket] = hits
 
+    def consumed(self, key: Hashable) -> int:
+        """Hits recorded for ``key`` inside the current window (no side effects)."""
+        now = time.monotonic()
+        bucket = str(key)
+        with self._lock:
+            hits = [t for t in self._hits.get(bucket, []) if now - t < self.window_seconds]
+            return len(hits)
+
+    def remaining(self, key: Hashable) -> int:
+        """Budget headroom left for ``key`` before the window limit is reached."""
+        return max(0, self.limit - self.consumed(key))
+
+    def record(self, key: Hashable) -> None:
+        """Record one hit for ``key`` without raising (used for key budgets)."""
+        now = time.monotonic()
+        bucket = str(key)
+        with self._lock:
+            hits = [t for t in self._hits.get(bucket, []) if now - t < self.window_seconds]
+            hits.append(now)
+            self._hits[bucket] = hits
+
     def reset(self, key: Hashable | None = None) -> None:
         """Drop recorded hits for one key, or all keys when ``key`` is None."""
         with self._lock:
@@ -81,3 +104,23 @@ JUDGE_SUBMIT_LIMITER = SlidingWindowLimiter(
     window_seconds=60.0,
     message="Too many submissions. Give it a few seconds before submitting again.",
 )
+
+# Per-key daily budget guard for RapidAPI Judge0. Each ``submit()`` call
+# consumes one request from a key, and one code submit can fire several calls
+# (one per test case), so cap total per-key usage to avoid exhausting a
+# monthly quota. When limit is 0 the guard is disabled (unlimited rotation).
+_JUDGE0_KEY_BUDGET_LIMITER: SlidingWindowLimiter | None = None
+if settings.JUDGE0_DAILY_BUDGET_PER_KEY > 0:
+    _JUDGE0_KEY_BUDGET_LIMITER = SlidingWindowLimiter(
+        limit=settings.JUDGE0_DAILY_BUDGET_PER_KEY,
+        window_seconds=86400.0,  # 24 h sliding window
+        message=(
+            "Judge0 API key budget exhausted for the day. "
+            "Add another RapidAPI key or raise JUDGE0_DAILY_BUDGET_PER_KEY."
+        ),
+    )
+
+
+def judge0_key_budget() -> SlidingWindowLimiter | None:
+    """The per-key daily budget limiter, or None when the guard is disabled."""
+    return _JUDGE0_KEY_BUDGET_LIMITER

@@ -1,6 +1,7 @@
 import httpx
 
 from app.core.config import settings
+from app.services.rate_limit import judge0_key_budget
 
 LANGUAGE_IDS = {
     "python": 71,
@@ -11,7 +12,9 @@ LANGUAGE_IDS = {
 MEMORY_LIMITS_KB = {
     "python": 256000,
     "cpp": 256000,
-    "java": 4096000,
+    # RapidAPI cloud Judge0 caps memory at 2048000 KB; the 4096000 value
+    # was for self-hosted Docker where MAX_MEMORY_LIMIT could be raised.
+    "java": 2048000,
 }
 
 STATUS_CODES = {
@@ -32,6 +35,11 @@ STATUS_CODES = {
 
 
 class Judge0Error(Exception):
+    pass
+
+
+class Judge0BudgetExhausted(Judge0Error):
+    """All configured Judge0 keys have exhausted their daily call budget."""
     pass
 
 
@@ -81,24 +89,48 @@ async def submit(source_code: str, language: str, stdin: str = "") -> dict:
     # No keys configured = self-hosted Judge0, single attempt, no headers.
     keys = settings.judge0_keys or [""]
 
+    # Drop keys that have exhausted their daily call budget so we never send a
+    # request RapidAPI will reject for quota, and never silently burn a spent
+    # key. If every key is spent, fail fast with a clear 429 instead of
+    # letting a loop drain the pool.
+    budget = judge0_key_budget()
+    usable_keys = [
+        key for key in keys if budget is None or budget.remaining(key) > 0
+    ]
+    if not usable_keys:
+        raise Judge0BudgetExhausted(
+            "Judge0 API key budget exhausted for the day. "
+            "Add another RapidAPI key or raise JUDGE0_DAILY_BUDGET_PER_KEY."
+        )
+
     last_error: Judge0Error | None = None
     async with httpx.AsyncClient(timeout=60) as client:
-        for position, api_key in enumerate(keys):
-            last_key = position == len(keys) - 1
+        for position, api_key in enumerate(usable_keys):
+            is_last_key = position == len(usable_keys) - 1
             try:
                 response = await client.post(
                     url, json=payload, params=params, headers=_headers(api_key)
                 )
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
+                # The request reached RapidAPI, so it counts against the key's
+                # quota regardless of the status code.
+                if budget is not None:
+                    budget.record(api_key)
                 last_error = Judge0Error(
                     f"Judge0 returned {exc.response.status_code}: {exc.response.text}"
                 )
-                if exc.response.status_code in _ROTATE_STATUSES and not last_key:
+                if exc.response.status_code in _ROTATE_STATUSES and not is_last_key:
                     continue  # key spent — try the next one
                 raise last_error from exc
             except httpx.RequestError as exc:
+                # Network failure — don't charge the key since we can't be sure
+                # the request landed.
                 raise Judge0Error(f"Could not reach Judge0: {exc}") from exc
+
+            # Successful call: charge it against this key's daily budget.
+            if budget is not None:
+                budget.record(api_key)
 
             result = response.json()
             status_id = result.get("status", {}).get("id")

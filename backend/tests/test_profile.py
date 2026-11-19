@@ -257,3 +257,51 @@ def test_profile_reports_real_violations_on_results_too():
         f"/api/v1/tests/{session_id}/results", headers=headers
     ).json()
     assert body["violations"] == 3
+
+
+def test_update_username_success():
+    headers, user_id = register_and_login()
+    res = client.patch(
+        "/api/v1/profile/me",
+        json={"username": "alice_dev"},
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["username"] == "alice_dev"
+
+    # The GET profile reflects the change.
+    body = client.get("/api/v1/profile", headers=headers).json()
+    assert body["user"]["username"] == "alice_dev"
+
+
+def test_update_username_rejects_taken_name():
+    headers_a, _ = register_and_login()
+    headers_b, _ = register_and_login()
+
+    # User A claims the name first.
+    res = client.patch(
+        "/api/v1/profile/me",
+        json={"username": "taken_name"},
+        headers=headers_a,
+    )
+    assert res.status_code == 200, res.text
+
+    # User B cannot take the same name.
+    res = client.patch(
+        "/api/v1/profile/me",
+        json={"username": "taken_name"},
+        headers=headers_b,
+    )
+    assert res.status_code == 409, res.text
+    assert "already taken" in res.json()["detail"]
+
+
+def test_update_username_rejects_invalid_names():
+    headers, _ = register_and_login()
+    for bad in ["a", "bad@name", "no spaces", "!!!", ""]:
+        res = client.patch(
+            "/api/v1/profile/me",
+            json={"username": bad},
+            headers=headers,
+        )
+        assert res.status_code == 422, f"{bad!r}: {res.text}"
