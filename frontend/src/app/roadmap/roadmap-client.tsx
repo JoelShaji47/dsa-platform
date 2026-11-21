@@ -482,6 +482,38 @@ function RecommenderTest() {
   );
 }
 
+function ServerErrorPanel({
+  title,
+  body,
+  onRetry,
+}: {
+  title: string;
+  body: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="lux-shell">
+      <div className="lux-core panel border-0 p-6">
+        <p className="lux-eyebrow fluid-ease">Connection</p>
+        <h2 className="mt-2 font-display text-lg font-medium tracking-tight text-ink">
+          {title}
+        </h2>
+        <p className="mt-1 max-w-md text-sm leading-relaxed text-ink-soft">{body}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn-island group fluid-ease mt-4 bg-ink text-sm text-paper"
+        >
+          Try again
+          <span className="btn-island-icon">
+            <ChevronRight size={14} strokeWidth={1.5} />
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function RoadmapClient() {
   const { user } = useAuth();
   const [roadmap, setRoadmap] = useState<RoadmapData | null>(null);
@@ -491,13 +523,17 @@ export default function RoadmapClient() {
   const [view, setView] = useState<"graph" | "list">("graph");
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<CustomRoadmap[] | null>(null);
+  const [roadmapError, setRoadmapError] = useState(false);
+  const [plansError, setPlansError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const countdown = useCountdownToMidnight();
 
   const loadPlans = useCallback(() => {
+    setPlansError(false);
     client
-      .get<CustomRoadmap[]>("/roadmaps/custom")
+      .get<CustomRoadmap[]>("/roadmaps/custom", { timeout: 12000 })
       .then((res) => setPlans(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setPlans([]));
+      .catch(() => setPlansError(true));
   }, []);
 
   useEffect(() => {
@@ -506,8 +542,10 @@ export default function RoadmapClient() {
 
   useEffect(() => {
     let cancelled = false;
+    setRoadmapError(false);
+    setLoading(true);
     client
-      .get<RoadmapData>("/roadmap")
+      .get<RoadmapData>("/roadmap", { timeout: 12000 })
       .then((res) => {
         if (!cancelled) {
           setRoadmap(res.data);
@@ -524,18 +562,26 @@ export default function RoadmapClient() {
           }
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setRoadmapError(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     client
-      .get<{ days: ActivityDay[] }>("/roadmap/activity", { params: { days: 365 } })
+      .get<{ days: ActivityDay[] }>("/roadmap/activity", {
+        params: { days: 365 },
+        timeout: 12000,
+      })
       .then((res) => {
         if (!cancelled) setActivity(res.data?.days || []);
       })
       .catch(() => {});
     client
-      .get<{ problem: { slug: string; title: string; opportunity_id?: string } | null }>("/roadmap/daily")
+      .get<{ problem: { slug: string; title: string; opportunity_id?: string } | null }>(
+        "/roadmap/daily",
+        { timeout: 12000 }
+      )
       .then((res) => {
         if (cancelled) return;
         if (res.data?.problem) {
@@ -584,7 +630,7 @@ export default function RoadmapClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const unlocked = useMemo(() => {
     const open = new Set<string>();
@@ -705,9 +751,24 @@ export default function RoadmapClient() {
                     Charting your path…
                   </div>
                 </div>
+              ) : roadmapError ? (
+                <ServerErrorPanel
+                  title="Can't reach the server"
+                  body="The API didn't respond. It may be waking up or temporarily offline — try again in a moment."
+                  onRetry={() => {
+                    setReloadKey((k) => k + 1);
+                    loadPlans();
+                  }}
+                />
               ) : (
               <>
-              {plans === null ? (
+              {plansError ? (
+                <ServerErrorPanel
+                  title="Couldn't load your plan"
+                  body="Your custom roadmaps aren't available right now. The rest of the page still works."
+                  onRetry={loadPlans}
+                />
+              ) : plans === null ? (
                 <div className="lux-shell">
                   <div className="lux-core panel flex items-center justify-center gap-2 border-0 py-14 text-sm text-ink-faint">
                     <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />

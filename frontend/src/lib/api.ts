@@ -3,7 +3,10 @@ import { onError } from "@/context/toast-context";
 
 const client = axios.create({
   baseURL: "/api/v1",
-  timeout: 30000,
+  // Fail fast so a sleeping/offline backend surfaces an error instead of
+  // leaving the UI waiting for minutes. Longer operations (Judge0 run/submit,
+  // tutor) pass an explicit per-request timeout.
+  timeout: 20000,
 });
 
 client.interceptors.request.use((config) => {
@@ -28,6 +31,7 @@ client.interceptors.response.use(
       !window.location.pathname.startsWith("/login")
     ) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       window.location.href = "/login";
       return Promise.reject(error);
     }
