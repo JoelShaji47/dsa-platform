@@ -121,9 +121,11 @@ def reveal_hint(
     try:
         content, _generated = tutor.get_or_create_hint(db, problem, level)
     except gemini.GeminiError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
-        )
+        # Level 1 is literally labelled "Nudge": a rejected/absent API key
+        # must not remove hints from the product. Serve a deterministic hint
+        # (never cached, so a real one replaces it once a key works).
+        logger.warning("hint generation unavailable for %s L%s: %s", slug, level, exc)
+        content = tutor.offline_hint(problem, level)
 
     tutor.record_hint_usage(db, current_user.id, problem.id, level)
     log_event(

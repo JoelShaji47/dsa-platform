@@ -457,7 +457,10 @@ export default function SolveClient() {
           },
           { timeout: 60000 }
         );
-        setCoachProvider(res.data.provider === "groq" ? "Groq" : "Gemini");
+        const p = res.data.provider;
+        setCoachProvider(
+          p === "groq" ? "Groq" : p === "local" ? "Built-in" : "Gemini"
+        );
         setCoachMessages([...next, { role: "assistant", content: res.data.reply }]);
       } catch (err) {
         const detail =

@@ -10,6 +10,32 @@ class GeminiError(Exception):
     pass
 
 
+INVALID_KEY_MESSAGE = (
+    "The AI service rejected its API key. Replace GEMINI_API_KEY with a valid "
+    "key and redeploy."
+)
+
+
+def _friendly_error(exc: Exception) -> str:
+    """Keep provider JSON out of user-facing 503 details."""
+    msg = str(exc).lower()
+    if any(
+        s in msg
+        for s in (
+            "unauthenticated",
+            "api key not valid",
+            "api_key_invalid",
+            "invalid api key",
+            "access_token_type_unsupported",
+            "permission_denied",
+            "401",
+            "403",
+        )
+    ):
+        return INVALID_KEY_MESSAGE
+    return f"Gemini request failed: {exc}"
+
+
 SYSTEM_INSTRUCTION = (
     "You are a DSA tutor for a gamified learning platform. "
     "Never reveal full solutions or complete working code. "
@@ -49,7 +75,7 @@ def generate_sync(
     except GeminiError:
         raise
     except Exception as exc:
-        raise GeminiError(f"Gemini request failed: {exc}") from exc
+        raise GeminiError(_friendly_error(exc)) from exc
 
 
 async def generate(prompt: str, system_instruction: str = SYSTEM_INSTRUCTION) -> str:
@@ -70,4 +96,4 @@ async def generate(prompt: str, system_instruction: str = SYSTEM_INSTRUCTION) ->
     except GeminiError:
         raise
     except Exception as exc:
-        raise GeminiError(f"Gemini request failed: {exc}") from exc
+        raise GeminiError(_friendly_error(exc)) from exc

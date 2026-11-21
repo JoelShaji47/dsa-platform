@@ -1,3 +1,4 @@
+import time
 import uuid
 
 import pytest
@@ -112,6 +113,112 @@ def test_llm_raises_when_all_fail(monkeypatch):
     with pytest.raises(LLMError):
         llm.generate_chat("sys", "hi")
     llm.reset_state()
+
+
+def test_llm_invalid_key_is_parked_and_falls_back_to_groq(monkeypatch):
+    from app.core.config import settings
+
+    _clear_numbered_keys(monkeypatch)
+    monkeypatch.setattr(settings, "GEMINI_API_KEYS", "bad-key-1111")
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "g-key")
+    llm.reset_state()
+    calls = []
+
+    def reject(key, system, prompt, *args):
+        calls.append(key)
+        raise Exception(
+            "401 UNAUTHENTICATED API key not valid "
+            "(ACCESS_TOKEN_TYPE_UNSUPPORTED)"
+        )
+
+    monkeypatch.setattr(llm, "_call_gemini", reject)
+    monkeypatch.setattr(llm, "_call_groq", lambda system, prompt, *args: "groq-reply")
+
+    text, provider = llm.generate_chat("sys", "hi")
+    assert text == "groq-reply" and provider == "groq"
+
+    # The rejected key is parked for hours, not the 60s transient cooldown.
+    remaining = llm._cooldown_until["bad-key-1111"] - time.monotonic()
+    assert remaining > llm.COOLDOWN_SECONDS
+
+    # Next request skips it entirely instead of burning another 401.
+    calls.clear()
+    llm.generate_chat("sys", "hi")
+    assert calls == []
+    llm.reset_state()
+
+
+def test_llm_invalid_key_error_is_user_facing(monkeypatch):
+    from app.core.config import settings
+
+    _clear_numbered_keys(monkeypatch)
+    monkeypatch.setattr(settings, "GEMINI_API_KEYS", "bad-key-2222")
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+    llm.reset_state()
+    monkeypatch.setattr(
+        llm,
+        "_call_gemini",
+        lambda *a, **k: (_ for _ in ()).throw(
+            Exception("401 UNAUTHENTICATED: API key not valid")
+        ),
+    )
+    with pytest.raises(LLMError) as err:
+        llm.generate_chat("sys", "hi")
+    msg = str(err.value)
+    assert "API key" in msg
+    assert "UNAUTHENTICATED" not in msg
+    assert "gRPC" not in msg
+    llm.reset_state()
+
+
+def test_coach_falls_back_to_builtin_nudge(monkeypatch):
+    from app.models.enums import Difficulty, Topic
+    from app.models.problem import Problem
+
+    p = Problem(
+        title="Two Sum",
+        description="Find two numbers that add to target.",
+        difficulty=Difficulty.EASY,
+        topic=Topic.ARRAY,
+        starter_code={},
+        test_cases=[],
+    )
+
+    def boom(*a, **k):
+        raise LLMError("All chat providers failed")
+
+    monkeypatch.setattr(llm, "generate_chat", boom)
+    reply, provider = tutor_svc.chat_with_coach(
+        p,
+        language="python",
+        code="def twoSum(): pass",
+        last_result={"status": "WRONG_ANSWER", "passed": 1, "total": 3},
+        history=[],
+        message="nudge me",
+    )
+    assert provider == "local"
+    assert "Built-in nudge" in reply
+    assert "1/3" in reply
+    # Never leaks a solution — just a direction and a question.
+    assert "def " not in reply
+
+
+def test_hint_falls_back_when_provider_key_is_rejected(monkeypatch):
+    from app.services import gemini
+
+    headers = register_and_login()
+
+    def reject(*a, **k):
+        raise gemini.GeminiError(gemini.INVALID_KEY_MESSAGE)
+
+    monkeypatch.setattr("app.services.tutor.gemini.generate_sync", reject)
+    res = client.post("/api/v1/problems/two-sum/hints/1", headers=headers)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["label"] == "Nudge"
+    assert body["content"]
 
 
 def test_assistant_endpoint_success_and_validation(monkeypatch):

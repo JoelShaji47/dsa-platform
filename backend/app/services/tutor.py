@@ -1,4 +1,5 @@
 import json
+import logging
 
 from sqlalchemy.orm import Session
 
@@ -6,6 +7,8 @@ from app.models.enums import SubmissionStatus
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.services import gemini
+
+logger = logging.getLogger(__name__)
 
 HINT_LEVELS = 3
 
@@ -241,6 +244,122 @@ def build_coach_prompt(
     )
 
 
+TOPIC_DIRECTION = {
+    "ARRAY": "start from brute force, then ask what repeated work you can remove — a hash map, two pointers, or prefix sums usually remove it.",
+    "STRING": "track character counts (or a sliding window) as you scan once; most string tasks collapse to that single pass.",
+    "LINKED_LIST": "draw the nodes on paper and check your pointer bookkeeping: which pointer must move first, and what points where afterwards?",
+    "STACK": "ask what you need to remember about earlier elements — a stack (often monotonic) is usually that memory.",
+    "QUEUE": "think in levels or windows: a queue or deque is what lets you process items in arrival order.",
+    "TREE": "pick a traversal first — recursion/DFS for per-subtree answers, BFS levels for anything depth-related.",
+    "GRAPH": "model it as an adjacency list plus a visited set; almost every graph task is DFS/BFS and that bookkeeping.",
+    "DP": "say three things before coding: what dp[i] means, the transition, and the base case.",
+    "SQL": "decide which rows you need before aggregating: filter in a subquery/CTE, then join and group.",
+}
+
+STATUS_DIRECTION = {
+    "TLE": "the judge ran out of time, so the algorithm is too slow — look for a nested loop over the whole input.",
+    "RUNTIME_ERROR": "read the last line of stderr — usually an index out of range or a null/None dereference on an edge case.",
+    "COMPILATION_ERROR": "fix the first compiler error only, then rebuild; later errors are usually fallout.",
+    "WRONG_ANSWER": "try the smallest failing input, then empty input, one element, duplicates, and negatives.",
+}
+
+STATUS_QUESTION = {
+    "WRONG_ANSWER": "For the smallest failing case, what does your code compute step by step, and where does that first differ from the statement?",
+    "TLE": "Which element does your code revisit the most — and what could you cache or skip to avoid revisiting it?",
+    "RUNTIME_ERROR": "Which variable could be out of range or unset on the input that crashed?",
+    "COMPILATION_ERROR": "What is the first error the compiler reports, in your own words?",
+}
+
+
+def offline_hint(problem: Problem, level: int) -> str:
+    """Deterministic hint used when the LLM provider is unavailable.
+
+    Level-appropriate, built only from the problem's topic so it can never leak
+    a solution. Deliberately NOT cached — once a working key is configured the
+    real generated hint should be the one stored in ``problem_hints``.
+    """
+    topic = getattr(problem.topic, "value", str(problem.topic)).replace("_", " ").lower()
+    direction = TOPIC_DIRECTION.get(
+        getattr(problem.topic, "value", str(problem.topic)),
+        "write the brute force first, then remove the repeated work.",
+    )
+    if level <= 1:
+        return (
+            f"**Nudge:** for this {topic} problem, {direction}\n\n"
+            "Before coding, work the smallest example by hand and write down "
+            "each step you took."
+        )
+    if level == 2:
+        return (
+            f"**Approach:** for this {topic} problem, {direction}\n\n"
+            "Write the steps in order, then estimate time and space for each. "
+            "The step that dominates is the one worth redesigning."
+        )
+    return (
+        "**Sketch:**\n"
+        "1. Handle the empty and single-element inputs first.\n"
+        f"2. {direction.capitalize()}\n"
+        "3. Walk the input once, keeping only the state the answer needs.\n"
+        "4. Return the answer after the walk.\n\n"
+        "Turn that outline into code yourself — the exact logic is what you're "
+        "practising here."
+    )
+
+
+def offline_coach_reply(
+    problem: Problem,
+    language: str,
+    last_result: dict | None,
+    message: str,
+) -> str:
+    """A deterministic Coach reply used when every LLM provider is down.
+
+    It is built only from problem metadata and the judge summary, so it can
+    never leak a solution and always works offline. The UI labels it as a
+    built-in nudge so it is not mistaken for a generated answer.
+    """
+    topic = getattr(problem.topic, "value", str(problem.topic))
+    status = str((last_result or {}).get("status", "")).upper()
+    passed = (last_result or {}).get("passed")
+    total = (last_result or {}).get("total")
+    failing = str((last_result or {}).get("failing") or "").strip()
+
+    lines = [
+        "**Built-in nudge** — the live AI coach is unavailable right now, so "
+        "here is a concrete hint instead.",
+        "",
+    ]
+    if last_result:
+        tally = f" — {passed}/{total} cases passed" if passed is not None and total else ""
+        lines.append(f"**Where you stand:** {status.replace('_', ' ') or 'unknown'}{tally}.")
+    else:
+        lines.append(
+            "**Where you stand:** nothing run yet — run the visible tests so "
+            "the failure is concrete."
+        )
+
+    status_line = STATUS_DIRECTION.get(status)
+    if status_line:
+        lines.append(f"- **Likely cause:** {status_line}")
+    if failing:
+        first = failing.splitlines()[0][:200]
+        lines.append(f"- **Judge says:** `{first}`")
+
+    direction = TOPIC_DIRECTION.get(
+        topic, "write the brute force first, then remove the repeated work."
+    )
+    lines.append(f"- **Direction for {topic.replace('_', ' ').lower()}:** {direction}")
+    lines.append("")
+    lines.append(
+        "**Guiding question:** "
+        + STATUS_QUESTION.get(
+            status,
+            "what is the one invariant your solution must keep true after every step?",
+        )
+    )
+    return "\n".join(lines)
+
+
 def chat_with_coach(
     problem: Problem,
     language: str,
@@ -252,7 +371,14 @@ def chat_with_coach(
     from app.services import llm
 
     prompt = build_coach_prompt(problem, language, code, last_result, history, message)
-    return llm.generate_chat(COACH_SYSTEM, prompt)
+    try:
+        return llm.generate_chat(COACH_SYSTEM, prompt)
+    except llm.LLMError as exc:
+        # The coach is a core part of solving here, so a dead provider must not
+        # turn into a dead panel. Fall back to a deterministic nudge and label
+        # it "local" so the UI can say it wasn't generated.
+        logger.warning("coach LLM unavailable, using built-in nudge: %s", exc)
+        return offline_coach_reply(problem, language, last_result, message), "local"
 
 
 ANALYZE_SYSTEM = (
