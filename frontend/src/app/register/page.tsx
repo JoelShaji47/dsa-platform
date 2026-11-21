@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import axios from "axios";
 import { Brand } from "@/components/shell";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/context/auth-context";
 
 export default function RegisterPage() {
@@ -102,14 +103,12 @@ export default function RegisterPage() {
             >
               Password
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               required
               minLength={8}
               value={form.password}
               onChange={update("password")}
-              className="field"
               placeholder="At least 8 characters"
               autoComplete="new-password"
             />

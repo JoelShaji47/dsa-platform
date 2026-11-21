@@ -49,12 +49,6 @@ function NavLink({
         active ? "text-ink" : "text-ink-soft hover:text-ink"
       )}
     >
-      <span
-        className={cn(
-          "absolute -left-0.5 h-1.5 w-1.5 rotate-45 transition-opacity duration-150",
-          active ? "bg-gold opacity-100" : "opacity-0"
-        )}
-      />
       {children}
     </Link>
   );
@@ -84,12 +78,6 @@ function ProblemsDropdown({ active }: { active: boolean }) {
           isProblems ? "text-ink" : "text-ink-soft hover:text-ink"
         )}
       >
-        <span
-          className={cn(
-            "absolute -left-0.5 h-1.5 w-1.5 rotate-45 transition-opacity duration-150",
-            isProblems ? "bg-gold opacity-100" : "opacity-0"
-          )}
-        />
         Problems
         <ChevronDown
           size={14}
@@ -130,6 +118,68 @@ function ProblemsDropdown({ active }: { active: boolean }) {
   );
 }
 
+function RoadmapDropdown({ active }: { active: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const isRoadmap = active || pathname.startsWith("/roadmap");
+  const onOverview = pathname === "/roadmap";
+  const onCustom = pathname.startsWith("/roadmap/custom");
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150",
+          isRoadmap ? "text-ink" : "text-ink-soft hover:text-ink"
+        )}
+      >
+        Roadmap
+        <ChevronDown
+          size={14}
+          className={cn("transition-transform duration-150", open && "rotate-180")}
+        />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[190px] rounded-lg border border-ink/10 bg-paper shadow-card">
+          <Link
+            href="/roadmap"
+            onClick={() => setOpen(false)}
+            className={cn(
+              "flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-ink/5",
+              onOverview ? "bg-ink/5 text-ink" : "text-ink-soft"
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+            Overview
+          </Link>
+          <Link
+            href="/roadmap/custom"
+            onClick={() => setOpen(false)}
+            className={cn(
+              "flex items-center gap-2 rounded-b-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-ink/5",
+              onCustom ? "bg-ink/5 text-ink" : "text-ink-soft"
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-quest" />
+            Custom paths
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TopBar({
   active,
   children,
@@ -160,9 +210,7 @@ export function TopBar({
           <NavLink href="/campaign" active={current === "dashboard"}>
             Campaign
           </NavLink>
-          <NavLink href="/roadmap" active={current === "roadmap"}>
-            Roadmap
-          </NavLink>
+          <RoadmapDropdown active={current === "roadmap"} />
           <ProblemsDropdown active={current === "problems"} />
           <NavLink href="/leagues" active={current === "leagues"}>
             Leagues

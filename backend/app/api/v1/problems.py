@@ -1,5 +1,7 @@
 from typing import Literal
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -41,6 +43,8 @@ from app.services.tutor import has_used_hints
 
 router = APIRouter(prefix="/problems", tags=["problems"])
 custom_router = APIRouter(prefix="/custom-run", tags=["custom-run"])
+
+logger = logging.getLogger(__name__)
 
 
 def _solved_problem_ids(db: Session, user_id) -> set:
@@ -500,6 +504,18 @@ async def submit_solution(
         solved=result.status == SubmissionStatus.ACCEPTED,
         hinted=has_used_hints(db, current_user.id, problem.id),
     )
+
+    # Custom roadmaps: a solve ticks the matching step(s) automatically, so the
+    # learner's own plan tracks them without a manual checkbox. Fail-safe — a
+    # roadmap error must never fail a submission that is already committed.
+    if result.status == SubmissionStatus.ACCEPTED:
+        from app.services.custom_roadmaps import tick_steps_for_problem
+
+        try:
+            tick_steps_for_problem(db, current_user.id, problem.slug)
+        except Exception:
+            logger.exception("custom roadmap auto-tick failed for %s", problem.slug)
+            db.rollback()
 
     log_event(
         db,

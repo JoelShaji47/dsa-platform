@@ -52,6 +52,25 @@ def test_ticks_and_today():
     assert all(s["day_index"] == 1 for s in today["steps"])
 
 
+def test_solved_problem_auto_ticks_matching_steps():
+    from app.db.session import SessionLocal
+    from app.services.custom_roadmaps import tick_steps_for_problem
+
+    headers, user_id = make_test_user()
+    rm = client.post("/api/v1/roadmaps/custom", json=PAYLOAD, headers=headers).json()
+    slug = rm["steps"][0]["problem_slug"]
+
+    with SessionLocal() as db:
+        assert tick_steps_for_problem(db, user_id, slug) >= 1
+
+    full = client.get(f"/api/v1/roadmaps/custom/{rm['id']}", headers=headers).json()
+    assert full["me_done"] >= 1
+
+    # Idempotent: re-solving the same problem adds no duplicate ticks.
+    with SessionLocal() as db:
+        assert tick_steps_for_problem(db, user_id, slug) == 0
+
+
 def test_friend_join_shares_plan_with_separate_ticks():
     headers_a, _ = make_test_user()
     headers_b, _ = make_test_user()

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Brand } from "@/components/shell";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/context/auth-context";
 
 export default function LoginPage() {
@@ -69,13 +70,11 @@ export default function LoginPage() {
             >
               Password
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="field"
               placeholder="Your password"
               autoComplete="current-password"
             />

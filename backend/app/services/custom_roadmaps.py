@@ -166,3 +166,65 @@ def default_title(level: str, goal: str, total_days: int, company: str | None) -
     if goal == "company" and company:
         base = f"{company.strip()} target"
     return f"{base} · {total_days}d · {level.replace('_', ' ')}"
+
+
+def tick_steps_for_problem(db: Session, user_id, problem_slug: str) -> int:
+    """Auto-tick every custom-roadmap step matching a freshly solved problem.
+
+    Only roadmaps the learner owns or has joined are touched, so a shared plan
+    tracks each member independently. Callers wrap this in a fail-safe block:
+    a roadmap bug must never break an already-committed submission.
+    """
+    from app.models.custom_roadmap import (
+        CustomRoadmap,
+        CustomRoadmapMember,
+        CustomRoadmapStep,
+        CustomRoadmapTick,
+    )
+
+    owned_ids = [
+        row[0]
+        for row in db.query(CustomRoadmap.id)
+        .filter(CustomRoadmap.owner_id == user_id)
+        .all()
+    ]
+    member_ids = [
+        row[0]
+        for row in db.query(CustomRoadmapMember.roadmap_id)
+        .filter(CustomRoadmapMember.user_id == user_id)
+        .all()
+    ]
+    roadmap_ids = list({*owned_ids, *member_ids})
+    if not roadmap_ids:
+        return 0
+
+    step_ids = [
+        row[0]
+        for row in db.query(CustomRoadmapStep.id)
+        .filter(
+            CustomRoadmapStep.roadmap_id.in_(roadmap_ids),
+            CustomRoadmapStep.problem_slug == problem_slug,
+        )
+        .all()
+    ]
+    if not step_ids:
+        return 0
+
+    done = {
+        row[0]
+        for row in db.query(CustomRoadmapTick.step_id)
+        .filter(
+            CustomRoadmapTick.user_id == user_id,
+            CustomRoadmapTick.step_id.in_(step_ids),
+        )
+        .all()
+    }
+    added = 0
+    for step_id in step_ids:
+        if step_id in done:
+            continue
+        db.add(CustomRoadmapTick(step_id=step_id, user_id=user_id))
+        added += 1
+    if added:
+        db.commit()
+    return added
